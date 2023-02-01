@@ -1,0 +1,58 @@
+<div class="ui-shell">
+  <a class="ui-skip-link" href="#ui-main" (click)="skipToMain($event)">{{ 'nav.skipToContent' | translate }}</a>
+  <mat-toolbar color="primary" class="ui-toolbar">
+    <a class="ui-brand" [routerLink]="['/browse']"><mat-icon aria-hidden="true">account_tree</mat-icon> {{ title() }}</a>
+    <nav class="ui-nav" [attr.aria-label]="'nav.main' | translate">
+      <a mat-button routerLink="/browse" routerLinkActive="ui-active"><mat-icon aria-hidden="true">folder_open</mat-icon> {{ 'nav.browse' | translate }}</a>
+      <a mat-button routerLink="/communities" routerLinkActive="ui-active"><mat-icon aria-hidden="true">corporate_fare</mat-icon> {{ 'nav.communities' | translate }}</a>
+      <a mat-button routerLink="/profiles" routerLinkActive="ui-active"><mat-icon aria-hidden="true">badge</mat-icon> {{ 'nav.profiles' | translate }}</a>
+      <a mat-button routerLink="/topologies" routerLinkActive="ui-active"><mat-icon aria-hidden="true">schema</mat-icon> {{ 'nav.topologies' | translate }}</a>
+      <a mat-button routerLink="/harvest" routerLinkActive="ui-active"><mat-icon aria-hidden="true">cloud_download</mat-icon> {{ 'nav.harvest' | translate }}</a>
+      <a mat-button routerLink="/search" routerLinkActive="ui-active"><mat-icon aria-hidden="true">search</mat-icon> {{ 'nav.search' | translate }}</a>
+      <a mat-button [href]="apiDocs()" target="_blank" rel="noopener"><mat-icon aria-hidden="true">api</mat-icon> {{ 'nav.api' | translate }}</a>
+      <a mat-button routerLink="/about" routerLinkActive="ui-active"><mat-icon aria-hidden="true">info</mat-icon> {{ 'nav.about' | translate }}</a>
+    </nav>
+    <div class="ui-account">
+      @if (i18n.locales().length > 1) {
+        <button
+          mat-button
+          type="button"
+          class="ui-language"
+          [matMenuTriggerFor]="languages"
+          [attr.aria-label]="'nav.language' | translate: { language: i18n.current().name }"
+        >
+          <mat-icon aria-hidden="true">translate</mat-icon> <span [attr.lang]="i18n.current().tag">{{ i18n.current().name }}</span>
+        </button>
+        <mat-menu #languages="matMenu">
+          @for (locale of i18n.locales(); track locale.tag) {
+            <button
+              mat-menu-item
+              type="button"
+              [attr.lang]="locale.tag"
+              [attr.dir]="locale.direction"
+              [attr.aria-current]="locale.tag === i18n.locale() ? 'true' : null"
+              (click)="chooseLanguage(locale.tag)"
+            >
+              @if (locale.tag === i18n.locale()) {
+                <mat-icon aria-hidden="true">check</mat-icon>
+              }
+              {{ locale.name }}
+            </button>
+          }
+        </mat-menu>
+      }
+      @if (agent(); as name) {
+        <span class="ui-agent" [title]="name"><mat-icon aria-hidden="true">person</mat-icon> {{ shortAgent() }}</span>
+        <button mat-button type="button" (click)="signOut()">{{ 'auth.signOut' | translate }}</button>
+      } @else if (auth.kind() !== 'none') {
+        <button mat-button type="button" (click)="signIn()"><mat-icon aria-hidden="true">login</mat-icon> {{ 'auth.signIn' | translate }}</button>
+      }
+    </div>
+  </mat-toolbar>
+  <main id="ui-main" class="ui-content" tabindex="-1">
+    <router-outlet />
+  </main>
+  <footer class="ui-footer">
+    <span>&#169; Axiom Informatics Technology LLC</span>
+  </footer>
+</div>

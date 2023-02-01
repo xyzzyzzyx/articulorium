@@ -1,0 +1,60 @@
+# Override: run the services that support it as GraalVM native images.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.native.yml up --build
+#
+# Every Articulorium service supports native images. Native builds take several minutes per
+# service and each needs about 10 GB of memory (NATIVE_MAX_HEAP, default 8g, plus overhead).
+# Compose builds all images in parallel, which exhausts Docker's memory, so build them one at a
+# time first (the native ones listed below, then harvest, discovery and discovery-ui, which stay
+# JVM and Node.js images; ai only with --profile ai), then start the stack:
+#
+#   bash:        for s in gateway platform transform index triplestore topology oai service \
+#                         harvest discovery discovery-ui; do
+#                  docker compose -f docker-compose.yml -f docker-compose.native.yml build $s; done
+#   PowerShell:  foreach ($s in 'gateway','platform','transform','index','triplestore','topology','oai','service',
+#                               'harvest','discovery','discovery-ui') {
+#                  docker compose -f docker-compose.yml -f docker-compose.native.yml build $s }
+#
+#   docker compose -f docker-compose.yml -f docker-compose.native.yml up
+
+services:
+
+  gateway:
+    image: articulorium/gateway:native
+    build:
+      dockerfile: Dockerfile.native
+
+  platform:
+    image: articulorium/platform:native
+    build:
+      dockerfile: Dockerfile.native
+
+  index:
+    image: articulorium/index:native
+    build:
+      dockerfile: Dockerfile.native
+
+  triplestore:
+    image: articulorium/triplestore:native
+    build:
+      dockerfile: Dockerfile.native
+
+  transform:
+    image: articulorium/transform:native
+    build:
+      dockerfile: Dockerfile.native
+
+  topology:
+    image: articulorium/topology:native
+    build:
+      dockerfile: Dockerfile.native
+
+  oai:
+    image: articulorium/oai:native
+    build:
+      dockerfile: Dockerfile.native
+
+  service:
+    image: articulorium/service:native
+    build:
+      dockerfile: Dockerfile.native

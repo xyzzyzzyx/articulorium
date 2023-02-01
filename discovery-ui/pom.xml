@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Discovery UI module: the public discovery and presentation layer, a server-rendered Angular
+  application (Angular SSR on Node.js) with Angular Material and Mirador.
+
+  The build installs Node and npm locally (into the repository's node/ directory) and runs
+  "npm install", "npm run lint", "npm run i18n:check", "npm run build" and, in the test phase,
+  "npm test". The application runs as its own Node.js image (discovery-ui/Dockerfile), so this
+  module packages nothing. Skip the npm steps with -Dskip.npm and the Node download with
+  -Dskip.installnodenpm.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.articulorium</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>discovery-ui</artifactId>
+  <packaging>pom</packaging>
+
+  <name>Articulorium Discovery UI Module</name>
+  <description>Server-rendered discovery and presentation layer (Angular SSR, Angular Material, Mirador).</description>
+
+  <properties>
+    <!-- "mvn -DskipTests" also skips the Angular unit tests -->
+    <skipTests>false</skipTests>
+    <skip.ui.tests>${skipTests}</skip.ui.tests>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <configuration>
+          <nodeVersion>${node.version}</nodeVersion>
+          <npmVersion>${npm.version}</npmVersion>
+          <installDirectory>${project.basedir}/..</installDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>install node and npm</id>
+            <goals>
+              <goal>install-node-and-npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+          </execution>
+          <execution>
+            <id>npm install</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>install</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm run lint</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>run lint</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <!-- every shipped locale has a complete translation (scripts/check-i18n.mjs) -->
+            <id>npm run i18n:check</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>run i18n:check</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm run build</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>run build</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm test</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>test</phase>
+            <configuration>
+              <arguments>test</arguments>
+              <skip>${skip.ui.tests}</skip>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- with -Dskip.npm nothing is built, so there is nothing to test either -->
+    <profile>
+      <id>skip-npm</id>
+      <activation>
+        <property>
+          <name>skip.npm</name>
+        </property>
+      </activation>
+      <properties>
+        <skip.ui.tests>true</skip.ui.tests>
+      </properties>
+    </profile>
+  </profiles>
+
+</project>

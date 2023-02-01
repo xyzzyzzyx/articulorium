@@ -1,0 +1,34 @@
+# Root authorizations for deployments that identify agents with OpenID Connect access tokens
+# (articulorium.webac.root-acl=classpath:webac/root-acl-oidc.ttl).
+#
+#   everyone                                read
+#   role or group "editors"                 read, write (create, change, delete)
+#   role or group "administrators"          read, write, control (change access control lists)
+#
+# Roles and groups are matched by name: a token whose group claims (Keycloak realm roles by
+# default, articulorium.webac.oidc.group-claims) contain "editors" puts the agent in the group
+# <info:oidc/group/editors>. The Keycloak realm of docker compose defines both roles.
+
+@prefix acl: <http://www.w3.org/ns/auth/acl#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+<#public>
+    a acl:Authorization ;
+    acl:agentClass foaf:Agent ;
+    acl:accessTo <> ;
+    acl:default <> ;
+    acl:mode acl:Read .
+
+<#editors>
+    a acl:Authorization ;
+    acl:agentGroup <info:oidc/group/editors> ;
+    acl:accessTo <> ;
+    acl:default <> ;
+    acl:mode acl:Read, acl:Write .
+
+<#administrators>
+    a acl:Authorization ;
+    acl:agentGroup <info:oidc/group/administrators> ;
+    acl:accessTo <> ;
+    acl:default <> ;
+    acl:mode acl:Read, acl:Write, acl:Control .

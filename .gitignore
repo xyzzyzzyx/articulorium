@@ -1,0 +1,59 @@
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+.project
+.classpath
+.factorypath
+
+.settings/
+.apt_generated/
+.apt_generated_tests/
+
+*.mv.db
+*.trace.db
+
+target/
+
+temp/
+# local runtime data
+data/
+cache/
+**/data/
+**/cache/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Angular build (ui module) and the locally installed Node used by the Maven build
+node/
+node_modules/
+dist/
+.angular/
+
+# Cypress run output
+e2e/cypress/screenshots/
+e2e/cypress/videos/
+e2e/cypress/downloads/

@@ -1,0 +1,202 @@
+{
+  "id": "postcards",
+  "name": "Postcards",
+  "description": "A postcard collection; each postcard has a front and a back image.",
+  "builtIn": true,
+  "root": {
+    "key": "postcards",
+    "label": "Postcard collection",
+    "pcdmType": "Collection",
+    "types": [
+      "http://purl.org/dc/dcmitype/Collection"
+    ],
+    "metadata": [
+      {
+        "predicate": "http://purl.org/dc/terms/title",
+        "label": "Title",
+        "required": true,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/creator",
+        "label": "Collector",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/description",
+        "label": "Description",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/rights",
+        "label": "Rights",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      }
+    ],
+    "files": [],
+    "children": [
+      {
+        "min": 0,
+        "max": -1,
+        "initial": 3,
+        "slugPattern": "postcard-{n}",
+        "node": {
+          "key": "postcard",
+          "label": "Postcard",
+          "pcdmType": "Object",
+          "types": [
+            "http://purl.org/dc/dcmitype/StillImage"
+          ],
+          "metadata": [
+            {
+              "predicate": "http://purl.org/dc/terms/title",
+              "label": "Title",
+              "required": true,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            },
+            {
+              "predicate": "http://purl.org/dc/terms/date",
+              "label": "Date",
+              "required": false,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            },
+            {
+              "predicate": "http://purl.org/dc/terms/spatial",
+              "label": "Place depicted",
+              "required": false,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            },
+            {
+              "predicate": "http://purl.org/dc/terms/publisher",
+              "label": "Publisher",
+              "required": false,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            },
+            {
+              "predicate": "http://purl.org/dc/terms/subject",
+              "label": "Subject",
+              "required": false,
+              "repeatable": true,
+              "defaultValue": null,
+              "datatype": null
+            }
+          ],
+          "files": [],
+          "children": [
+            {
+              "min": 1,
+              "max": 1,
+              "initial": 1,
+              "slugPattern": "front",
+              "node": {
+                "key": "front",
+                "label": "Front",
+                "pcdmType": "Object",
+                "types": [],
+                "metadata": [
+                  {
+                    "predicate": "http://purl.org/dc/terms/title",
+                    "label": "Title",
+                    "required": true,
+                    "repeatable": false,
+                    "defaultValue": null,
+                    "datatype": null
+                  }
+                ],
+                "files": [
+                  {
+                    "use": "http://pcdm.org/use#OriginalFile",
+                    "label": "Front image",
+                    "mediaTypes": [
+                      "image/tiff",
+                      "image/jp2",
+                      "image/jpeg",
+                      "image/png"
+                    ]
+                  },
+                  {
+                    "use": "http://pcdm.org/use#ServiceFile",
+                    "label": "Access image",
+                    "mediaTypes": [
+                      "image/jpeg"
+                    ]
+                  }
+                ],
+                "children": []
+              }
+            },
+            {
+              "min": 0,
+              "max": 1,
+              "initial": 1,
+              "slugPattern": "back",
+              "node": {
+                "key": "back",
+                "label": "Back",
+                "pcdmType": "Object",
+                "types": [],
+                "metadata": [
+                  {
+                    "predicate": "http://purl.org/dc/terms/title",
+                    "label": "Title",
+                    "required": true,
+                    "repeatable": false,
+                    "defaultValue": null,
+                    "datatype": null
+                  },
+                  {
+                    "predicate": "http://purl.org/dc/terms/description",
+                    "label": "Message transcription",
+                    "required": false,
+                    "repeatable": false,
+                    "defaultValue": null,
+                    "datatype": null
+                  }
+                ],
+                "files": [
+                  {
+                    "use": "http://pcdm.org/use#OriginalFile",
+                    "label": "Back image",
+                    "mediaTypes": [
+                      "image/tiff",
+                      "image/jp2",
+                      "image/jpeg",
+                      "image/png"
+                    ]
+                  },
+                  {
+                    "use": "http://pcdm.org/use#Transcript",
+                    "label": "Transcription",
+                    "mediaTypes": [
+                      "text/plain"
+                    ]
+                  }
+                ],
+                "children": []
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "site": {
+    "description": "Explorez les collections numérisées : livres, journaux, manuscrits, enregistrements et plus encore."
+  },
+  "nav": {
+    "skip": "Aller au contenu",
+    "landmark": "Navigation principale",
+    "home": "Accueil",
+    "browse": "Parcourir",
+    "languageMenu": "Langue : {{language}}",
+    "footer": "Pied de page"
+  },
+  "footer": {
+    "iiif": "Les images, enregistrements et documents sont partagés via IIIF."
+  },
+  "search": {
+    "landmark": "Rechercher dans les collections",
+    "label": "Rechercher",
+    "submit": "Rechercher",
+    "refine": "Affiner les résultats",
+    "filters": "Afficher uniquement",
+    "selected": "(sélectionné)",
+    "loading": "Recherche en cours…",
+    "sort": "Trier par",
+    "active": "Filtres actifs",
+    "remove": "Retirer {{value}}",
+    "clear": "Retirer tous les filtres",
+    "empty": "Aucun résultat pour cette recherche. Essayez d’autres mots ou moins de filtres.",
+    "pagination": "Pages de résultats",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "pageOf": "Page {{page}} sur {{pages}}",
+    "titleFor": "Résultats pour « {{query}} »",
+    "browse": "Parcourir les collections",
+    "results": "Résultats",
+    "count": {
+      "one": "{{formatted}} résultat",
+      "many": "{{formatted}} de résultats",
+      "other": "{{formatted}} résultats"
+    }
+  },
+  "home": {
+    "search": "Recherche",
+    "collections": "Collections",
+    "recent": "Ajouts récents",
+    "browseAll": "Tout parcourir"
+  },
+  "kinds": {
+    "community": "Communauté",
+    "collection": "Collection",
+    "object": "Objet",
+    "resource": "Ressource"
+  },
+  "types": {
+    "book": "Livre",
+    "issue": "Numéro",
+    "article": "Article",
+    "journal": "Revue",
+    "newspaper": "Journal",
+    "manuscript": "Manuscrit",
+    "audiovisual": "Enregistrement audiovisuel"
+  },
+  "topologies": {
+    "book": "Livre",
+    "newspaper": "Journal",
+    "journal": "Revue",
+    "postcards": "Cartes postales",
+    "manuscript": "Manuscrit",
+    "audiovisual": "Enregistrement audiovisuel"
+  },
+  "facets": {
+    "type": "Type",
+    "topology": "Format",
+    "creator": "Auteur",
+    "subject": "Sujet",
+    "language": "Langue",
+    "year": "Date"
+  },
+  "filters": {
+    "digitized": "Objets numérisés"
+  },
+  "sorts": {
+    "relevance": "Pertinence",
+    "title": "Titre",
+    "newest": "Modifiés récemment",
+    "date": "Date"
+  },
+  "fields": {
+    "title": "Titre",
+    "description": "Description",
+    "creator": "Auteur",
+    "contributor": "Contributeur",
+    "date": "Date",
+    "publisher": "Éditeur",
+    "subject": "Sujet",
+    "type": "Type",
+    "language": "Langue",
+    "format": "Format",
+    "extent": "Étendue",
+    "identifier": "Identifiant",
+    "rights": "Droits",
+    "license": "Licence",
+    "source": "Source",
+    "isPartOf": "Fait partie de",
+    "bibliographicCitation": "Citation"
+  },
+  "item": {
+    "loading": "Chargement…",
+    "breadcrumb": "Vous êtes ici",
+    "viewer": "Visionneuse",
+    "details": "Détails",
+    "links": "Liens",
+    "iiifManifest": "Manifeste IIIF",
+    "iiifCollection": "Collection IIIF",
+    "repository": "Voir dans le dépôt",
+    "communityMembers": "Dans cette communauté",
+    "collectionMembers": "Dans cette collection"
+  },
+  "viewer": {
+    "label": "Visionneuse : {{title}}",
+    "preview": "Aperçu de {{title}}",
+    "loading": "Chargement de la visionneuse…",
+    "failed": "La visionneuse n’a pas pu être chargée.",
+    "document": "Document : {{title}}",
+    "openPdf": "Ouvrir le PDF"
+  },
+  "errors": {
+    "unavailableTitle": "Temporairement indisponible",
+    "unavailable": "Les collections sont momentanément inaccessibles. Veuillez réessayer dans quelques minutes.",
+    "search": "La recherche est momentanément indisponible. Veuillez réessayer dans quelques minutes.",
+    "badSearch": "Cette recherche ne peut pas être effectuée. Essayez des termes plus courts ou moins de filtres.",
+    "item": "Cet objet ne peut pas être affiché pour le moment. Veuillez réessayer dans quelques minutes.",
+    "notFoundTitle": "Introuvable",
+    "notFound": "Cet objet n’existe pas ou n’est pas public.",
+    "pageNotFound": "Il n’y a aucune page à cette adresse."
+  }
+}

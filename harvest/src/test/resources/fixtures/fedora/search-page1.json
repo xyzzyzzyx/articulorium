@@ -1,0 +1,39 @@
+{
+ "pagination": {
+  "maxResults": 3,
+  "offset": 0,
+  "totalResults": 5,
+  "pageNumber": 0,
+  "numberOfPages": 2
+ },
+ "items": [
+  {
+   "fedora_id": "http://fedora.test/rest/",
+   "modified": "2026-09-30T10:00:00Z",
+   "rdf_type": [
+    "http://www.w3.org/ns/ldp#RDFSource"
+   ]
+  },
+  {
+   "fedora_id": "http://fedora.test/rest/books/moby",
+   "created": "2026-09-01T10:00:00Z",
+   "modified": "2026-10-01T10:00:00Z",
+   "rdf_type": [
+    "http://www.w3.org/ns/ldp#RDFSource",
+    "http://www.w3.org/ns/ldp#Container",
+    "http://www.w3.org/ns/ldp#BasicContainer",
+    "http://fedora.info/definitions/v4/repository#Container"
+   ]
+  },
+  {
+   "fedora_id": "http://fedora.test/rest/books/moby/cover.png",
+   "modified": "2026-10-01T11:00:00Z",
+   "mime_type": "image/png",
+   "content_size": 2048,
+   "rdf_type": [
+    "http://www.w3.org/ns/ldp#NonRDFSource",
+    "http://fedora.info/definitions/v4/repository#Binary"
+   ]
+  }
+ ]
+}

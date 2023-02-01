@@ -1,0 +1,41 @@
+{
+  "/platform": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "xfwd": true
+  },
+  "/topology": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "xfwd": true
+  },
+  "/transform": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "xfwd": true
+  },
+  "/harvest/": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "xfwd": true
+  },
+  "/ai/": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "xfwd": true
+  },
+  "/auth": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "xfwd": true
+  },
+  "/swagger-ui.html": {
+    "target": "http://localhost:8000",
+    "secure": false
+  },
+  "/api": {
+    "target": "http://localhost:8000/ui",
+    "secure": false,
+    "xfwd": true
+  }
+}

@@ -1,0 +1,228 @@
+<ui-breadcrumb [path]="resourcePath()" />
+
+@if (resource.isLoading()) {
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
+}
+
+@if (loadError(); as message) {
+  <mat-card class="ui-error" appearance="outlined">
+    <mat-card-content>
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span role="alert">{{ message }}</span>
+    </mat-card-content>
+    <mat-card-actions>
+      <button mat-button (click)="reload()">{{ 'common.retry' | translate }}</button>
+      <a mat-button [routerLink]="['/browse']">{{ 'resource.goToRoot' | translate }}</a>
+    </mat-card-actions>
+  </mat-card>
+}
+
+@if (view(); as v) {
+  <header class="ui-resource-header">
+    <h1>{{ title() }}</h1>
+    <a class="ui-iri" [href]="v.subject.value" target="_blank" rel="noopener">{{ v.subject.value }}</a>
+    <mat-chip-set [attr.aria-label]="'resource.types' | translate">
+      @for (type of types(); track type.iri) {
+        <mat-chip [matTooltip]="type.iri">{{ type.name }}</mat-chip>
+      }
+    </mat-chip-set>
+    <p class="ui-chip-row">
+      @if (v.archivalGroup) {
+        <span class="ui-pill ui-archival-group-badge" [matTooltip]="'resource.archivalGroupHint' | translate">
+          <mat-icon inline aria-hidden="true">inventory_2</mat-icon> {{ 'resource.archivalGroup' | translate }}
+        </span>
+      }
+      @if (archivalGroupRoute(); as group) {
+        <a class="ui-pill ui-archival-member-badge" [routerLink]="group">
+          <mat-icon inline aria-hidden="true">inventory_2</mat-icon> {{ 'resource.archivalMember' | translate }}
+        </a>
+      }
+      @if (v.wacAllow; as allow) {
+        <span class="ui-pill ui-access-badge" [matTooltip]="'resource.accessHint' | translate">
+          <mat-icon inline aria-hidden="true">lock_open</mat-icon> {{ accessModes(allow.user) }}
+        </span>
+      }
+    </p>
+  </header>
+
+  <div class="ui-resource-layout">
+    <section class="ui-resource-main">
+      @if (audit(); as a) {
+        <dl class="ui-facts">
+          <dt>{{ 'resource.created' | translate }}</dt>
+          <dd>
+            {{ a.created ? (a.created | l10nDate: 'medium') : ('common.noValue' | translate) }}
+            @if (a.createdBy) { {{ 'resource.by' | translate: { agent: a.createdBy } }} }
+          </dd>
+          <dt>{{ 'resource.modified' | translate }}</dt>
+          <dd>
+            {{ a.modified ? (a.modified | l10nDate: 'medium') : ('common.noValue' | translate) }}
+            @if (a.modifiedBy) { {{ 'resource.by' | translate: { agent: a.modifiedBy } }} }
+          </dd>
+          @if (isContainer()) {
+            <dt>{{ 'resource.children' | translate }} <span class="ui-badge">{{ children().length | l10nNumber }}</span></dt>
+            <dd>
+              @if (children().length === 0) {
+                <span class="ui-muted">{{ 'common.none' | translate }}</span>
+              } @else {
+                <ol class="ui-children">
+                  @for (child of children(); track child.iri) {
+                    <li>
+                      @if (child.route) {
+                        <a [routerLink]="child.route">{{ child.name }}</a>
+                      } @else {
+                        <a [href]="child.iri">{{ child.name }}</a>
+                      }
+                    </li>
+                  }
+                </ol>
+              }
+            </dd>
+          }
+        </dl>
+      }
+
+      @if (v.binary) {
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>{{ 'resource.content' | translate }}</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-binary-content
+              [path]="v.path"
+              [binary]="v.binary"
+              [writable]="v.allow.has('PUT') && writable()"
+              (replaced)="reload()"
+            />
+          </mat-card-content>
+        </mat-card>
+      }
+
+      <mat-card appearance="outlined">
+        <mat-card-header><mat-card-title>{{ 'resource.properties' | translate }}</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <ui-property-table [graph]="v.graph" [subject]="v.subject" [base]="base()" />
+        </mat-card-content>
+      </mat-card>
+
+      @if (otherSubjects().length > 0) {
+        <h2>{{ 'resource.otherResources' | translate }}</h2>
+        <mat-accordion multi>
+          @for (other of otherSubjects(); track $index) {
+            <mat-expansion-panel>
+              <mat-expansion-panel-header>
+                <mat-panel-title>{{ other.title }}</mat-panel-title>
+              </mat-expansion-panel-header>
+              <ui-property-table [graph]="v.graph" [subject]="other.subject" [base]="base()" />
+            </mat-expansion-panel>
+          }
+        </mat-accordion>
+      }
+    </section>
+
+    <aside class="ui-resource-actions">
+      <mat-card appearance="outlined">
+        <mat-card-content class="ui-row">
+          <a mat-stroked-button [href]="v.url" target="_blank" rel="noopener">
+            <mat-icon aria-hidden="true">open_in_new</mat-icon> {{ 'resource.openInPlatform' | translate }}
+          </a>
+          @if (v.path !== '') {
+            <a mat-stroked-button [routerLink]="routeOf('versions')"><mat-icon aria-hidden="true">history</mat-icon> {{ 'resource.versions' | translate }}</a>
+          }
+          <a mat-stroked-button [routerLink]="routeOf('permissions')"><mat-icon aria-hidden="true">admin_panel_settings</mat-icon> {{ 'resource.permissions' | translate }}</a>
+          @if (v.inbox) {
+            <a mat-stroked-button [routerLink]="routeOf('inbox')"><mat-icon aria-hidden="true">inbox</mat-icon> {{ 'resource.notifications' | translate }}</a>
+          }
+          @if (iiifUrl(); as iiif) {
+            <a mat-stroked-button class="ui-iiif-link" [href]="iiif" target="_blank" rel="noopener">
+              <mat-icon aria-hidden="true">photo_library</mat-icon> {{ 'resource.iiif' | translate }}
+            </a>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      @if (!v.binary && (isContainer() || v.graph.value(v.subject, artTopology))) {
+        <mat-card appearance="outlined" class="ui-topology-card">
+          <mat-card-header><mat-card-title>{{ 'resource.topology' | translate }}</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-topology-panel [view]="v" (changed)="reload()" />
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @if (isContainer() && v.allow.has('POST') && appendable()) {
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>{{ 'resource.createChild' | translate }}</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-create-child-form
+              [parentPath]="v.path"
+              [parentIri]="v.subject.value"
+              [allowArchivalGroup]="!v.archivalGroup && !v.archivalGroupIri"
+              (created)="openCreated($event)"
+            />
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @if (patchable()) {
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>{{ 'resource.updateProperties' | translate }}</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-sparql-update-form
+              [target]="updateTarget()"
+              [graph]="v.graph"
+              [etag]="v.binary ? undefined : v.etag"
+              (updated)="reload()"
+            />
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @if (v.binary && patchable() && mediaSuggestions()) {
+        <mat-card appearance="outlined" class="ui-ai-card">
+          <mat-card-header><mat-card-title>{{ 'ai.media.heading' | translate }}</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-media-suggestion [view]="v" (applied)="reload()" />
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @if (v.path !== '') {
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>{{ 'resource.versioning' | translate }}</mat-card-title></mat-card-header>
+          <mat-card-content>
+            @if (archivalGroupRoute(); as group) {
+              <p class="ui-archival-versioning">
+                {{ 'resource.memberVersioning' | translate }}
+                <a [routerLink]="group">{{ 'resource.versionTheGroup' | translate }}</a>
+              </p>
+              <a mat-button [routerLink]="routeOf('versions')">{{ 'resource.viewVersions' | translate }}</a>
+            } @else {
+              <p>
+                {{ 'resource.versioningHelp' | translate }}
+                @if (v.archivalGroup) {
+                  {{ 'resource.versioningGroupHelp' | translate }}
+                }
+              </p>
+              <div class="ui-row">
+                @if (versionable()) {
+                  <button mat-flat-button color="primary" (click)="createVersion()">{{ 'resource.createVersion' | translate }}</button>
+                }
+                <a mat-button [routerLink]="routeOf('versions')">{{ 'resource.viewVersions' | translate }}</a>
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+
+        @if (v.allow.has('DELETE') && writable()) {
+          <mat-card appearance="outlined">
+            <mat-card-header><mat-card-title>{{ 'resource.deleteTitle' | translate }}</mat-card-title></mat-card-header>
+            <mat-card-content>
+              <button mat-flat-button color="warn" class="ui-danger" (click)="delete()">
+                <mat-icon aria-hidden="true">delete</mat-icon> {{ 'common.delete' | translate }}
+              </button>
+            </mat-card-content>
+          </mat-card>
+        }
+      }
+    </aside>
+  </div>
+}

@@ -1,0 +1,31 @@
+<h1>{{ 'about.title' | translate }}</h1>
+<mat-card appearance="outlined">
+  <mat-card-content>
+    <p>{{ 'about.intro' | translate }}</p>
+    <p>{{ 'about.lets' | translate }}</p>
+    <ul>
+      <li>{{ 'about.feature.browse' | translate }}</li>
+      <li>{{ 'about.feature.create' | translate }}</li>
+      <li>{{ 'about.feature.edit' | translate }}</li>
+      <li>{{ 'about.feature.versions' | translate }}</li>
+      <li>{{ 'about.feature.delete' | translate }}</li>
+    </ul>
+  </mat-card-content>
+</mat-card>
+@if (client; as c) {
+  <mat-card appearance="outlined" class="ui-client">
+    <mat-card-header><mat-card-title>{{ 'about.client' | translate }}</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <dl class="ui-facts">
+        <dt>{{ 'about.browser' | translate }}</dt>
+        <dd>{{ c.browser.name }} {{ c.browser.version }}</dd>
+        <dt>{{ 'about.os' | translate }}</dt>
+        <dd>{{ c.os.name }} {{ c.os.version }}</dd>
+        <dt>{{ 'about.platform' | translate }}</dt>
+        <dd>{{ c.platform.type }}</dd>
+        <dt>{{ 'about.language' | translate }}</dt>
+        <dd>{{ i18n.current().name }} ({{ i18n.locale() }})</dd>
+      </dl>
+    </mat-card-content>
+  </mat-card>
+}

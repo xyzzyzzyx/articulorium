@@ -1,0 +1,31 @@
+# Test configuration: no Consul, plain HTTP client towards a mocked platform.
+articulorium:
+  oai:
+    platform-url: http://platform.test/
+    load-balanced: false
+
+management:
+  server:
+    port: 0
+
+spring:
+  application:
+    name: oai
+  config:
+    import: ""
+  cloud:
+    consul:
+      enabled: false
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+    discovery:
+      enabled: false
+    service-registry:
+      auto-registration:
+        enabled: false
+
+server:
+  # as in application.yml: the tests send the gateway's X-Forwarded-* headers
+  forward-headers-strategy: framework

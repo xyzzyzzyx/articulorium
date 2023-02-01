@@ -1,0 +1,16 @@
+{
+ "pagination": {
+  "maxResults": 3,
+  "offset": 0,
+  "totalResults": 1
+ },
+ "items": [
+  {
+   "fedora_id": "http://fedora.test/rest/books/secret",
+   "modified": "2026-10-05T10:00:00Z",
+   "rdf_type": [
+    "http://www.w3.org/ns/ldp#RDFSource"
+   ]
+  }
+ ]
+}

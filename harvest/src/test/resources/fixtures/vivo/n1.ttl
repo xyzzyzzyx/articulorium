@@ -1,0 +1,10 @@
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix vivo: <http://vivoweb.org/ontology/core#> .
+<https://vivo.test/individual/n1> a foaf:Person, vivo:FacultyMember ;
+    rdfs:label "Doe, Jane" ;
+    vivo:relatedBy <https://vivo.test/individual/position1> .
+<https://vivo.test/individual/position1> a vivo:FacultyPosition ;
+    rdfs:label "Professor" ;
+    vivo:relates <https://vivo.test/individual/n1>, <https://vivo.test/individual/org1> .
+<https://vivo.test/individual/org1> a foaf:Organization ; rdfs:label "Department of Physics" .

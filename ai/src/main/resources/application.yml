@@ -1,0 +1,136 @@
+# Articulorium AI agent: suggestions from a Spring AI chat model, reviewed before they are applied.
+
+articulorium:
+  ai:
+    # the agent is optional and off unless turned on (ARTICULORIUM_AI_ENABLED=true)
+    enabled: ${ARTICULORIUM_AI_ENABLED:false}
+    # LDP root of the platform and the topology API; with load-balanced the hosts are Consul services
+    platform-url: http://articulorium-platform/
+    topology-url: http://articulorium-topology/
+    load-balanced: true
+    # the community structure and the container of custom topologies (below the LDP root)
+    communities: communities
+    topologies: topologies
+    model:
+      # model calls at once; others wait up to queue-timeout, then are refused as busy (429)
+      max-concurrency: 1
+      queue-timeout: 300s
+    # each capability can be turned off on its own
+    topology:
+      enabled: true
+      max-sample-resources: 40
+      max-description-length: 4000
+    media:
+      enabled: true
+      # binaries read at most; larger images and PDFs are refused (413), larger videos are
+      # described from their context only
+      max-bytes: 50MB
+      # images sent to the model (needs a vision model); JPEG, PNG, GIF and WebP only
+      image-input: true
+      max-image-bytes: 10MB
+      max-pdf-pages: 20
+      max-text-length: 12000
+    topics:
+      enabled: true
+      max-documents: 100
+      max-document-length: 600
+      max-topics: 8
+    profiles:
+      enabled: true
+      max-research-areas: 8
+      max-keywords: 12
+      # positions, degrees and publications of a profile shown to the model, each
+      max-entries: 50
+      max-overview-length: 2000
+    classification:
+      enabled: true
+      max-candidates: 200
+      catalog-ttl: 1m
+      max-record-length: 2000
+
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+  info:
+    env:
+      enabled: true
+  server:
+    port: 8000
+
+info:
+  application:
+    name: ${spring.application.name}
+    description: Optional AI agent - topology suggestions, media metadata, topic models, classification of harvested records
+
+server:
+  port: 9000
+  # honour X-Forwarded-* set by the gateway (server URLs of the OpenAPI description)
+  forward-headers-strategy: framework
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+spring:
+  application:
+    name: ai
+
+  # The chat model (Spring AI). Choose the provider with spring.ai.model.chat:
+  #   ollama  models served by Ollama inside the deployment (nothing leaves it): SPRING_AI_OLLAMA_BASE_URL,
+  #           SPRING_AI_OLLAMA_CHAT_MODEL (a vision model such as qwen2.5vl or llama3.2-vision
+  #           describes images; others describe them from their metadata only)
+  #   openai  OpenAI or any OpenAI-compatible endpoint: SPRING_AI_OPENAI_API_KEY (never in source
+  #           control), SPRING_AI_OPENAI_BASE_URL, SPRING_AI_OPENAI_CHAT_MODEL
+  #   none    no model: the agent answers 503 MODEL_UNAVAILABLE and the user interface hides it
+  ai:
+    model:
+      chat: ${ARTICULORIUM_AI_PROVIDER:none}
+      # only chat models are used; the other model kinds of the provider starters stay off
+      embedding: none
+      image: none
+      audio:
+        speech: none
+        transcription: none
+      moderation: none
+    ollama:
+      base-url: http://ollama:11434
+      chat:
+        model: qwen2.5vl:3b
+        temperature: 0.2
+      init:
+        # never pull models at start-up (the deployment pulls them, see docker-compose.yml)
+        pull-model-strategy: never
+    openai:
+      chat:
+        model: gpt-4o-mini
+        temperature: 0.2
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorium-${spring.application.name}
+        prefer-ip-address: true

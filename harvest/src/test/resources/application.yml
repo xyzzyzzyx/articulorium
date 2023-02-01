@@ -1,0 +1,44 @@
+# Test configuration: no Consul, plain HTTP client towards a mocked platform, two sources.
+articulorium:
+  harvest:
+    platform-url: http://platform.test/
+    load-balanced: false
+    sources:
+      repo:
+        type: oai-pmh
+        url: https://repo.test/oai
+        schedule: "0 0 3 * * *"
+        options:
+          set: physics
+      profiles:
+        type: vivo
+        url: https://vivo.test/vivo/
+        enabled: false
+        username: vivo_root@vivo.test
+        password: secret
+
+management:
+  server:
+    port: 0
+  endpoints:
+    web:
+      exposure:
+        include: health,harvest
+
+spring:
+  application:
+    name: harvest
+  config:
+    import: ""
+  cloud:
+    consul:
+      enabled: false
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+    discovery:
+      enabled: false
+    service-registry:
+      auto-registration:
+        enabled: false

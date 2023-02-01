@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Articulorium - Linked Data Platform</title>
+    <meta name="description" content="Articulorium is a W3C Linked Data Platform 1.0 server built as Spring Boot microservices with Fedora Commons compatible extensions.">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Articulorium</h1>
+            <p>A W3C Linked Data Platform 1.0 server built as Spring Boot microservices with Fedora Commons compatible extensions</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#modules">Modules</a></li>
+                <li><a href="#getting-started">Getting Started</a></li>
+                <li><a href="#api">API Documentation</a></li>
+                <li><a href="#documentation">Documentation</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section id="hero">
+            <h2>Linked Data Platform for Digital Libraries</h2>
+            <p>Articulorium provides a complete solution for building digital libraries with Linked Data principles. Built on Spring Boot 4.1 and Spring Cloud 2025.1.</p>
+            <div class="cta-button">
+                <a href="https://github.com/xyzzyzzyx/articulorium" target="_blank">View on GitHub</a>
+            </div>
+        </section>
+
+        <section id="features">
+            <h2>Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>W3C LDP 1.0 Compliance</h3>
+                    <p>Full implementation of the Linked Data Platform specification with Fedora Commons compatible extensions.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>OCFL Storage Layer</h3>
+                    <p>Uses Oxford Common File Layout for versioned storage on local file system or S3-compatible object stores.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Web Access Control</h3>
+                    <p>Full implementation of Web Access Control (acl:Read/Write/Append/Control) with support for OpenID Connect.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Digital Library Structures</h3>
+                    <p>Support for communities, sub-communities, collections and PCDM topologies.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>IIIF Export</h3>
+                    <p>Export of digital objects as IIIF Presentation 3.0 manifests and collections.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>AI Integration</h3>
+                    <p>Optional Spring AI agent for topology suggestions, metadata extraction, topic modeling and record classification.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>OAI-PMH Support</h3>
+                    <p>Full OAI-PMH 2.0 data provider with Dublin Core mappings and hierarchical sets.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Harvesting</h3>
+                    <p>Harvests from OAI-PMH, DSpace, Fedora Commons and VIVO repositories into the platform.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Internationalization</h3>
+                    <p>Built-in support for 12 languages with locale resolution and translation management.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Activity Streams 2.0</h3>
+                    <p>Support for W3C Activity Streams 2.0 for tracking resource changes and user activities.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Search & Discovery</h3>
+                    <p>Powerful search capabilities with Solr integration and discovery layer.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Triplestore Integration</h3>
+                    <p>SPARQL 1.1 store (QLever) for semantic querying of the platform data.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="architecture">
+            <h2>Architecture</h2>
+            <img src="architecture.png" alt="Articulorium Architecture Diagram" class="architecture-diagram">
+            <p>Articulorium is built as a collection of microservices using Spring Cloud Consul and Kafka for service discovery, configuration and messaging.</p>
+            
+            <h3>Service Overview</h3>
+            <p>The system architecture consists of:</p>
+            <ul>
+                <li><strong>Gateway:</strong> Central entry point routing requests to services</li>
+                <li><strong>Platform:</strong> Core LDP server with RDF storage and Web Access Control</li>
+                <li><strong>UI:</strong> Angular single-page application for user interaction</li>
+                <li><strong>Discovery UI:</strong> Server-rendered public discovery layer with Mirador</li>
+                <li><strong>Transform:</strong> Service for converting resources to search documents and IIIF exports</li>
+                <li><strong>Topology:</strong> PCDM topologies and resource building capabilities</li>
+                <li><strong>OAI-PMH:</strong> OAI-PMH 2.0 data provider service</li>
+                <li><strong>Harvest:</strong> Service for harvesting repositories into the platform</li>
+                <li><strong>AI Agent:</strong> Optional Spring AI agent for topology suggestions and metadata extraction</li>
+            </ul>
+        </section>
+
+        <section id="modules">
+            <h2>Core Modules</h2>
+            <div class="modules-grid">
+                <div class="module-card">
+                    <h3>platform</h3>
+                    <p>The LDP server with RDF sources, containers, files, versions, fixity and search.</p>
+                </div>
+                <div class="module-card">
+                    <h3>gateway</h3>
+                    <p>Spring Cloud Gateway serving as public entry point for all services.</p>
+                </div>
+                <div class="module-card">
+                    <h3>ui</h3>
+                    <p>Angular single page application user interface.</p>
+                </div>
+                <div class="module-card">
+                    <h3>discovery-ui</h3>
+                    <p>Server-rendered public discovery layer with Angular SSR and Mirador.</p>
+                </div>
+                <div class="module-card">
+                    <h3>transform</h3>
+                    <p>Resource transformation service for search documents and IIIF exports.</p>
+                </div>
+                <div class="module-card">
+                    <h3>topology</h3>
+                    <p>PCDM topologies and building resources in the platform.</p>
+                </div>
+                <div class="module-card">
+                    <h3>oai</h3>
+                    <p>OAI-PMH 2.0 data provider service.</p>
+                </div>
+                <div class="module-card">
+                    <h3>harvest</h3>
+                    <p>Service for harvesting repositories into the platform.</p>
+                </div>
+                <div class="module-card">
+                    <h3>ai</h3>
+                    <p>Optional Spring AI agent service.</p>
+                </div>
+                <div class="module-card">
+                    <h3>domain</h3>
+                    <p>LDP resource model, vocabularies, IRI and N-Triples helpers (no framework dependencies).</p>
+                </div>
+                <div class="module-card">
+                    <h3>event</h3>
+                    <p>Spring Cloud Bus events and Spring Integration flows that dispatch them.</p>
+                </div>
+                <div class="module-card">
+                    <h3>activitystreams</h3>
+                    <p>W3C Activity Streams 2.0 types, object model, JSON serialization and validation.</p>
+                </div>
+                <div class="module-card">
+                    <h3>agent</h3>
+                    <p>Agent library: Agent, AgentRegistry and AgentContributor components.</p>
+                </div>
+                <div class="module-card">
+                    <h3>agent-spring-boot-starter</h3>
+                    <p>Spring Boot auto-configuration for the agent library.</p>
+                </div>
+                <div class="module-card">
+                    <h3>i18n-spring-boot-starter</h3>
+                    <p>Shipped locales, locale resolution and message bundles for every service.</p>
+                </div>
+                <div class="module-card">
+                    <h3>service</h3>
+                    <p>Serves the UI and its support API (settings, agents from articulorium.agents.definitions).</p>
+                </div>
+                <div class="module-card">
+                    <h3>index</h3>
+                    <p>Keeps a Solr collection in sync with the platform.</p>
+                </div>
+                <div class="module-card">
+                    <h3>triplestore</h3>
+                    <p>Mirrors every resource into a SPARQL 1.1 store (QLever).</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="getting-started">
+            <h2>Getting Started</h2>
+            <h3>Quick Start with Docker Compose</h3>
+            <p>Articulorium can be run locally using Docker Compose:</p>
+            <pre><code>docker compose up --build</code></pre>
+            <p>After starting, access the application at:</p>
+            <ul>
+                <li><strong>User Interface:</strong> http://localhost:8000/ui/</li>
+                <li><strong>Discovery Layer:</strong> http://localhost:8000/discover/</li>
+                <li><strong>LDP Root:</strong> http://localhost:8000/platform/</li>
+                <li><strong>Swagger UI:</strong> http://localhost:8000/swagger-ui.html</li>
+                <li><strong>Keycloak:</strong> http://localhost:8000/auth/</li>
+                <li><strong>Admin Console:</strong> http://localhost:8000/auth/admin/ (login with admin / admin)</li>
+            </ul>
+            
+            <h3>Development Setup</h3>
+            <p>For development, you can build and test with Maven:</p>
+            <pre><code>mvn verify</code></pre>
+            
+            <h3>Demo Users</h3>
+            <p>When running locally, use these demo users for testing:</p>
+            <ul>
+                <li><strong>Curator:</strong> curator / curator (editors role)</li>
+                <li><strong>Administrator:</strong> administrator / administrator (editors and administrators roles)</li>
+                <li><strong>Reader:</strong> reader / reader (no special roles)</li>
+            </ul>
+        </section>
+
+        <section id="api">
+            <h2>API Documentation</h2>
+            <p>Articulorium exposes several APIs through its services. All APIs are accessible through the gateway at http://localhost:8000:</p>
+            
+            <h3>Gateway Swagger UI</h3>
+            <p>The main API documentation is available through a single Swagger UI that aggregates all services:</p>
+            <ul>
+                <li><strong>Swagger UI:</strong> <a href="/swagger-ui.html" target="_blank">http://localhost:8000/swagger-ui.html</a></li>
+            </ul>
+            
+            <h3>Platform API</h3>
+            <p>The LDP server provides a full Linked Data Platform implementation:</p>
+            <ul>
+                <li><strong>Base URL:</strong> http://localhost:8000/platform/</li>
+                <li><strong>Documentation:</strong> <a href="/platform/.well-known/openapi" target="_blank">OpenAPI Spec</a></li>
+            </ul>
+            
+            <h3>Transform Service</h3>
+            <p>For IIIF exports and search document transformations:</p>
+            <ul>
+                <li><strong>Base URL:</strong> http://localhost:8000/transform/</li>
+                <li><strong>IIIF Exports:</strong> GET /transform/iiif/&lt;path&gt;</li>
+            </ul>
+            
+            <h3>Topology Service</h3>
+            <p>For working with PCDM topologies:</p>
+            <ul>
+                <li><strong>Base URL:</strong> http://localhost:8000/topology/</li>
+            </ul>
+            
+            <h3>OAI-PMH Service</h3>
+            <p>For harvesting records with OAI-PMH:</p>
+            <ul>
+                <li><strong>Base URL:</strong> http://localhost:8000/oai?verb=...</li>
+            </ul>
+            
+            <h3>AI Agent Service</h3>
+            <p>Optional AI capabilities:</p>
+            <ul>
+                <li><strong>Base URL:</strong> http://localhost:8000/ai/capabilities</li>
+            </ul>
+        </section>
+
+        <section id="documentation">
+            <h2>Documentation</h2>
+            <p>Comprehensive documentation is available in several places:</p>
+            <ul>
+                <li><a href="https://github.com/xyzzyzzyx/articulorium/wiki" target="_blank">Project Wiki</a> - Detailed usage guides and tutorials</li>
+                <li><a href="https://github.com/xyzzyzzyx/articulorium/blob/main/README.md" target="_blank">Main README</a> - Project overview and setup instructions</li>
+                <li><a href="https://github.com/xyzzyzzyx/articulorium/blob/main/docker-compose.yml" target="_blank">Docker Compose Configuration</a> - Complete service configuration</li>
+                <li><a href="/swagger-ui.html" target="_blank">Swagger UI</a> - Interactive API documentation</li>
+                <li><a href="https://github.com/xyzzyzzyx/articulorium/blob/main/pom.xml" target="_blank">Project POM</a> - Build configuration and dependencies</li>
+            </ul>
+            
+            <h3>Additional Resources</h3>
+            <p>Learn more about the underlying technologies:</p>
+            <ul>
+                <li><a href="https://www.w3.org/TR/ldp/" target="_blank">W3C Linked Data Platform 1.0</a></li>
+                <li><a href="https://ocfl.io/" target="_blank">Oxford Common File Layout (OCFL)</a></li>
+                <li><a href="https://projectmirador.org/" target="_blank">Mirador IIIF Viewer</a></li>
+                <li><a href="https://solidproject.org/TR/wac" target="_blank">Web Access Control (WAC)</a></li>
+                <li><a href="https://www.openarchives.org/OAI/openarchivesprotocol.html" target="_blank">OAI-PMH 2.0</a></li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Articulorium. Built with Spring Boot and Java.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

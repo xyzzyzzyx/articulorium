@@ -1,0 +1,136 @@
+{
+  "site": {
+    "description": "Entdecken Sie die digitalisierten Sammlungen: Bücher, Zeitungen, Handschriften, Aufnahmen und mehr."
+  },
+  "nav": {
+    "skip": "Zum Inhalt springen",
+    "landmark": "Hauptnavigation",
+    "home": "Startseite",
+    "browse": "Stöbern",
+    "languageMenu": "Sprache: {{language}}",
+    "footer": "Fußzeile"
+  },
+  "footer": {
+    "iiif": "Bilder, Aufnahmen und Dokumente werden über IIIF bereitgestellt."
+  },
+  "search": {
+    "landmark": "Sammlungen durchsuchen",
+    "label": "Suche",
+    "submit": "Suchen",
+    "refine": "Ergebnisse eingrenzen",
+    "filters": "Nur anzeigen",
+    "selected": "(ausgewählt)",
+    "loading": "Suche läuft …",
+    "sort": "Sortieren nach",
+    "active": "Aktive Eingrenzungen",
+    "remove": "{{value}} entfernen",
+    "clear": "Alle Eingrenzungen entfernen",
+    "empty": "Nichts entspricht dieser Suche. Versuchen Sie andere Begriffe oder weniger Eingrenzungen.",
+    "pagination": "Ergebnisseiten",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "pageOf": "Seite {{page}} von {{pages}}",
+    "titleFor": "Ergebnisse für „{{query}}“",
+    "browse": "Die Sammlungen durchstöbern",
+    "results": "Ergebnisse",
+    "count": {
+      "one": "{{formatted}} Ergebnis",
+      "other": "{{formatted}} Ergebnisse"
+    }
+  },
+  "home": {
+    "search": "Suche",
+    "collections": "Sammlungen",
+    "recent": "Neu hinzugefügt",
+    "browseAll": "Alles durchstöbern"
+  },
+  "kinds": {
+    "community": "Bereich",
+    "collection": "Sammlung",
+    "object": "Objekt",
+    "resource": "Ressource"
+  },
+  "types": {
+    "book": "Buch",
+    "issue": "Ausgabe",
+    "article": "Artikel",
+    "journal": "Zeitschrift",
+    "newspaper": "Zeitung",
+    "manuscript": "Handschrift",
+    "audiovisual": "Audiovisuelle Aufnahme"
+  },
+  "topologies": {
+    "book": "Buch",
+    "newspaper": "Zeitung",
+    "journal": "Zeitschrift",
+    "postcards": "Postkarten",
+    "manuscript": "Handschrift",
+    "audiovisual": "Audiovisuelle Aufnahme"
+  },
+  "facets": {
+    "type": "Art",
+    "topology": "Format",
+    "creator": "Urheber",
+    "subject": "Thema",
+    "language": "Sprache",
+    "year": "Datum"
+  },
+  "filters": {
+    "digitized": "Digitalisierte Objekte"
+  },
+  "sorts": {
+    "relevance": "Relevanz",
+    "title": "Titel",
+    "newest": "Zuletzt geändert",
+    "date": "Datum"
+  },
+  "fields": {
+    "title": "Titel",
+    "description": "Beschreibung",
+    "creator": "Urheber",
+    "contributor": "Mitwirkende",
+    "date": "Datum",
+    "publisher": "Verlag",
+    "subject": "Thema",
+    "type": "Art",
+    "language": "Sprache",
+    "format": "Format",
+    "extent": "Umfang",
+    "identifier": "Kennung",
+    "rights": "Rechte",
+    "license": "Lizenz",
+    "source": "Quelle",
+    "isPartOf": "Teil von",
+    "bibliographicCitation": "Zitierweise"
+  },
+  "item": {
+    "loading": "Wird geladen …",
+    "breadcrumb": "Sie sind hier",
+    "viewer": "Betrachter",
+    "details": "Details",
+    "links": "Links",
+    "iiifManifest": "IIIF-Manifest",
+    "iiifCollection": "IIIF-Sammlung",
+    "repository": "Im Repositorium ansehen",
+    "communityMembers": "In diesem Bereich",
+    "collectionMembers": "In dieser Sammlung"
+  },
+  "viewer": {
+    "label": "Betrachter: {{title}}",
+    "preview": "Vorschau von {{title}}",
+    "loading": "Betrachter wird geladen …",
+    "failed": "Der Betrachter konnte nicht geladen werden.",
+    "document": "Dokument: {{title}}",
+    "openPdf": "PDF öffnen"
+  },
+  "errors": {
+    "unavailableTitle": "Vorübergehend nicht verfügbar",
+    "unavailable": "Die Sammlungen sind gerade nicht erreichbar. Bitte versuchen Sie es in einigen Minuten erneut.",
+    "search": "Die Suche ist gerade nicht verfügbar. Bitte versuchen Sie es in einigen Minuten erneut.",
+    "badSearch": "Diese Suche kann nicht ausgeführt werden. Versuchen Sie kürzere Begriffe oder weniger Eingrenzungen.",
+    "item": "Dieses Objekt kann gerade nicht angezeigt werden. Bitte versuchen Sie es in einigen Minuten erneut.",
+    "notFoundTitle": "Nicht gefunden",
+    "notFound": "Dieses Objekt existiert nicht oder ist nicht öffentlich.",
+    "pageNotFound": "Unter dieser Adresse gibt es keine Seite."
+  }
+}

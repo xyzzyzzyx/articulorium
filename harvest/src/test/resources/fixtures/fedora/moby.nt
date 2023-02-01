@@ -1,0 +1,4 @@
+<http://fedora.test/rest/books/moby> <http://purl.org/dc/terms/title> "Moby Dick"@en .
+<http://fedora.test/rest/books/moby> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://pcdm.org/models#Object> .
+<http://fedora.test/rest/books/moby> <http://pcdm.org/models#hasMember> <http://fedora.test/rest/books/moby/pages> .
+<http://fedora.test/rest/books/moby#author> <http://xmlns.com/foaf/0.1/name> "Herman Melville" .

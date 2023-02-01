@@ -1,0 +1,30 @@
+<!doctype html>
+<!--
+  Rendered by the service module as a Thymeleaf template (IndexPage): the base href, the document
+  language and writing direction of the request's locale, and the client's start-up state in that
+  locale (#ui-i18n), so the application renders translated from its first frame. Served without
+  the service (ng serve), the static defaults below apply and the client asks api/i18n instead.
+-->
+<html lang="en" dir="ltr" th:lang="${lang}" th:dir="${dir}" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8" />
+  <base th:href="${base}" />
+  <title>Articulorium</title>
+  <meta name="description" content="Articulorium Linked Data Platform" th:content="#{ui.description}" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <link rel="icon" type="image/icon" sizes="32x32" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <script id="ui-i18n" type="application/json" th:if="${i18n}" th:utext="${i18n}"></script>
+</head>
+
+<body class="mat-typography">
+  <ui-root></ui-root>
+  <noscript th:text="#{ui.noscript}">Articulorium needs JavaScript.</noscript>
+</body>
+
+</html>

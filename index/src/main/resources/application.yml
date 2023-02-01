@@ -1,0 +1,86 @@
+# Articulorium index: Solr synchronisation of transformed resources.
+
+articulorium:
+  solr:
+    base-url: http://solr:8983/solr
+    collection: articulorium
+    num-shards: 1
+    replication-factor: 1
+    config-set: _default
+    commit-within: 1000
+    # declared on start-up when missing (the _default config set creates fields only when a
+    # document carries them): the discovery layer sorts and facets on these
+    fields:
+      created: pdate
+      "[lastModified]": pdate
+      date: pdates
+
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers,integrationgraph
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+  server:
+    port: 8000
+
+info:
+  application:
+    name: ${spring.application.name}
+    description: Solr indexing of search documents
+
+server:
+  port: 9000
+
+spring:
+  application:
+    name: index
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    bus:
+      destination: document-bus
+      ack:
+        enabled: false
+
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorium-${spring.application.name}
+        prefer-ip-address: true
+
+    stream:
+      kafka:
+        binder:
+          brokers: kafka:9092
+          auto-add-partitions: true
+          # every bus topic has 3 partitions from the first binding on, whichever service binds
+          # first: a consumer that subscribed to a 1-partition topic would only see partitions added
+          # later by a producer after its next metadata refresh (5 minutes) and miss their events
+          min-partition-count: 3
+      bindings:
+        springCloudBusInput:
+          destination: document-bus

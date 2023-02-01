@@ -1,0 +1,8 @@
+# Client-managed state of the root container, created on first start-up.
+# The root's LDP types and containment triples are server-managed and therefore not listed here.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+<>
+    rdfs:label "articulorium" ;
+    dcterms:description "Root container of the Articulorium Linked Data Platform." .

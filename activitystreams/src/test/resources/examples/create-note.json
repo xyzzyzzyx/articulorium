@@ -1,0 +1,22 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "summary": "Sally created a note",
+  "type": "Create",
+  "id": "http://www.test.example/activity/1",
+  "actor": {
+    "type": "Person",
+    "id": "http://www.test.example/sally",
+    "name": "Sally",
+    "url": "http://example.org/sally"
+  },
+  "object": {
+    "id": "http://www.test.example/notes/1",
+    "type": "Note",
+    "name": "A Simple Note",
+    "content": "This is a simple note",
+    "contentMap": {"en": "This is a simple note", "fr": "Ceci est une simple note"}
+  },
+  "published": "2015-01-25T12:34:56Z",
+  "to": ["https://www.w3.org/ns/activitystreams#Public", "http://www.test.example/sally/followers"],
+  "cc": "http://www.test.example/joe"
+}

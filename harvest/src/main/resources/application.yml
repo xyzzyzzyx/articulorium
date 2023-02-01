@@ -1,0 +1,89 @@
+# Articulorium harvest service: harvests external repositories into the platform.
+
+articulorium:
+  harvest:
+    # LDP root of the platform; with load-balanced the host is the Consul service name
+    platform-url: http://articulorium-platform/
+    load-balanced: true
+    # container (below the LDP root) holding one container of records per source
+    container: harvested
+    # the harvester's credentials towards the platform: a fixed Authorization header, or an OAuth 2.0
+    # client credentials grant (token-uri, client-id, client-secret, scope); none by default
+    platform-auth:
+      authorization: ${HARVEST_PLATFORM_AUTHORIZATION:}
+    policy:
+      max-attempts: 3
+      backoff: 2s
+      max-backoff: 1m
+      max-failures: 100
+      max-reported-failures: 100
+      overlap: 5m
+    http:
+      connect-timeout: 10s
+      read-timeout: 2m
+    history: 10
+    concurrency: 2
+    # the harvest API of the user interface (/sources on the service port, /harvest on the
+    # gateway); viewing needs read and starting/cancelling write access to the container above,
+    # as the platform's Web Access Control decides for the caller's own credentials
+    api:
+      enabled: true
+    # sources by identifier, for example:
+    #   sources:
+    #     arxiv:
+    #       type: oai-pmh                 # oai-pmh | dspace | fedora | vivo
+    #       url: https://oaipmh.arxiv.org/oai
+    #       schedule: "0 30 2 * * *"      # incremental harvests; on demand only when empty
+    #       page-size: 100
+    #       options:
+    #         set: cs
+    sources: {}
+
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers,harvest
+  info:
+    env:
+      enabled: true
+  server:
+    port: 8000
+
+info:
+  application:
+    name: ${spring.application.name}
+    description: Harvests Fedora Commons, DSpace, VIVO and OAI-PMH repositories into the platform
+
+server:
+  port: 9000
+
+spring:
+  application:
+    name: harvest
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorium-${spring.application.name}
+        prefer-ip-address: true

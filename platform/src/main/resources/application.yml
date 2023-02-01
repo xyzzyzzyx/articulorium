@@ -1,0 +1,199 @@
+# Articulorium Linked Data Platform.
+#
+# Every value can be overridden with an environment variable using Spring Boot's relaxed binding,
+# for example ARTICULORIUM_STORAGE_TYPE=filesystem or SPRING_DATASOURCE_URL=jdbc:postgresql://...
+
+articulorium:
+  ldp:
+    # largest RDF request body accepted (POST/PUT/PATCH)
+    max-rdf-size: 10MB
+    # recorded as fedora:createdBy / fedora:lastModifiedBy for unauthenticated requests
+    default-agent: anonymous
+    # upper bound of max_results for /fcr:search
+    max-search-results: 1000
+    # container of the community / sub-community / collection structure (created on start-up)
+    communities-path: communities
+    # container of the academic profiles described with the VIVO ontology (created on start-up)
+    profiles-path: profiles
+  webac:
+    # enforce Web Access Control (acl:Read/Write/Append/Control) on every LDP request
+    enabled: true
+    # authorizations used when no resource on the path has an ACL; the default grants everyone
+    # full access - replace it for production (see the file for an example)
+    root-acl: classpath:webac/root-acl.ttl
+    # header with an agent authenticated by a trusted reverse proxy (for example X-Forwarded-User)
+    trusted-agent-header:
+    # OpenID Connect / OAuth 2.0 JWT access tokens (Authorization: Bearer <jwt>) from any issuer;
+    # the defaults match the Keycloak realm of docker compose (keycloak/articulorium-realm.json).
+    # The issuer is the public address browsers use, the key set the address this service uses.
+    oidc:
+      enabled: true
+      issuer-uri: ${KEYCLOAK_PUBLIC_URL:http://localhost:8000/auth}/realms/${KEYCLOAK_REALM:articulorium}
+      jwk-set-uri: ${KEYCLOAK_INTERNAL_URL:http://keycloak:8080/auth}/realms/${KEYCLOAK_REALM:articulorium}/protocol/openid-connect/certs
+      # tokens must be issued for the repository (the realm's "articulorium-audience" mapper)
+      audiences: articulorium
+      jws-algorithms: RS256
+      # agent <info:oidc/agent/{preferred_username}>; Keycloak realm roles and groups become
+      # <info:oidc/group/{name}> (see webac/root-acl-oidc.ttl)
+      agent-claims: preferred_username,sub
+      group-claims: realm_access.roles,groups
+      agent-prefix: "info:oidc/agent/"
+      group-prefix: "info:oidc/group/"
+      clock-skew: 60s
+    consul:
+      # accept Consul ACL tokens (Authorization: Bearer <token> or X-Consul-Token) as identities;
+      # roles and policies of the token become acl:agentGroup IRIs
+      enabled: false
+      url: http://${spring.cloud.consul.host:consul}:${spring.cloud.consul.port:8500}
+      cache-ttl: 60s
+      agent-prefix: "info:consul/agent/"
+      role-prefix: "info:consul/role/"
+      policy-prefix: "info:consul/policy/"
+  storage:
+    # where the OCFL storage root lives: "s3" (default, MinIO in docker compose) or "filesystem"
+    type: s3
+    # largest binary accepted in a raw (non-multipart) request body
+    max-upload-size: 2GB
+    filesystem:
+      root: ./data/ocfl
+    s3:
+      endpoint: http://minio:9000
+      region: us-east-1
+      bucket: articulorium
+      access-key: articulorium
+      secret-key: articulorium-secret
+      path-style: true
+      create-bucket: true
+      key-prefix: ocfl
+    ocfl:
+      # where new OCFL versions are assembled; must not be inside the storage root
+      work-directory: ./data/ocfl-work
+      # coordinate writers of several platform instances through a lock table in the database
+      database-lock: true
+  health:
+    kafka:
+      timeout: 3s
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.bus: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,loggers,configprops,mappings,beans
+  # custom indicators (database, ocfl, minio, kafka) report next to Spring Boot's db and diskSpace;
+  # switch one off with management.health.<name>.enabled=false
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
+  server:
+    # actuator runs on its own port so it never shadows LDP resource paths
+    port: 8000
+
+info:
+  application:
+    name: Articulorium Linked Data Platform
+    description: W3C LDP 1.0 server with an OCFL storage layer
+
+server:
+  port: 9000
+  # honour X-Forwarded-Host/Proto/Prefix set by the gateway so resource IRIs are correct
+  forward-headers-strategy: framework
+
+# OpenAPI document and Swagger UI live below the reserved /.well-known path so they never collide
+# with LDP resources: /.well-known/openapi and /.well-known/swagger-ui.html
+springdoc:
+  api-docs:
+    path: /.well-known/openapi
+  swagger-ui:
+    path: /.well-known/swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  writer-with-default-pretty-printer: true
+
+spring:
+  application:
+    name: platform
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    bus:
+      destination: resource-bus
+
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorium-${spring.application.name}
+        prefer-ip-address: true
+      retry:
+        max-attempts: 20
+
+    stream:
+      kafka:
+        binder:
+          brokers: kafka:9092
+          auto-add-partitions: true
+          # every bus topic has 3 partitions from the first binding on, whichever service binds
+          # first: a consumer that subscribed to a 1-partition topic would only see partitions added
+          # later by a producer after its next metadata refresh (5 minutes) and miss their events
+          min-partition-count: 3
+      bindings:
+        springCloudBusOutput:
+          destination: resource-bus
+          producer:
+            partition-count: 3
+
+  # PostgreSQL is the default database (the "postgres" service of docker compose). H2, MySQL,
+  # SQL Server and Oracle drivers are on the class path too: override the URL to switch.
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB:articulorium}
+    username: ${POSTGRES_USER:articulorium}
+    password: ${POSTGRES_PASSWORD:articulorium}
+    hikari:
+      pool-name: platform
+      maximum-pool-size: 20
+      connection-timeout: 30000
+
+  jackson:
+    serialization:
+      indent-output: true
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: false
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 2GB
+      max-request-size: 2GB
+      file-size-threshold: 1MB
+
+  web:
+    resources:
+      # the LDP controller owns every path; only springdoc's Swagger UI assets are static
+      add-mappings: false

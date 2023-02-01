@@ -1,0 +1,186 @@
+{
+  "id": "newspaper",
+  "name": "Newspaper",
+  "description": "A newspaper title (collection) with issues, each issue an object of ordered pages.",
+  "builtIn": true,
+  "root": {
+    "key": "newspaper",
+    "label": "Newspaper",
+    "pcdmType": "Collection",
+    "types": [
+      "http://purl.org/ontology/bibo/Newspaper"
+    ],
+    "metadata": [
+      {
+        "predicate": "http://purl.org/dc/terms/title",
+        "label": "Title",
+        "required": true,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/publisher",
+        "label": "Publisher",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/spatial",
+        "label": "Place of publication",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/ontology/bibo/issn",
+        "label": "ISSN",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/language",
+        "label": "Language",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": "en",
+        "datatype": null
+      }
+    ],
+    "files": [],
+    "children": [
+      {
+        "min": 0,
+        "max": -1,
+        "initial": 1,
+        "slugPattern": "issue-{n}",
+        "node": {
+          "key": "issue",
+          "label": "Issue",
+          "pcdmType": "Object",
+          "types": [
+            "http://purl.org/ontology/bibo/Issue"
+          ],
+          "metadata": [
+            {
+              "predicate": "http://purl.org/dc/terms/title",
+              "label": "Title",
+              "required": true,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            },
+            {
+              "predicate": "http://purl.org/dc/terms/date",
+              "label": "Issue date",
+              "required": true,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": "http://www.w3.org/2001/XMLSchema#date"
+            },
+            {
+              "predicate": "http://purl.org/ontology/bibo/volume",
+              "label": "Volume",
+              "required": false,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            },
+            {
+              "predicate": "http://purl.org/ontology/bibo/issue",
+              "label": "Issue number",
+              "required": false,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            },
+            {
+              "predicate": "http://purl.org/ontology/bibo/edition",
+              "label": "Edition",
+              "required": false,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            }
+          ],
+          "files": [
+            {
+              "use": "http://pcdm.org/use#OriginalFile",
+              "label": "Issue PDF",
+              "mediaTypes": [
+                "application/pdf"
+              ]
+            }
+          ],
+          "children": [
+            {
+              "min": 1,
+              "max": -1,
+              "initial": 4,
+              "slugPattern": "page-{n}",
+              "node": {
+                "key": "page",
+                "label": "Page",
+                "pcdmType": "Object",
+                "types": [],
+                "metadata": [
+                  {
+                    "predicate": "http://purl.org/dc/terms/title",
+                    "label": "Title",
+                    "required": true,
+                    "repeatable": false,
+                    "defaultValue": null,
+                    "datatype": null
+                  },
+                  {
+                    "predicate": "http://purl.org/ontology/bibo/pages",
+                    "label": "Page number",
+                    "required": false,
+                    "repeatable": false,
+                    "defaultValue": null,
+                    "datatype": null
+                  }
+                ],
+                "files": [
+                  {
+                    "use": "http://pcdm.org/use#OriginalFile",
+                    "label": "Master image",
+                    "mediaTypes": [
+                      "image/tiff",
+                      "image/jp2",
+                      "image/jpeg",
+                      "image/png"
+                    ]
+                  },
+                  {
+                    "use": "http://pcdm.org/use#ServiceFile",
+                    "label": "Access image",
+                    "mediaTypes": [
+                      "image/jp2",
+                      "image/jpeg"
+                    ]
+                  },
+                  {
+                    "use": "http://pcdm.org/use#ExtractedText",
+                    "label": "OCR text",
+                    "mediaTypes": [
+                      "text/plain",
+                      "application/xml",
+                      "text/html"
+                    ]
+                  }
+                ],
+                "children": []
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

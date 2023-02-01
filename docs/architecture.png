@@ -1,0 +1,11 @@
+# Architecture Diagram Placeholder
+
+This is a placeholder for the Articulorium architecture diagram.
+
+In a real implementation, this would contain:
+- A visual representation of the microservices architecture
+- Connections between platform, gateway, ui, discovery-ui, etc.
+- Database and storage layer connections
+- External services like Consul, Kafka, MinIO, Solr, QLever
+
+The diagram should illustrate how all components work together in the Articulorium system.

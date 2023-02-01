@@ -1,0 +1,83 @@
+# Articulorium triplestore: SPARQL store synchronisation of LDP resources.
+
+articulorium:
+  triplestore:
+    # QLever serves SPARQL queries, updates and the Graph Store HTTP Protocol at its root; for
+    # other stores set sparql-path / graph-store-path (Fuseki: /ds/sparql and /ds/data)
+    service-url: http://qlever:7001
+    sparql-path:
+    graph-store-path:
+    # QLever's access token (sent as Authorization: Bearer); required for updates
+    access-token: ${QLEVER_ACCESS_TOKEN:articulorium-qlever}
+    # when set, resource IRIs are minted under this base instead of the one the client used
+    base-uri:
+
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers,integrationgraph
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+  server:
+    port: 8000
+
+info:
+  application:
+    name: ${spring.application.name}
+    description: SPARQL store synchronisation of LDP resources
+
+server:
+  port: 9000
+
+spring:
+  application:
+    name: triplestore
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    bus:
+      destination: resource-bus
+      ack:
+        enabled: false
+
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorium-${spring.application.name}
+        prefer-ip-address: true
+
+    stream:
+      kafka:
+        binder:
+          brokers: kafka:9092
+          auto-add-partitions: true
+          # every bus topic has 3 partitions from the first binding on, whichever service binds
+          # first: a consumer that subscribed to a 1-partition topic would only see partitions added
+          # later by a producer after its next metadata refresh (5 minutes) and miss their events
+          min-partition-count: 3
+      bindings:
+        springCloudBusInput:
+          destination: resource-bus

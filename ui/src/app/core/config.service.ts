@@ -1,0 +1,183 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+
+/** Settings served by the service module at `api/config`. */
+export interface UiConfig {
+  /** Where browsers reach the LDP root, relative to the document base or absolute. */
+  readonly platformUrl: string;
+  /** Title of the application. */
+  readonly title: string;
+  /** The Swagger UI listing every service's API (the gateway's `/swagger-ui.html`). */
+  readonly apiDocsUrl?: string;
+  /** Where browsers reach the topology service. */
+  readonly topologyUrl?: string;
+  /** Where browsers reach the transform service (IIIF exports). */
+  readonly transformUrl?: string;
+  /** Where browsers reach the harvest service. */
+  readonly harvestUrl?: string;
+  /** Where browsers reach the optional AI agent. */
+  readonly aiUrl?: string;
+  /** Path (below the LDP root) of the community structure. */
+  readonly communitiesPath?: string;
+  /** Path (below the LDP root) of the academic profiles. */
+  readonly profilesPath?: string;
+  /** How users sign in. */
+  readonly auth?: AuthConfig;
+}
+
+/** How users sign in (`articulorium.ui.auth.*` of the service). */
+export interface AuthConfig {
+  /** `oidc` (an OpenID Connect provider), `token` (a pasted token) or `none`. */
+  readonly provider: 'oidc' | 'token' | 'none';
+  /** The OpenID Connect client, for `oidc`. */
+  readonly oidc: {
+    /** The issuer, relative to the document base or absolute. */
+    readonly authority: string;
+    /** The public client registered with the provider. */
+    readonly clientId: string;
+    /** Requested scopes. */
+    readonly scope: string;
+  };
+}
+
+/** Settings used when `api/config` cannot be loaded (for example `ng serve` without a backend). */
+export const FALLBACK_CONFIG: Required<UiConfig> = {
+  platformUrl: '../platform/',
+  title: 'Articulorium',
+  apiDocsUrl: '../swagger-ui.html',
+  topologyUrl: '../topology/',
+  transformUrl: '../transform/',
+  harvestUrl: '../harvest/',
+  aiUrl: '../ai/',
+  communitiesPath: 'communities',
+  profilesPath: 'profiles',
+  auth: {
+    provider: 'oidc',
+    oidc: { authority: '../auth/realms/articulorium', clientId: 'articulorium-ui', scope: 'openid profile' },
+  },
+};
+
+/**
+ * Loads the user interface settings once at start-up and resolves the platform root against the
+ * document's base URI, so every other component works with an absolute platform base.
+ */
+@Injectable({ providedIn: 'root' })
+export class ConfigService {
+  private readonly http = inject(HttpClient);
+
+  private readonly state = signal<UiConfig>(FALLBACK_CONFIG);
+
+  /** The current settings. */
+  readonly config = this.state.asReadonly();
+
+  /**
+   * Loads `api/config`; falls back to {@link FALLBACK_CONFIG} when it is unavailable.
+   *
+   * @returns a promise resolved once the settings are known
+   */
+  async load(): Promise<void> {
+    try {
+      this.state.set(await firstValueFrom(this.http.get<UiConfig>('api/config')));
+    } catch (error) {
+      console.warn('Using default UI settings: api/config is unavailable', error);
+    }
+  }
+
+  /**
+   * The absolute IRI of the LDP root container, always ending with `/`.
+   *
+   * @returns for example `http://localhost:8000/platform/`
+   */
+  platformBase(): string {
+    return resolvePlatformBase(this.state().platformUrl, document.baseURI);
+  }
+
+  /**
+   * The absolute URL of the API documentation (the gateway's Swagger UI).
+   *
+   * @returns for example `http://localhost:8000/swagger-ui.html`
+   */
+  apiDocs(): string {
+    return new URL(this.state().apiDocsUrl || FALLBACK_CONFIG.apiDocsUrl, document.baseURI).toString();
+  }
+
+  /**
+   * The absolute base of the topology service, ending with `/`.
+   *
+   * @returns for example `http://localhost:8000/topology/`
+   */
+  topologyBase(): string {
+    return resolvePlatformBase(this.state().topologyUrl || FALLBACK_CONFIG.topologyUrl, document.baseURI);
+  }
+
+  /**
+   * The absolute base of the transform service, ending with `/`.
+   *
+   * @returns for example `http://localhost:8000/transform/`
+   */
+  transformBase(): string {
+    return resolvePlatformBase(this.state().transformUrl || FALLBACK_CONFIG.transformUrl, document.baseURI);
+  }
+
+  /**
+   * The absolute base of the harvest service, ending with `/`.
+   *
+   * @returns for example `http://localhost:8000/harvest/`
+   */
+  harvestBase(): string {
+    return resolvePlatformBase(this.state().harvestUrl || FALLBACK_CONFIG.harvestUrl, document.baseURI);
+  }
+
+  /**
+   * The absolute base of the optional AI agent, ending with `/`.
+   *
+   * @returns for example `http://localhost:8000/ai/`
+   */
+  aiBase(): string {
+    return resolvePlatformBase(this.state().aiUrl || FALLBACK_CONFIG.aiUrl, document.baseURI);
+  }
+
+  /**
+   * The path of the community structure below the LDP root.
+   *
+   * @returns for example `communities`
+   */
+  communitiesPath(): string {
+    return (this.state().communitiesPath || FALLBACK_CONFIG.communitiesPath).replace(/^\/+|\/+$/g, '');
+  }
+
+  /**
+   * The path of the academic profiles (VIVO) below the LDP root.
+   *
+   * @returns for example `profiles`
+   */
+  profilesPath(): string {
+    return (this.state().profilesPath || FALLBACK_CONFIG.profilesPath).replace(/^\/+|\/+$/g, '');
+  }
+
+  /**
+   * The sign-in settings, with the OpenID Connect issuer resolved against the document's base URI
+   * (without a trailing `/`: the issuer identifier tokens carry).
+   *
+   * @returns for example `{ provider: 'oidc', oidc: { authority: 'http://localhost:8000/auth/realms/articulorium', ... } }`
+   */
+  auth(): AuthConfig {
+    const auth = this.state().auth ?? FALLBACK_CONFIG.auth;
+    const oidc = { ...FALLBACK_CONFIG.auth.oidc, ...auth.oidc };
+    const authority = new URL(oidc.authority, document.baseURI).toString().replace(/\/+$/, '');
+    return { provider: auth.provider ?? FALLBACK_CONFIG.auth.provider, oidc: { ...oidc, authority } };
+  }
+}
+
+/**
+ * Resolves a configured platform URL against a base URI.
+ *
+ * @param platformUrl - the configured URL (relative or absolute)
+ * @param baseUri - the document base URI
+ * @returns the absolute platform base, ending with `/`
+ */
+export function resolvePlatformBase(platformUrl: string, baseUri: string): string {
+  const resolved = new URL(platformUrl || FALLBACK_CONFIG.platformUrl, baseUri).toString();
+  return resolved.endsWith('/') ? resolved : `${resolved}/`;
+}

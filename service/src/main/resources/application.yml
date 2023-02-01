@@ -1,0 +1,142 @@
+# Articulorium service: user interface host and UI support API.
+
+articulorium:
+  ui:
+    # where browsers reach the LDP root: relative to the UI (served under /ui/ by the gateway,
+    # the platform under /platform/) or absolute
+    platform-url: ../platform/
+    title: Articulorium
+    # the gateway's Swagger UI, which lists the OpenAPI description of every service
+    api-docs-url: ../swagger-ui.html
+    # topology service (PCDM structures) and transform service (IIIF exports) on the gateway
+    topology-url: ../topology/
+    transform-url: ../transform/
+    # harvest service (sources, harvests and their reports) on the gateway
+    harvest-url: ../harvest/
+    # optional AI agent (suggestions of topologies, metadata, topics); the user interface asks it
+    # what it offers and hides the AI actions when it is off or not deployed
+    ai-url: ../ai/
+    # container of the community / sub-community / collection structure on the platform
+    communities-path: communities
+    # container of the academic profiles (VIVO) on the platform
+    profiles-path: profiles
+    # how users sign in: "oidc" (OpenID Connect authorization code flow with PKCE, the Keycloak
+    # realm of docker compose by default), "token" (paste a token: Consul ACL tokens, see
+    # docker-compose.acl.yml) or "none"
+    auth:
+      provider: oidc
+      oidc:
+        # the issuer as browsers reach it, relative to the UI (Keycloak on the gateway at /auth)
+        authority: ../auth/realms/articulorium
+        client-id: articulorium-ui
+        scope: openid profile
+  # locales (i18n-spring-boot-starter): every locale of the manifest is enabled unless
+  # "locales" lists some; the default locale is used for unsupported requests and missing texts.
+  # Use the same values in every service (Consul key/value configuration shares them).
+  i18n:
+    default-locale: en
+    # locales: en, de, fr
+  # agents served by /api/agents (agent-spring-boot-starter); Agent beans are added too
+  agents:
+    definitions:
+      owl:
+        description: read owl
+
+logging:
+  level:
+    root: INFO
+    com.articulorium: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
+  server:
+    port: 8000
+
+info:
+  application:
+    name: Articulorium service
+    description: User interface host and UI support API
+
+server:
+  port: 9000
+  servlet:
+    # the UI and its API live under /ui, the path the gateway routes unchanged, so the base
+    # href is /ui/ whether or not a proxy sends X-Forwarded-Prefix (/ui redirects to /ui/)
+    context-path: /ui
+  # honour X-Forwarded-* set by the gateway (base href and links)
+  forward-headers-strategy: framework
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+  error:
+    whitelabel:
+      enabled: false
+
+springdoc:
+  api-docs:
+    path: /api/docs
+  swagger-ui:
+    path: /api/swagger
+  writer-with-default-pretty-printer: true
+
+spring:
+  application:
+    name: service
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorium-${spring.application.name}
+        prefer-ip-address: true
+
+  devtools:
+    livereload:
+      enabled: true
+    restart:
+      additional-paths: ../ui/dist
+
+  servlet:
+    multipart:
+      max-file-size: 2GB
+      max-request-size: 2GB
+      file-size-threshold: 1MB
+
+  thymeleaf:
+    # index.html of the Angular build is the only template (<base th:href>, document language,
+    # writing direction and the inlined translations)
+    prefix: classpath:/static/
+    view-names: index
+
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          max-age: 365d
