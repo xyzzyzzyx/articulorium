@@ -1,0 +1,42 @@
+spring:
+
+  application:
+    name: gateway
+
+  cloud:
+
+    consul:
+
+      config:
+        enabled: true
+
+      discovery:
+        healthCheckPath: /actuator/health
+        healthCheckInterval: 15s
+        instanceId: ${spring.application.name}:${random.value}
+        serviceName: articulorum-${spring.application.name}
+
+      host: consul-server-bootstrap
+      port: 8500
+
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: articulorum-platform
+          uri: lb://articulorum-platform
+          predicates:
+            - Path=/platform,/platform/**
+          filters:
+            - StripPrefix=1
+        - id: articulorum-transform
+          uri: lb://articulorum-transform
+          predicates:
+            - Path=/transform,/transform/**
+          filters:
+            - StripPrefix=1
+
+    loadbalancer:
+      ribbon:
+        enabled: false

@@ -1,0 +1,7 @@
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix platform:   <http://www.w3.org/ns/platform#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+
+<http://platform:9000/>
+        a           platform:BasicContainer , platform:Container , platform:RDFSource ;
+        rdfs:label  "articulorum" .

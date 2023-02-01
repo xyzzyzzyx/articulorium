@@ -1,0 +1,40 @@
+spring:
+
+  application:
+    name: triplestore
+
+  cloud:
+
+    bus:
+      trace:
+        enabled: true
+
+    consul:
+
+      config:
+        enabled: true
+
+      discovery:
+        healthCheckPath: /actuator/health
+        healthCheckInterval: 15s
+        instanceId: ${spring.application.name}:${random.value}
+        serviceName: articulorum-${spring.application.name}
+
+      host: consul-server-bootstrap
+      port: 8500
+
+    loadbalancer:
+      ribbon:
+        enabled: false
+
+    stream:
+      defaultBinder: kafka
+
+      kafka:
+        binder:
+          autoAddPartitions: true
+          brokers: kafka:9092
+
+      bindings:
+        springCloudBusInput:
+          destination: container-bus

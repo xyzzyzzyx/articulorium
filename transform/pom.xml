@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  
+  <modelVersion>4.0.0</modelVersion>
+  
+  <parent>
+    <groupId>com.articulorum</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>transform</artifactId>
+
+  <name>Articulorum Repository LDPath Module</name>
+  <description></description>
+
+  <packaging>jar</packaging>
+
+  <properties>
+    <ldpath.version>3.4.0</ldpath.version>
+  </properties>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-consul-all</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-bus</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-bus-kafka</artifactId>
+    </dependency>
+
+
+    <dependency>
+      <groupId>org.apache.marmotta</groupId>
+      <artifactId>ldpath-core</artifactId>
+      <version>${ldpath.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.marmotta</groupId>
+      <artifactId>ldcache-backend-file</artifactId>
+      <version>${ldpath.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.marmotta</groupId>
+      <artifactId>ldpath-backend-linkeddata</artifactId>
+      <version>${ldpath.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.marmotta</groupId>
+      <artifactId>ldcache-api</artifactId>
+      <version>${ldpath.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.marmotta</groupId>
+      <artifactId>ldclient-provider-xml</artifactId>
+      <version>${ldpath.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.marmotta</groupId>
+      <artifactId>ldclient-provider-rdf</artifactId>
+      <version>${ldpath.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.semarglproject</groupId>
+      <artifactId>semargl-sesame</artifactId>
+      <version>0.7</version>
+    </dependency>
+
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.junit.vintage</groupId>
+          <artifactId>junit-vintage-engine</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+
+    <dependency>
+      <groupId>com.articulorum</groupId>
+      <artifactId>domain</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.articulorum</groupId>
+      <artifactId>event</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+
+    </plugins>
+  </build>
+
+</project>
+
+

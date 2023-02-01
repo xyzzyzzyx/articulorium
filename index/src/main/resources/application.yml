@@ -1,0 +1,40 @@
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.bus: DEBUG
+
+management:
+  endpoint:
+    health:
+      enabled: true
+      showDetails: always
+    info:
+      enabled: true
+  endpoints:
+    enabled-by-default: false
+    web:
+      exposure:
+        include: health,info
+  server:
+    port: 8000
+
+server:
+  port: 9000
+  servlet:
+    context-path:
+
+solr:
+  urls:
+    - http://solr1:8983/solr
+    - http://solr2:8983/solr
+    - http://solr3:8983/solr
+  zk-hosts:
+    - zoo1:2181
+    - zoo2:2181
+    - zoo3:2181
+  connection-timeout: 15000
+  socket-timeout: 600000
+
+spring:
+  main:
+    lazy-initialization: false

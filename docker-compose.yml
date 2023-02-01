@@ -1,0 +1,255 @@
+version: '3.8'
+
+services:
+
+  gateway:
+    container_name: gateway
+    hostname: gateway
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+      - 9000:9000
+    networks:
+      - cloud
+    depends_on:
+      - consul-server-bootstrap
+
+  platform:
+    container_name: platform
+    hostname: platform
+    build:
+      context: ./platform
+      dockerfile: Dockerfile
+    ports:
+      - 8001:8000
+      - 9001:9000
+    networks:
+      - cloud
+    depends_on:
+      - consul-server-bootstrap
+      - kafka
+
+  transform:
+    container_name: transform
+    hostname: transform
+    build:
+      context: ./transform
+      dockerfile: Dockerfile
+    ports:
+      - 8002:8000
+      - 9002:9000
+    networks:
+      - cloud
+    depends_on:
+      - consul-server-bootstrap
+      - kafka
+      - platform
+
+  index:
+    container_name: index
+    hostname: index
+    build:
+      context: ./index
+      dockerfile: Dockerfile
+    ports:
+      - 8003:8000
+    networks:
+      - cloud
+    depends_on:
+      - consul-server-bootstrap
+      - kafka
+      - solr1
+      - solr2
+      - solr3
+      - transform
+
+  triplestore:
+    container_name: triplestore
+    hostname: triplestore
+    build:
+      context: ./triplestore
+      dockerfile: Dockerfile
+    ports:
+      - 8004:8000
+    networks:
+      - cloud
+    depends_on:
+      - consul-server-bootstrap
+      - kafka
+      - blazegraph
+      - platform
+
+  cmak:
+    image: hlebalbau/kafka-manager:latest
+    container_name: cmak
+    hostname: cmak
+    ports:
+      - 9091:9000
+    environment:
+      ZK_HOSTS: zoo1:2181,zoo2:2181,zoo3:2181
+      APPLICATION_SECRET: abc123
+    command: -Dpidfile.path=/dev/null
+    networks:
+      - cloud
+    depends_on:
+      - kafka
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - 9092:9092
+    environment:
+      JMX_PORT: 9093
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zoo1:2181,zoo2:2181,zoo3:2181
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - cloud
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+
+  blazegraph:
+    image: lyrasis/blazegraph:2.1.5
+    container_name: blazegraph
+    hostname: blazegraph
+    ports:
+      - 8080:8080
+    networks:
+      - cloud
+
+  solr1:
+    image: solr:latest
+    container_name: solr1
+    hostname: solr1
+    ports:
+      - 8983:8983
+    environment:
+      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181
+      - SOLR_HOST=solr1
+    networks:
+      - cloud
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+  solr2:
+    image: solr:latest
+    container_name: solr2
+    hostname: solr2
+    ports:
+      - 8984:8983
+    environment:
+      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181
+      - SOLR_HOST=solr2
+    networks:
+      - cloud
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+  solr3:
+    image: solr:latest
+    container_name: solr3
+    hostname: solr3
+    ports:
+      - 8985:8983
+    environment:
+      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181
+      - SOLR_HOST=solr3
+    networks:
+      - cloud
+    depends_on:
+      - zoo1
+      - zoo2
+      - zoo3
+
+  zoo1:
+    image: zookeeper:latest
+    container_name: zoo1
+    restart: always
+    hostname: zoo1
+    ports:
+      - 2181:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+    networks:
+      - cloud
+  zoo2:
+    image: zookeeper:latest
+    container_name: zoo2
+    restart: always
+    hostname: zoo2
+    ports:
+      - 2182:2181
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=0.0.0.0:2888:3888;2181 server.3=zoo3:2888:3888;2181
+    networks:
+      - cloud
+  zoo3:
+    image: zookeeper:latest
+    container_name: zoo3
+    restart: always
+    hostname: zoo3
+    ports:
+      - 2183:2181
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=0.0.0.0:2888:3888;2181
+    networks:
+      - cloud
+
+  consul-agent-1: &consul-agent
+    image: consul:latest
+    networks:
+      - cloud
+    container_name: consul-agent-1
+    hostname: consul-agent-1
+    command: "agent -retry-join consul-server-bootstrap -client 0.0.0.0"
+
+  consul-agent-2:
+    <<: *consul-agent
+    container_name: consul-agent-2
+    hostname: consul-agent-2
+
+  consul-agent-3:
+    <<: *consul-agent
+    container_name: consul-agent-3
+    hostname: consul-agent-3
+
+  consul-server-1: &consul-server
+    <<: *consul-agent
+    container_name: consul-server-1
+    hostname: consul-server-1
+    command: "agent -server -retry-join consul-server-bootstrap -client 0.0.0.0"
+
+  consul-server-2:
+    <<: *consul-server
+    container_name: consul-server-2
+    hostname: consul-server-2
+
+  consul-server-bootstrap:
+    <<: *consul-agent
+    container_name: consul-server-bootstrap
+    hostname: consul-server-bootstrap
+    ports:
+      - 8400:8400
+      - 8500:8500
+      - 8600:8600
+      - 8600:8600/udp
+    command: "agent -server -bootstrap-expect 3 -ui -client 0.0.0.0"
+
+networks:
+  cloud:
