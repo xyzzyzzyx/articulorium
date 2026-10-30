@@ -1,0 +1,17 @@
+<div class="ui-shell">
+  <mat-toolbar color="primary" class="ui-toolbar">
+    <a class="ui-brand" [routerLink]="['/browse']"><mat-icon>account_tree</mat-icon> {{ title() }}</a>
+    <nav class="ui-nav" aria-label="Main">
+      <a mat-button routerLink="/browse" routerLinkActive="ui-active"><mat-icon>folder_open</mat-icon> Browse</a>
+      <a mat-button routerLink="/search" routerLinkActive="ui-active"><mat-icon>search</mat-icon> Search</a>
+      <a mat-button [href]="apiDocs()" target="_blank" rel="noopener"><mat-icon>api</mat-icon> API</a>
+      <a mat-button routerLink="/about" routerLinkActive="ui-active"><mat-icon>info</mat-icon> About</a>
+    </nav>
+  </mat-toolbar>
+  <main class="ui-content">
+    <router-outlet />
+  </main>
+  <footer class="ui-footer">
+    <span>&#169; Axiom Informatics Technology LLC</span>
+  </footer>
+</div>

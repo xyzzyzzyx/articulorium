@@ -1,0 +1,48 @@
+.ui-resource-header {
+  margin-bottom: 16px;
+
+  h1 {
+    margin: 0 0 4px;
+    overflow-wrap: anywhere;
+  }
+
+  .ui-iri {
+    display: block;
+    margin-bottom: 8px;
+    font-family: var(--ui-mono);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+  }
+}
+
+.ui-resource-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: start;
+
+  @media (max-width: 960px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ui-resource-main,
+.ui-resource-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.ui-children {
+  margin: 0;
+  padding-left: 1.25em;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.ui-error mat-card-content {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

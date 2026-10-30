@@ -1,42 +1,138 @@
+# Articulorum Linked Data Platform.
+#
+# Every value can be overridden with an environment variable using Spring Boot's relaxed binding,
+# for example ARTICULORUM_STORAGE_TYPE=filesystem or SPRING_DATASOURCE_URL=jdbc:postgresql://...
+
+articulorum:
+  ldp:
+    # largest RDF request body accepted (POST/PUT/PATCH)
+    max-rdf-size: 10MB
+    # recorded as fedora:createdBy / fedora:lastModifiedBy for unauthenticated requests
+    default-agent: anonymous
+    # upper bound of max_results for /fcr:search
+    max-search-results: 1000
+  storage:
+    # where the OCFL storage root lives: "s3" (default, MinIO in docker compose) or "filesystem"
+    type: s3
+    # largest binary accepted in a raw (non-multipart) request body
+    max-upload-size: 2GB
+    filesystem:
+      root: ./data/ocfl
+    s3:
+      endpoint: http://minio:9000
+      region: us-east-1
+      bucket: articulorum
+      access-key: articulorum
+      secret-key: articulorum-secret
+      path-style: true
+      create-bucket: true
+      key-prefix: ocfl
+    ocfl:
+      # where new OCFL versions are assembled; must not be inside the storage root
+      work-directory: ./data/ocfl-work
+      # coordinate writers of several platform instances through a lock table in the database
+      database-lock: true
+  health:
+    kafka:
+      timeout: 3s
+
 logging:
   level:
     root: INFO
-    org.springframework.cloud.bus: DEBUG
+    org.springframework.cloud.bus: INFO
 
 management:
   endpoint:
     health:
-      enabled: true
-      showDetails: always
-    info:
-      enabled: true
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
   endpoints:
-    enabled-by-default: false
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,env,loggers,configprops,mappings,beans
+  # custom indicators (database, ocfl, minio, kafka) report next to Spring Boot's db and diskSpace;
+  # switch one off with management.health.<name>.enabled=false
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
   server:
+    # actuator runs on its own port so it never shadows LDP resource paths
     port: 8000
+
+info:
+  application:
+    name: Articulorum Linked Data Platform
+    description: W3C LDP 1.0 server with an OCFL storage layer
 
 server:
   port: 9000
-  servlet:
-    context-path:
+  # honour X-Forwarded-Host/Proto/Prefix set by the gateway so resource IRIs are correct
+  forward-headers-strategy: framework
+
+# OpenAPI document and Swagger UI live below the reserved /.well-known path so they never collide
+# with LDP resources: /.well-known/openapi and /.well-known/swagger-ui.html
+springdoc:
+  api-docs:
+    path: /.well-known/openapi
+  swagger-ui:
+    path: /.well-known/swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  writer-with-default-pretty-printer: true
 
 spring:
-  datasource:
-    platform: h2
-    url: jdbc:h2:./articulorum;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: articulorum
-    password: articulorum
+  application:
+    name: platform
 
-  h2:
-    console:
-      enabled: true
-      path: /h2console
-      settings:
-        web-allow-others: false
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    bus:
+      destination: resource-bus
+
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorum-${spring.application.name}
+        prefer-ip-address: true
+      retry:
+        max-attempts: 20
+
+    stream:
+      kafka:
+        binder:
+          brokers: kafka:9092
+          auto-add-partitions: true
+      bindings:
+        springCloudBusOutput:
+          destination: resource-bus
+          producer:
+            partition-count: 3
+
+  # PostgreSQL is the default database (the "postgres" service of docker compose). H2, MySQL,
+  # SQL Server and Oracle drivers are on the class path too: override the URL to switch.
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB:articulorum}
+    username: ${POSTGRES_USER:articulorum}
+    password: ${POSTGRES_PASSWORD:articulorum}
+    hikari:
+      pool-name: platform
+      maximum-pool-size: 20
+      connection-timeout: 30000
 
   jackson:
     serialization:
@@ -48,5 +144,14 @@ spring:
     open-in-view: false
     show-sql: false
 
-  main:
-    lazy-initialization: true
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 2GB
+      max-request-size: 2GB
+      file-size-threshold: 1MB
+
+  web:
+    resources:
+      # the LDP controller owns every path; only springdoc's Swagger UI assets are static
+      add-mappings: false

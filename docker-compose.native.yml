@@ -1,0 +1,47 @@
+# Override: run the services that support it as GraalVM native images.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.native.yml up --build
+#
+# Every Articulorum service supports native images. Native builds take several minutes per
+# service and each needs about 10 GB of memory (NATIVE_MAX_HEAP, default 8g, plus overhead).
+# Compose builds all images in parallel, which exhausts Docker's memory, so build them one at a
+# time first, then start the stack:
+#
+#   bash:        for s in gateway platform transform index triplestore service; do
+#                  docker compose -f docker-compose.yml -f docker-compose.native.yml build $s; done
+#   PowerShell:  foreach ($s in 'gateway','platform','transform','index','triplestore','service') {
+#                  docker compose -f docker-compose.yml -f docker-compose.native.yml build $s }
+#
+#   docker compose -f docker-compose.yml -f docker-compose.native.yml up
+
+services:
+
+  gateway:
+    image: articulorum/gateway:native
+    build:
+      dockerfile: Dockerfile.native
+
+  platform:
+    image: articulorum/platform:native
+    build:
+      dockerfile: Dockerfile.native
+
+  index:
+    image: articulorum/index:native
+    build:
+      dockerfile: Dockerfile.native
+
+  triplestore:
+    image: articulorum/triplestore:native
+    build:
+      dockerfile: Dockerfile.native
+
+  transform:
+    image: articulorum/transform:native
+    build:
+      dockerfile: Dockerfile.native
+
+  service:
+    image: articulorum/service:native
+    build:
+      dockerfile: Dockerfile.native

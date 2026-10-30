@@ -1,40 +1,76 @@
+# Articulorum index: Solr synchronisation of transformed resources.
+
+articulorum:
+  solr:
+    base-url: http://solr:8983/solr
+    collection: articulorum
+    num-shards: 1
+    replication-factor: 1
+    config-set: _default
+    commit-within: 1000
+
 logging:
   level:
     root: INFO
-    org.springframework.cloud.bus: DEBUG
 
 management:
   endpoint:
     health:
-      enabled: true
-      showDetails: always
-    info:
-      enabled: true
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
   endpoints:
-    enabled-by-default: false
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,loggers
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
   server:
     port: 8000
 
+info:
+  application:
+    name: ${spring.application.name}
+    description: Solr indexing of search documents
+
 server:
   port: 9000
-  servlet:
-    context-path:
-
-solr:
-  urls:
-    - http://solr1:8983/solr
-    - http://solr2:8983/solr
-    - http://solr3:8983/solr
-  zk-hosts:
-    - zoo1:2181
-    - zoo2:2181
-    - zoo3:2181
-  connection-timeout: 15000
-  socket-timeout: 600000
 
 spring:
-  main:
-    lazy-initialization: false
+  application:
+    name: index
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    bus:
+      destination: document-bus
+      ack:
+        enabled: false
+
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorum-${spring.application.name}
+        prefer-ip-address: true
+
+    stream:
+      kafka:
+        binder:
+          brokers: kafka:9092
+          auto-add-partitions: true
+      bindings:
+        springCloudBusInput:
+          destination: document-bus

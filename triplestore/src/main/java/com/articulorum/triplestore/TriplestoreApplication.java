@@ -1,24 +1,23 @@
 package com.articulorum.triplestore;
 
-import com.articulorum.triplestore.config.model.BlazegraphConfig;
-import com.bigdata.rdf.sail.webapp.client.RemoteRepositoryManager;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
-@EnableDiscoveryClient
+/**
+ * Entry point of the Articulorum triplestore service.
+ */
 @SpringBootApplication(scanBasePackages = "com.articulorum")
+@ConfigurationPropertiesScan("com.articulorum.triplestore")
 public class TriplestoreApplication {
 
-    public static void main(String[] args) {
+    /**
+     * Starts the service.
+     *
+     * @param args command line arguments
+     */
+    public static void main(final String[] args) {
         SpringApplication.run(TriplestoreApplication.class, args);
-    }
-
-    @Bean
-    public RemoteRepositoryManager getRemoteRepositoryManager(BlazegraphConfig blazegraphConfig) {
-        return new RemoteRepositoryManager(blazegraphConfig.getServiceUrl() , blazegraphConfig.getUseLbs());
     }
 
 }

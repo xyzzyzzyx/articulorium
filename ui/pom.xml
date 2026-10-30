@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  UI module: the Angular single page application for browsing and managing the Linked Data
+  Platform (feature parity with the Fedora Commons web UI).
+
+  The build installs Node and npm locally (into the repository's node/ directory), runs
+  "npm install", "npm run lint" and "npm run build", and packages dist/ui/browser as static/ in a
+  jar that the service module serves. Skip the npm steps with -Dskip.npm (the jar then contains
+  whatever dist/ui/browser already holds) and the Node download with -Dskip.installnodenpm.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.articulorum</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>ui</artifactId>
+  <packaging>jar</packaging>
+
+  <name>Articulorum User Interface Module</name>
+  <description>Angular single page application packaged as static resources.</description>
+
+  <properties>
+    <!-- "mvn -DskipTests" also skips the Angular unit tests -->
+    <skipTests>false</skipTests>
+    <!-- Angular unit tests run unless -DskipTests or -Dskip.npm is given (see the skip-npm profile) -->
+    <skip.ui.tests>${skipTests}</skip.ui.tests>
+  </properties>
+
+  <build>
+
+    <resources>
+      <resource>
+        <directory>dist/ui/browser</directory>
+        <targetPath>static</targetPath>
+      </resource>
+    </resources>
+
+    <plugins>
+      <plugin>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <configuration>
+          <nodeVersion>${node.version}</nodeVersion>
+          <npmVersion>${npm.version}</npmVersion>
+          <installDirectory>${project.basedir}/..</installDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>install node and npm</id>
+            <goals>
+              <goal>install-node-and-npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+          </execution>
+          <execution>
+            <id>npm install</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>install</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm run lint</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>run lint</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm run build</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>run build</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm test</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>test</phase>
+            <configuration>
+              <arguments>test</arguments>
+              <skip>${skip.ui.tests}</skip>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- with -Dskip.npm nothing is built, so there is nothing to test either -->
+    <profile>
+      <id>skip-npm</id>
+      <activation>
+        <property>
+          <name>skip.npm</name>
+        </property>
+      </activation>
+      <properties>
+        <skip.ui.tests>true</skip.ui.tests>
+      </properties>
+    </profile>
+  </profiles>
+
+</project>

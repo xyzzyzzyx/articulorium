@@ -1,76 +1,78 @@
 package com.articulorum.index.handler;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.articulorum.event.DocumentEvent;
 import com.articulorum.event.handler.DocumentEventHandler;
+import com.articulorum.index.solr.SolrIndexClient;
 
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.common.SolrInputDocument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Applies {@link DocumentEvent}s to the Solr collection.
+ */
 @Slf4j
 @Component
 public class IndexDocumentEventHandler implements DocumentEventHandler {
 
-    @Autowired
-    private SolrClient solrClient;
+    private final SolrIndexClient solr;
+
+    /**
+     * Creates the handler.
+     *
+     * @param solr the Solr client
+     */
+    public IndexDocumentEventHandler(final SolrIndexClient solr) {
+        this.solr = solr;
+    }
 
     @Override
-    public void handle(DocumentEvent event) {
-        Map<String, Collection<?>> document = event.getDocument();
-        String id = (String) ((List<?>) document.get("id")).get(0);
-        switch (event.getAction()) {
-            case CREATED:
-                log.info("INDEX {}", id);
-                indexDocument(id, document);
-                break;
-            case UPDATED:
-                log.info("UPDATE {}", id);
-                indexDocument(id, document);
-                break;
-            case DELETED:
-                log.info("DELETE {}", id);
-                deleteDocument(id);
-                break;
+    public void handle(final DocumentEvent event) {
+        final String id = event.documentId();
+        if (id == null || event.getAction() == null) {
+            log.warn("Ignoring document event without id or action from {}", event.getOriginService());
+            return;
         }
-    }
-
-    private void indexDocument(String id, Map<String, Collection<?>> document) {
         try {
-            solrClient.add("test", toSolrInputDocument(document));
-            solrClient.commit("test");
-        } catch (Exception e) {
-            log.warn("Failed to index document {} in collection {}", id, "test");
-            if (log.isDebugEnabled()) {
-                e.printStackTrace();
+            switch (event.getAction()) {
+                case CREATED, UPDATED -> {
+                    log.info("INDEX {} ({})", id, event.getAction());
+                    solr.add(toSolrDocument(event.getDocument()));
+                }
+                case DELETED -> {
+                    log.info("UNINDEX {}", id);
+                    solr.deleteById(id);
+                }
+                default -> log.debug("Ignoring {}", event.getAction());
             }
+        } catch (RestClientException e) {
+            log.warn("Unable to apply {} of {} to Solr: {}", event.getAction(), id, e.getMessage());
+            log.debug("Solr failure", e);
         }
     }
 
-    private void deleteDocument(String id) {
-        try {
-            solrClient.deleteById("test", id);
-            solrClient.commit("test");
-        } catch (Exception e) {
-            log.warn("Failed to delete document {} from collection {}", id, "test");
-            if (log.isDebugEnabled()) {
-                e.printStackTrace();
+    /**
+     * Converts a transform document to a Solr document: the single-valued {@code id} field is
+     * unwrapped; every other field stays multi-valued.
+     *
+     * @param document the transform document
+     * @return the Solr document
+     */
+    static Map<String, Object> toSolrDocument(final Map<String, Collection<?>> document) {
+        final Map<String, Object> solrDocument = new LinkedHashMap<>();
+        document.forEach((field, values) -> {
+            if (DocumentEvent.ID_FIELD.equals(field) && values != null && !values.isEmpty()) {
+                solrDocument.put(field, String.valueOf(values.iterator().next()));
+            } else if (values != null && !values.isEmpty()) {
+                solrDocument.put(field, values);
             }
-        }
-    }
-
-    private SolrInputDocument toSolrInputDocument(Map<String, Collection<?>> document) {
-        final SolrInputDocument solrInDoc = new SolrInputDocument();
-        document.entrySet().forEach(entry -> {
-            solrInDoc.addField(entry.getKey(), entry.getValue());
         });
-        return solrInDoc;
+        return solrDocument;
     }
 
 }

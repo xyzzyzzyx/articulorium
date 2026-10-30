@@ -1,0 +1,15 @@
+{
+  "name": "articulorum-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cypress end-to-end tests of the Articulorum user interface against the running stack",
+  "scripts": {
+    "test": "cypress run",
+    "open": "cypress open",
+    "typecheck": "tsc -p cypress/tsconfig.json"
+  },
+  "devDependencies": {
+    "cypress": "16.1.1",
+    "typescript": "5.9.3"
+  }
+}

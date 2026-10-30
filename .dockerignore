@@ -1,0 +1,19 @@
+# keep the Docker build context small and reproducible
+.git
+.github
+**/target
+**/data
+**/cache
+**/*.iml
+.idea
+.vscode
+*.mv.db
+*.trace.db
+# Node.js runtime and packages installed on the host (possibly for another OS): the image
+# build downloads its own Node.js and runs npm itself
+node
+**/node_modules
+ui/dist
+ui/.angular
+# end-to-end tests run in their own container (cypress/included), not in the service images
+e2e

@@ -1,0 +1,12 @@
+{
+  "/platform": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "xfwd": true
+  },
+  "/api": {
+    "target": "http://localhost:8000/ui",
+    "secure": false,
+    "xfwd": true
+  }
+}

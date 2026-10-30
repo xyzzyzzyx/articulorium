@@ -1,0 +1,54 @@
+.ui-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.ui-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 16px;
+  flex-wrap: wrap;
+  height: auto;
+  min-height: 64px;
+}
+
+.ui-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.ui-nav {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: auto;
+
+  a {
+    color: inherit;
+  }
+
+  .ui-active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.ui-content {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+
+.ui-footer {
+  padding: 12px;
+  text-align: center;
+  color: #666;
+  font-size: 0.85rem;
+}

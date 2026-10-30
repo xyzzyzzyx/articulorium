@@ -1,0 +1,362 @@
+# Field mappings of the "field-mapping" transformer: how an LDP resource becomes a search document.
+#
+# Ported from the Apache Marmotta LDPath program (default.ldpath) the transform service used before.
+# Each field lists property paths (alternatives are combined, like LDPath's "|"; a path of several
+# steps is written "a:p / b:q") and a type: string, uri, dateTime, integer, decimal or boolean.
+# The document identifier ("id") is always the resource IRI and is not configured here.
+#
+# Point articulorum.transform.field-mappings at another file (file:/config/fields.yml) to change it.
+
+prefixes:
+  fedora: "http://fedora.info/definitions/v4/repository#"
+  pcdm: "http://pcdm.org/models#"
+  ore: "http://www.openarchives.org/ore/terms/"
+  iana: "http://www.iana.org/assignments/relation/"
+  acl: "http://www.w3.org/ns/auth/acl#"
+  dcterms: "http://purl.org/dc/terms/"
+  rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  rdfs: "http://www.w3.org/2000/01/rdf-schema#"
+  owl: "http://www.w3.org/2002/07/owl#"
+  skos: "http://www.w3.org/2004/02/skos/core#"
+  dc: "http://purl.org/dc/elements/1.1/"
+
+fields:
+  created:
+    paths: [ "fedora:created" ]
+    type: dateTime
+  createdBy:
+    paths: [ "fedora:createdBy" ]
+    type: string
+  hasParent:
+    paths: [ "fedora:hasParent" ]
+    type: string
+  hasVersions:
+    paths: [ "fedora:hasVersions" ]
+    type: uri
+  lastModified:
+    paths: [ "fedora:lastModified" ]
+    type: dateTime
+  lastModifiedBy:
+    paths: [ "fedora:lastModifiedBy" ]
+    type: string
+  numberOfChildren:
+    paths: [ "fedora:numberOfChildren" ]
+    type: integer
+  type:
+    paths: [ "rdf:type" ]
+    type: uri
+  label:
+    paths: [ "rdfs:label" ]
+    type: string
+  comment:
+    paths: [ "rdfs:comment" ]
+    type: string
+  sameAs:
+    paths: [ "owl:sameAs" ]
+    type: uri
+  altLabel:
+    paths: [ "skos:altLabel" ]
+    type: string
+  broadMatch:
+    paths: [ "skos:broadMatch" ]
+    type: uri
+  broader:
+    paths: [ "skos:broader" ]
+    type: uri
+  broaderTransitive:
+    paths: [ "skos:broaderTransitive" ]
+    type: uri
+  changeNote:
+    paths: [ "skos:changeNote" ]
+    type: string
+  closeMatch:
+    paths: [ "skos:closeMatch" ]
+    type: string
+  definition:
+    paths: [ "skos:definition" ]
+    type: string
+  editorialNote:
+    paths: [ "skos:editorialNote" ]
+    type: string
+  exactMatch:
+    paths: [ "skos:exactMatch" ]
+    type: uri
+  example:
+    paths: [ "skos:example" ]
+    type: string
+  hiddenLabel:
+    paths: [ "skos:hiddenLabel" ]
+    type: string
+  historyNote:
+    paths: [ "skos:historyNote" ]
+    type: string
+  inScheme:
+    paths: [ "skos:inScheme" ]
+    type: uri
+  mappingRelation:
+    paths: [ "skos:mappingRelation" ]
+    type: uri
+  member:
+    paths: [ "skos:member" ]
+    type: uri
+  memberList:
+    paths: [ "skos:memberList" ]
+    type: uri
+  narrowMatch:
+    paths: [ "skos:narrowMatch" ]
+    type: uri
+  narrower:
+    paths: [ "skos:narrower" ]
+    type: uri
+  narrowerTransitive:
+    paths: [ "skos:narrowerTrasitive" ]
+    type: uri
+  notation:
+    paths: [ "skos:notation" ]
+    type: string
+  note:
+    paths: [ "skos:note" ]
+    type: string
+  prefLabel:
+    paths: [ "skos:prefLabel" ]
+    type: string
+  related:
+    paths: [ "skos:related" ]
+    type: uri
+  relatedMatch:
+    paths: [ "skos:relatedMatch" ]
+    type: uri
+  scopeNote:
+    paths: [ "skos:scopeNote" ]
+    type: string
+  semanticRelation:
+    paths: [ "skos:semanticRelation" ]
+    type: uri
+  topConceptOf:
+    paths: [ "skos:topConceptOf" ]
+    type: uri
+  abstract:
+    paths: [ "dcterms:abstract" ]
+    type: string
+  accessRights:
+    paths: [ "dcterms:accessRights" ]
+    type: string
+  accrualMethod:
+    paths: [ "dcterms:accrualMethod" ]
+    type: string
+  accrualPeriodicity:
+    paths: [ "dcterms:accrualPeriodicity" ]
+    type: string
+  accrualPolicy:
+    paths: [ "dcterms:accrualPolicy" ]
+    type: string
+  alternative:
+    paths: [ "dcterms:alternative" ]
+    type: string
+  audience:
+    paths: [ "dcterms:audience" ]
+    type: string
+  available:
+    paths: [ "dcterms:available" ]
+    type: string
+  bibliographicCitation:
+    paths: [ "dcterms:bibliographicCitation" ]
+    type: string
+  conformsTo:
+    paths: [ "dcterms:conformsTo" ]
+    type: string
+  contributor:
+    paths: [ "dc:contributor", "dcterms:contributor" ]
+    type: string
+  coverage:
+    paths: [ "dc:coverage", "dcterms:coverage" ]
+    type: string
+  creator:
+    paths: [ "dc:creator", "dcterms:creator" ]
+    type: string
+  date:
+    paths: [ "dc:date", "dcterms:date" ]
+    type: dateTime
+  dateAccepted:
+    paths: [ "dcterms:dateAccepted" ]
+    type: dateTime
+  dateCopyrighted:
+    paths: [ "dcterms:dateCopyrighted" ]
+    type: dateTime
+  dateSubmitted:
+    paths: [ "dcterms:dateSubmitted" ]
+    type: dateTime
+  description:
+    paths: [ "dc:description", "dcterms:description" ]
+    type: string
+  educationLevel:
+    paths: [ "dcterms:educationLevel" ]
+    type: string
+  extent:
+    paths: [ "dcterms:extent" ]
+    type: string
+  format:
+    paths: [ "dc:format", "dcterms:format" ]
+    type: string
+  hasFormat:
+    paths: [ "dcterms:hasFormat" ]
+    type: string
+  hasPart:
+    paths: [ "dcterms:hasPart" ]
+    type: string
+  hasVersion:
+    paths: [ "dcterms:hasVersion" ]
+    type: string
+  identifier:
+    paths: [ "dc:identifier", "dcterms:identifier" ]
+    type: string
+  instructionalMethod:
+    paths: [ "dcterms:instructionalMethod" ]
+    type: string
+  isFormatOf:
+    paths: [ "dcterms:isFormatOf" ]
+    type: string
+  isPartOf:
+    paths: [ "dcterms:isPartOf" ]
+    type: string
+  isReferencedBy:
+    paths: [ "dcterms:isReferencedBy" ]
+    type: string
+  isReplacedBy:
+    paths: [ "dcterms:isReplacedBy" ]
+    type: string
+  isRequiredBy:
+    paths: [ "dcterms:isRequiredBy" ]
+    type: string
+  issued:
+    paths: [ "dcterms:issued" ]
+    type: string
+  isVersionOf:
+    paths: [ "dcterms:isVersionOf" ]
+    type: string
+  language:
+    paths: [ "dc:language", "dcterms:language" ]
+    type: string
+  license:
+    paths: [ "dcterms:license" ]
+    type: string
+  mediator:
+    paths: [ "dcterms:mediator" ]
+    type: string
+  medium:
+    paths: [ "dcterms:medium" ]
+    type: string
+  modified:
+    paths: [ "dcterms:modified" ]
+    type: string
+  provenance:
+    paths: [ "dcterms:provenance" ]
+    type: string
+  publisher:
+    paths: [ "dc:publisher", "dcterms:publisher" ]
+    type: string
+  references:
+    paths: [ "dcterms:references" ]
+    type: string
+  relation:
+    paths: [ "dc:relation", "dcterms:relation" ]
+    type: string
+  replaces:
+    paths: [ "dcterms:replaces" ]
+    type: string
+  requires:
+    paths: [ "dcterms:requires" ]
+    type: string
+  rights:
+    paths: [ "dc:rights", "dcterms:rights" ]
+    type: string
+  rightsHolder:
+    paths: [ "dcterms:rightsHolder" ]
+    type: string
+  source:
+    paths: [ "dc:source", "dcterms:source" ]
+    type: string
+  spatial:
+    paths: [ "dcterms:spatial" ]
+    type: string
+  subject:
+    paths: [ "dc:subject", "dcterms:subject" ]
+    type: string
+  tableOfContents:
+    paths: [ "dcterms:tableOfContents" ]
+    type: string
+  temporal:
+    paths: [ "dcterms:temporal" ]
+    type: string
+  title:
+    paths: [ "dc:title", "dcterms:title" ]
+    type: string
+  valid:
+    paths: [ "dcterms:valid" ]
+    type: string
+  fileOf:
+    paths: [ "pcdm:fileOf" ]
+    type: uri
+  hasFile:
+    paths: [ "pcdm:hasFile" ]
+    type: uri
+  hasMember:
+    paths: [ "pcdm:hasMember" ]
+    type: uri
+  hasRelatedObject:
+    paths: [ "pcdm:hasRelatedObject" ]
+    type: uri
+  memberOf:
+    paths: [ "pcdm:memberOf" ]
+    type: uri
+  relatedObjectOf:
+    paths: [ "pcdm:relatedObjectOf" ]
+    type: uri
+  aggregates:
+    paths: [ "ore:aggregates" ]
+    type: uri
+  isAggregatedBy:
+    paths: [ "ore:isAggregatedBy" ]
+    type: uri
+  proxyFor:
+    paths: [ "ore:proxyFor" ]
+    type: uri
+  proxyIn:
+    paths: [ "ore:proxyIn" ]
+    type: uri
+  first:
+    paths: [ "iana:first" ]
+    type: uri
+  last:
+    paths: [ "iana:last" ]
+    type: uri
+  next:
+    paths: [ "iana:next" ]
+    type: uri
+  prev:
+    paths: [ "iana:prev" ]
+    type: uri
+  describes:
+    paths: [ "iana:describes" ]
+    type: uri
+  describedBy:
+    paths: [ "iana:describedBy" ]
+    type: uri
+  accessControl:
+    paths: [ "acl:accessControl" ]
+    type: uri
+  accessTo:
+    paths: [ "acl:accessTo" ]
+    type: uri
+  accessToClass:
+    paths: [ "acl:accessToClass" ]
+    type: uri
+  agent:
+    paths: [ "acl:agent" ]
+    type: string
+  agentClass:
+    paths: [ "acl:agentClass" ]
+    type: uri
+  mode:
+    paths: [ "acl:mode" ]
+    type: uri

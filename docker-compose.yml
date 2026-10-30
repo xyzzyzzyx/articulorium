@@ -1,255 +1,378 @@
-version: '3.8'
+# Articulorum: complete local stack.
+#
+#   docker compose up --build            start everything (JVM images)
+#   docker compose --profile tools up    also start the Kafka UI
+#   docker compose --profile e2e run --rm e2e
+#                                        run the Cypress end-to-end tests against the stack
+#   docker compose -f docker-compose.yml -f docker-compose.native.yml up --build
+#                                        use GraalVM native images where supported
+#
+# Entry points once healthy (allow a minute or two on first start):
+#   http://localhost:8000/ui/         Articulorum UI (browse, create, upload, edit, versions, search)
+#   http://localhost:8000/platform/   LDP root through the gateway
+#   http://localhost:8000/swagger-ui.html
+#                                     Swagger UI for every service's OpenAPI description
+#   http://localhost:9001/            LDP root directly on the platform
+#   localhost:5432                    PostgreSQL (articulorum / articulorum), the platform database
+#   http://localhost:8500/            Consul UI
+#   http://localhost:9101/            MinIO console (articulorum / articulorum-secret)
+#   http://localhost:8983/            Solr admin
+#   http://localhost:8080/bigdata/    Blazegraph workbench
+#
+# Credentials can be overridden with environment variables or an .env file next to this file.
+
+name: articulorum
+
+x-service: &service
+  restart: unless-stopped
+  networks:
+    - cloud
+  healthcheck:
+    test: ["CMD", "curl", "-fsS", "http://localhost:8000/actuator/health"]
+    interval: 10s
+    timeout: 5s
+    retries: 30
+    start_period: 40s
+
+x-spring-env: &spring-env
+  SPRING_CLOUD_CONSUL_HOST: consul
+  SPRING_CLOUD_CONSUL_PORT: "8500"
+  SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS: kafka:9092
+  JAVA_OPTS: -XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError
 
 services:
 
+  # ----------------------------------------------------------------------------------------------
+  # Articulorum services
+  # ----------------------------------------------------------------------------------------------
+
   gateway:
-    container_name: gateway
-    hostname: gateway
+    <<: *service
+    image: articulorum/gateway:latest
     build:
-      context: ./gateway
+      context: .
       dockerfile: Dockerfile
+      args:
+        MODULE: gateway
+    environment:
+      <<: *spring-env
     ports:
-      - 8000:8000
-      - 9000:9000
-    networks:
-      - cloud
+      - "8000:9000"
     depends_on:
-      - consul-server-bootstrap
+      consul:
+        condition: service_healthy
 
   platform:
-    container_name: platform
-    hostname: platform
+    <<: *service
+    image: articulorum/platform:latest
     build:
-      context: ./platform
+      context: .
       dockerfile: Dockerfile
+      args:
+        MODULE: platform
+    environment:
+      <<: *spring-env
+      # PostgreSQL is the platform's default database (see platform application.yml)
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-articulorum}
+      POSTGRES_USER: ${POSTGRES_USER:-articulorum}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-articulorum}
+      # binaries live in an OCFL storage root inside the MinIO bucket
+      ARTICULORUM_STORAGE_TYPE: s3
+      ARTICULORUM_STORAGE_S3_ENDPOINT: http://minio:9000
+      ARTICULORUM_STORAGE_S3_BUCKET: ${ARTICULORUM_BUCKET:-articulorum}
+      ARTICULORUM_STORAGE_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-articulorum}
+      ARTICULORUM_STORAGE_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-articulorum-secret}
     ports:
-      - 8001:8000
-      - 9001:9000
-    networks:
-      - cloud
+      - "9001:9000"
+    volumes:
+      - platform-data:/app/data
     depends_on:
-      - consul-server-bootstrap
-      - kafka
+      consul:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
   transform:
-    container_name: transform
-    hostname: transform
+    <<: *service
+    image: articulorum/transform:latest
     build:
-      context: ./transform
+      context: .
       dockerfile: Dockerfile
+      args:
+        MODULE: transform
+    environment:
+      <<: *spring-env
     ports:
-      - 8002:8000
-      - 9002:9000
-    networks:
-      - cloud
+      - "9002:9000"
     depends_on:
-      - consul-server-bootstrap
-      - kafka
-      - platform
+      consul:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      platform:
+        condition: service_healthy
 
   index:
-    container_name: index
-    hostname: index
+    <<: *service
+    image: articulorum/index:latest
     build:
-      context: ./index
+      context: .
       dockerfile: Dockerfile
+      args:
+        MODULE: index
+    environment:
+      <<: *spring-env
+      ARTICULORUM_SOLR_BASE_URL: http://solr:8983/solr
     ports:
-      - 8003:8000
-    networks:
-      - cloud
+      - "9003:9000"
     depends_on:
-      - consul-server-bootstrap
-      - kafka
-      - solr1
-      - solr2
-      - solr3
-      - transform
+      consul:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      solr:
+        condition: service_started
 
   triplestore:
-    container_name: triplestore
-    hostname: triplestore
+    <<: *service
+    image: articulorum/triplestore:latest
     build:
-      context: ./triplestore
+      context: .
       dockerfile: Dockerfile
-    ports:
-      - 8004:8000
-    networks:
-      - cloud
-    depends_on:
-      - consul-server-bootstrap
-      - kafka
-      - blazegraph
-      - platform
-
-  cmak:
-    image: hlebalbau/kafka-manager:latest
-    container_name: cmak
-    hostname: cmak
-    ports:
-      - 9091:9000
+      args:
+        MODULE: triplestore
     environment:
-      ZK_HOSTS: zoo1:2181,zoo2:2181,zoo3:2181
-      APPLICATION_SECRET: abc123
-    command: -Dpidfile.path=/dev/null
+      <<: *spring-env
+      ARTICULORUM_TRIPLESTORE_SERVICE_URL: http://blazegraph:8080/bigdata
+    ports:
+      - "9004:9000"
+    depends_on:
+      consul:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      blazegraph:
+        condition: service_started
+
+  service:
+    # Angular user interface and its support API (agents, media type detection, UI settings);
+    # the gateway serves it under /ui/
+    <<: *service
+    image: articulorum/service:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: service
+    environment:
+      <<: *spring-env
+    ports:
+      - "9005:9000"
+    depends_on:
+      consul:
+        condition: service_healthy
+
+  # ----------------------------------------------------------------------------------------------
+  # Infrastructure
+  # ----------------------------------------------------------------------------------------------
+
+  postgres:
+    # metadata of every LDP resource (the platform's JPA store) and the OCFL object lock table
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-articulorum}
+      POSTGRES_USER: ${POSTGRES_USER:-articulorum}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-articulorum}
+    ports:
+      - "5432:5432"
+    volumes:
+      # PostgreSQL 18+ images keep PGDATA in a version specific directory below this mount
+      - postgres-data:/var/lib/postgresql
     networks:
       - cloud
-    depends_on:
-      - kafka
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  consul:
+    image: hashicorp/consul:1.20
+    command: agent -dev -client=0.0.0.0 -ui
+    restart: unless-stopped
+    ports:
+      - "8500:8500"
+    networks:
+      - cloud
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
   kafka:
-    image: confluentinc/cp-kafka:latest
-    container_name: kafka
-    hostname: kafka
-    ports:
-      - 9092:9092
+    # single KRaft node: no ZooKeeper needed for Kafka. The bus only carries change
+    # notifications, so the log is kept in the container (not persisted).
+    image: apache/kafka:3.9.1
+    restart: unless-stopped
     environment:
-      JMX_PORT: 9093
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zoo1:2181,zoo2:2181,zoo3:2181
-      KAFKA_ADVERTISED_HOST_NAME: kafka
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "29092:29092"
+    networks:
+      - cloud
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
+
+  minio:
+    # S3 compatible object storage holding the OCFL storage root. MinIO stopped publishing
+    # images (Docker Hub deleted minio/minio in September 2026), so this runs Silo, the
+    # community fork by Pigsty: same MINIO_* settings, command, ports and data format.
+    image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-articulorum}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-articulorum-secret}
+    ports:
+      - "9100:9000"
+      - "9101:9001"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - minio-data:/data
+    networks:
+      - cloud
+    healthcheck:
+      test: ["CMD", "silo", "healthcheck", "ready"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+
+  zookeeper:
+    # coordination for SolrCloud only
+    image: zookeeper:3.9
+    restart: unless-stopped
+    environment:
+      ZOO_4LW_COMMANDS_WHITELIST: ruok,mntr,srvr
+    volumes:
+      - zookeeper-data:/data
+      - zookeeper-datalog:/datalog
+    networks:
+      - cloud
+    healthcheck:
+      test: ["CMD", "zkServer.sh", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  solr:
+    image: solr:9.8
+    restart: unless-stopped
+    environment:
+      ZK_HOST: zookeeper:2181
+      SOLR_HEAP: 512m
+    ports:
+      - "8983:8983"
+    volumes:
+      - solr-data:/var/solr
     networks:
       - cloud
     depends_on:
-      - zoo1
-      - zoo2
-      - zoo3
+      zookeeper:
+        condition: service_healthy
 
   blazegraph:
+    # derived data: the triplestore service rebuilds graphs from platform events
     image: lyrasis/blazegraph:2.1.5
-    container_name: blazegraph
-    hostname: blazegraph
+    restart: unless-stopped
     ports:
-      - 8080:8080
+      - "8080:8080"
     networks:
       - cloud
 
-  solr1:
-    image: solr:latest
-    container_name: solr1
-    hostname: solr1
-    ports:
-      - 8983:8983
+  # ----------------------------------------------------------------------------------------------
+  # Tests
+  # ----------------------------------------------------------------------------------------------
+
+  e2e:
+    # Cypress end-to-end tests against the running stack (e2e/README.md). Only with the e2e
+    # profile: docker compose --profile e2e run --rm e2e
+    # The browser runs in this container; e2e/docker/run.sh forwards its localhost:8000 to the
+    # gateway, so every URL is the same as in a browser on the host.
+    profiles: ["e2e"]
+    image: cypress/included:16.1.1
+    working_dir: /e2e
+    entrypoint: ["bash", "/e2e/docker/run.sh"]
+    # room for Chrome's shared memory
+    shm_size: 1gb
     environment:
-      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181
-      - SOLR_HOST=solr1
+      CYPRESS_CACHE_FOLDER: /root/.cache/Cypress
+      # extra arguments for cypress run, e.g. E2E_ARGS="--spec cypress/e2e/search.cy.ts"
+      E2E_ARGS: ${E2E_ARGS:-}
+      # the browser for cypress run: chrome (default), firefox or electron
+      E2E_BROWSER: ${E2E_BROWSER:-chrome}
+      # E2E_VIDEO=true records what the browser shows to e2e/cypress/videos
+      E2E_VIDEO: ${E2E_VIDEO:-false}
+    volumes:
+      - ./e2e:/e2e
+      # the container's own node_modules, never the host's (other OS)
+      - e2e-node-modules:/e2e/node_modules
+    depends_on:
+      gateway:
+        condition: service_healthy
+      platform:
+        condition: service_healthy
+      service:
+        condition: service_healthy
+    networks:
+      - cloud
+
+  kafka-ui:
+    image: kafbat/kafka-ui:latest
+    profiles:
+      - tools
+    environment:
+      KAFKA_CLUSTERS_0_NAME: articulorum
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "9091:8080"
     networks:
       - cloud
     depends_on:
-      - zoo1
-      - zoo2
-      - zoo3
-  solr2:
-    image: solr:latest
-    container_name: solr2
-    hostname: solr2
-    ports:
-      - 8984:8983
-    environment:
-      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181
-      - SOLR_HOST=solr2
-    networks:
-      - cloud
-    depends_on:
-      - zoo1
-      - zoo2
-      - zoo3
-  solr3:
-    image: solr:latest
-    container_name: solr3
-    hostname: solr3
-    ports:
-      - 8985:8983
-    environment:
-      - ZK_HOST=zoo1:2181,zoo2:2181,zoo3:2181
-      - SOLR_HOST=solr3
-    networks:
-      - cloud
-    depends_on:
-      - zoo1
-      - zoo2
-      - zoo3
-
-  zoo1:
-    image: zookeeper:latest
-    container_name: zoo1
-    restart: always
-    hostname: zoo1
-    ports:
-      - 2181:2181
-    environment:
-      ZOO_MY_ID: 1
-      ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
-    networks:
-      - cloud
-  zoo2:
-    image: zookeeper:latest
-    container_name: zoo2
-    restart: always
-    hostname: zoo2
-    ports:
-      - 2182:2181
-    environment:
-      ZOO_MY_ID: 2
-      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=0.0.0.0:2888:3888;2181 server.3=zoo3:2888:3888;2181
-    networks:
-      - cloud
-  zoo3:
-    image: zookeeper:latest
-    container_name: zoo3
-    restart: always
-    hostname: zoo3
-    ports:
-      - 2183:2181
-    environment:
-      ZOO_MY_ID: 3
-      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=0.0.0.0:2888:3888;2181
-    networks:
-      - cloud
-
-  consul-agent-1: &consul-agent
-    image: consul:latest
-    networks:
-      - cloud
-    container_name: consul-agent-1
-    hostname: consul-agent-1
-    command: "agent -retry-join consul-server-bootstrap -client 0.0.0.0"
-
-  consul-agent-2:
-    <<: *consul-agent
-    container_name: consul-agent-2
-    hostname: consul-agent-2
-
-  consul-agent-3:
-    <<: *consul-agent
-    container_name: consul-agent-3
-    hostname: consul-agent-3
-
-  consul-server-1: &consul-server
-    <<: *consul-agent
-    container_name: consul-server-1
-    hostname: consul-server-1
-    command: "agent -server -retry-join consul-server-bootstrap -client 0.0.0.0"
-
-  consul-server-2:
-    <<: *consul-server
-    container_name: consul-server-2
-    hostname: consul-server-2
-
-  consul-server-bootstrap:
-    <<: *consul-agent
-    container_name: consul-server-bootstrap
-    hostname: consul-server-bootstrap
-    ports:
-      - 8400:8400
-      - 8500:8500
-      - 8600:8600
-      - 8600:8600/udp
-    command: "agent -server -bootstrap-expect 3 -ui -client 0.0.0.0"
+      kafka:
+        condition: service_healthy
 
 networks:
   cloud:
+
+volumes:
+  e2e-node-modules:
+  platform-data:
+  postgres-data:
+  minio-data:
+  zookeeper-data:
+  zookeeper-datalog:
+  solr-data:

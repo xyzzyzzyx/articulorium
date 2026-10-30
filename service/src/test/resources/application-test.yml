@@ -1,0 +1,15 @@
+# "test" profile: layered over src/main/resources/application.yml; runs without Consul.
+management:
+  server:
+    port: 0
+
+spring:
+  cloud:
+    consul:
+      enabled: false
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+    discovery:
+      enabled: false

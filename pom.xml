@@ -1,40 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Articulorum reactor POM.
+
+  Defines the shared build for every module: Java level, dependency management (Spring Boot,
+  Spring Cloud, Apache Jena, OCFL, AWS SDK, springdoc), annotation processing, test runtime
+  settings and the GraalVM "native" profile.
+
+  Common commands:
+    mvn verify                                   build and test every module on the JVM
+    mvn -pl platform -am verify                  build and test one service (and what it needs)
+    mvn -Pnative -pl platform -am package -DskipTests
+                                                 build a GraalVM native executable (platform/target/platform)
+    mvn -Dskip.npm verify                        skip the Angular build (reuses ui/dist when present)
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>2.3.1.RELEASE</version>
+    <version>4.1.1</version>
     <relativePath/> <!-- lookup parent from repository -->
   </parent>
 
   <groupId>com.articulorum</groupId>
   <artifactId>parent</artifactId>
-
   <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
 
   <name>Articulorum Project Reactor</name>
-  <description></description>
+  <description>Linked Data Platform microservices built on Spring Cloud Consul, Spring Cloud Bus and Apache Kafka.</description>
 
   <modules>
+    <!-- shared libraries -->
     <module>domain</module>
     <module>event</module>
-    <module>gateway</module>
+    <module>agent</module>
+    <!-- Angular single page application, packaged as a jar of static resources -->
+    <module>ui</module>
+    <!-- services -->
     <module>platform</module>
     <module>transform</module>
     <module>index</module>
     <module>triplestore</module>
+    <module>service</module>
+    <module>gateway</module>
   </modules>
 
-  <packaging>pom</packaging>
-
   <properties>
-    <com.build.sourceEncoding>UTF-8</com.build.sourceEncoding>
-    <spring-cloud.version>Hoxton.SR5</spring-cloud.version>
+    <java.version>25</java.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Spring Cloud 2025.1 (Oakwood) supports Spring Boot 4.0.x and 4.1.x -->
+    <spring-cloud.version>2025.1.3</spring-cloud.version>
+    <springdoc.version>3.1.1</springdoc.version>
+    <!--
+      Jena is versioned per artifact rather than through jena-bom: importing jena-bom also
+      imports its parent's dependency management (via shiro-bom), which pins an old Spring
+      Framework and silently overrides the Spring Boot managed version.
+    -->
+    <jena.version>5.4.0</jena.version>
+    <!-- Oxford Common File Layout library used by the platform's storage layer -->
+    <ocfl-java.version>2.2.3</ocfl-java.version>
+    <aws-sdk.version>2.55.14</aws-sdk.version>
+    <tika.version>4.1.0</tika.version>
+    <!-- heap of the GraalVM native-image builder (its default is most of the machine's memory,
+         which exhausts Docker when several images are built at once) -->
+    <native.max-heap>8g</native.max-heap>
+
+    <!-- Angular build (ui module) -->
+    <node.version>v24.21.0</node.version>
+    <npm.version>11.11.0</npm.version>
+    <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
+    <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
+    <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
   </properties>
 
   <dependencies>
@@ -49,6 +92,7 @@
 
   <dependencyManagement>
     <dependencies>
+
       <dependency>
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-dependencies</artifactId>
@@ -56,6 +100,69 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${aws-sdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.jena</groupId>
+        <artifactId>jena-arq</artifactId>
+        <version>${jena.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.ocfl</groupId>
+        <artifactId>ocfl-java-core</artifactId>
+        <version>${ocfl-java.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        <version>${springdoc.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+        <version>${springdoc.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.tika</groupId>
+        <artifactId>tika-core</artifactId>
+        <version>${tika.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.articulorum</groupId>
+        <artifactId>domain</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.articulorum</groupId>
+        <artifactId>event</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.articulorum</groupId>
+        <artifactId>agent</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.articulorum</groupId>
+        <artifactId>ui</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
     </dependencies>
   </dependencyManagement>
 
@@ -63,27 +170,117 @@
     <pluginManagement>
       <plugins>
 
+        <!--
+          Annotation processors are declared explicitly: recent JDKs no longer discover
+          processors on the class path implicitly, and an explicit list keeps builds reproducible.
+        -->
         <plugin>
-          <groupId>org.asciidoctor</groupId>
-          <artifactId>asciidoctor-maven-plugin</artifactId>
-          <version>1.5.8</version>
-          <dependencies>
-            <dependency>
-              <groupId>org.springframework.restdocs</groupId>
-              <artifactId>spring-restdocs-asciidoctor</artifactId>
-              <version>${spring-restdocs.version}</version>
-            </dependency>
-          </dependencies>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <parameters>true</parameters>
+            <annotationProcessorPaths>
+              <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+              </path>
+              <path>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-configuration-processor</artifactId>
+                <version>${spring-boot.version}</version>
+              </path>
+            </annotationProcessorPaths>
+          </configuration>
+        </plugin>
+
+        <!--
+          Mockito attaches its inline mock maker at run time; JDK 21+ warns about (and future
+          JDKs refuse) dynamically loaded agents unless this is allowed explicitly.
+        -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <argLine>@{argLine} -XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+          </configuration>
         </plugin>
 
         <plugin>
-          <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-maven-plugin</artifactId>
-          <version>2.3.0.RELEASE</version>
+          <groupId>com.github.eirslett</groupId>
+          <artifactId>frontend-maven-plugin</artifactId>
+          <version>${frontend-maven-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>${maven-dependency-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>${maven-checkstyle-plugin.version}</version>
         </plugin>
 
       </plugins>
     </pluginManagement>
   </build>
+
+  <profiles>
+
+    <!-- surefire's "@{argLine}" needs a value even when no agent (such as JaCoCo) sets one -->
+    <profile>
+      <id>default-argline</id>
+      <activation>
+        <property>
+          <name>!argLine</name>
+        </property>
+      </activation>
+      <properties>
+        <argLine/>
+      </properties>
+    </profile>
+
+    <!--
+      GraalVM native image support.
+
+      The spring-boot-starter-parent "native" profile already wires Spring AOT (process-aot) and
+      configures native-maven-plugin. Each application module opts in by declaring
+      native-maven-plugin in its own "native" profile. A GraalVM JDK (25+) must be the active JDK.
+    -->
+    <profile>
+      <id>native</id>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.graalvm.buildtools</groupId>
+              <artifactId>native-maven-plugin</artifactId>
+              <executions>
+                <!-- "mvn -Pnative -pl <module> -am package" produces target/<module> -->
+                <execution>
+                  <id>build-native</id>
+                  <phase>package</phase>
+                  <goals>
+                    <goal>compile-no-fork</goal>
+                  </goals>
+                </execution>
+              </executions>
+              <configuration>
+                <buildArgs>
+                  <buildArg>--no-fallback</buildArg>
+                  <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                  <buildArg>-J-Xmx${native.max-heap}</buildArg>
+                </buildArgs>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+
+  </profiles>
 
 </project>

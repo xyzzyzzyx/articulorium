@@ -1,0 +1,44 @@
+# Namespace prefixes registered on start-up (prefix: namespace IRI).
+#
+# The first block is Fedora 6's default namespace registry (fcrepo-webapp namespaces.yml), so
+# Articulorum serialises RDF with the same prefixes as a Fedora repository. The second block adds
+# vocabularies commonly used with Fedora and the Portland Common Data Model. Prefixes already in
+# the database are kept; edit them there (table namespace_prefixes) to change a registered prefix.
+
+# --- Fedora Commons defaults -------------------------------------------------------------------
+premis: http://www.loc.gov/premis/rdf/v1#
+premis3: http://www.loc.gov/premis/rdf/v3/
+hashFunc: http://id.loc.gov/vocabulary/preservation/cryptographicHashFunctions/
+evType: http://id.loc.gov/vocabulary/preservation/eventType/
+evOutcome: http://id.loc.gov/vocabulary/preservation/eventOutcome/
+prov: http://www.w3.org/ns/prov#
+test: info:fedora/test/
+memento: http://mementoweb.org/ns#
+rdfs: http://www.w3.org/2000/01/rdf-schema#
+webac: http://fedora.info/definitions/v4/webac#
+acl: http://www.w3.org/ns/auth/acl#
+vcard: http://www.w3.org/2006/vcard/ns#
+iana: http://www.iana.org/assignments/relation/
+xsi: http://www.w3.org/2001/XMLSchema-instance
+xmlns: http://www.w3.org/2000/xmlns/
+rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+fedora: http://fedora.info/definitions/v4/repository#
+xml: http://www.w3.org/XML/1998/namespace
+ebucore: http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#
+ldp: http://www.w3.org/ns/ldp#
+dcterms: http://purl.org/dc/terms/
+xs: http://www.w3.org/2001/XMLSchema
+fedoraconfig: http://fedora.info/definitions/v4/config#
+foaf: http://xmlns.com/foaf/0.1/
+dc: http://purl.org/dc/elements/1.1/
+
+# --- Additional vocabularies -------------------------------------------------------------------
+xsd: http://www.w3.org/2001/XMLSchema#
+owl: http://www.w3.org/2002/07/owl#
+skos: http://www.w3.org/2004/02/skos/core#
+dcmitype: http://purl.org/dc/dcmitype/
+ore: http://www.openarchives.org/ore/terms/
+pcdm: http://pcdm.org/models#
+pcdmuse: http://pcdm.org/use#
+pcdmrights: http://pcdm.org/rights#
+schema: http://schema.org/
