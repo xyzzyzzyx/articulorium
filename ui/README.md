@@ -8,7 +8,7 @@ with the Fedora Commons HTML interface. The `service` module serves it; the gate
 
 | Fedora Commons UI                         | Articulorum UI                                                        |
 |-------------------------------------------|-----------------------------------------------------------------------|
-| Breadcrumb, Home and Search navigation    | Breadcrumb on every view; Browse, Search, API (Swagger UI) and About |
+| Breadcrumb, Home and Search navigation    | Breadcrumb on every view; Browse, Communities, Topologies, Search, API (the gateway's Swagger UI for every service) and About |
 | Created / last modified (and by whom)     | Same, from the `fedora:` server-managed triples                       |
 | Children list with count                  | Same, sorted, linking to each child                                   |
 | Properties and "Other Resources"          | Property table per subject (prefixed names, links), blank nodes in panels |
@@ -19,23 +19,35 @@ with the Fedora Commons HTML interface. The `service` module serves it; the gate
 | Delete resource (with confirmation)       | Same, then returns to the parent                                      |
 | Search (field / operator / term, paging)  | Same, any number of conditions, ordering; the search is in the URL    |
 | Error modal                               | Snack bar with the RFC 9457 problem detail; error card for missing resources |
-
-Archival groups and WebAC (ACL) links are not offered because the platform does not implement
-them.
+| Archival groups                           | "Archival group" option when creating containers; badges on groups and their members; members point to versioning the group |
+| WebAC (ACL)                               | Your access modes on every resource (`WAC-Allow`), actions hidden when not allowed; **Permissions** page: effective rules and where they come from, grant (everyone, authenticated agents, an agent or a group; modes; inheritance) and revoke, remove the ACL to inherit again |
+| —                                         | **Sign in** with a Consul ACL token (sent as `Authorization: Bearer` to the repository's services only, kept in session storage) |
+| —                                         | **Communities**: navigate communities, sub-communities, collections and items; create them; build items from topologies |
+| —                                         | **Topologies**: list built-in and custom topologies, view them, duplicate, edit (levels, PCDM types, metadata fields, files, child counts), delete |
+| —                                         | **Topology aside** on resource pages: node, parent, ordered members, add children, edit the node's metadata fields, upload files per PCDM use; build a topology in any container |
+| —                                         | **Notifications** (COAR Notify): received notifications with their JSON-LD, sent notifications with delivery status, send a notification |
+| —                                         | **IIIF** link to the Manifest or Collection of PCDM objects, collections and communities |
+| Versions                                  | Mementos of files show the technical metadata of that version (size, digest, media type, file name) |
 
 ## How it talks to the platform
 
 * Settings come from `api/config` (the service): `platformUrl` (default `../platform/`, the gateway
-  route relative to `/ui/`) and `title`.
+  route relative to `/ui/`), `title`, `apiDocsUrl` (`../swagger-ui.html`), `topologyUrl`
+  (`../topology/`), `transformUrl` (`../transform/`) and `communitiesPath` (`communities`).
 * Resources are read as N-Triples (`src/app/core/rdf/ntriples.ts`), which needs no prefix or
   JSON-LD context processing. An RDF request for a binary is redirected by the platform to its
   description, which is what the view shows; a `HEAD` on the binary supplies its `Allow` header.
-* Write actions are shown only when the platform's `Allow` header permits them.
-* Fedora API extensions: `fcr:versions`, `fcr:versions/<id>`, `fcr:fixity`, `fcr:search`.
+* Write actions are shown only when the platform's `Allow` header permits them and its
+  `WAC-Allow` header grants the mode.
+* Fedora API extensions: `fcr:versions`, `fcr:versions/<id>`, `fcr:fixity`, `fcr:search`,
+  `fcr:acl`, `fcr:inbox`, `fcr:outbox`; `/.well-known/webac` for the agent and its access.
+* The topology service (`topologies`, `topologies/<id>/instances`, `topologies/<id>/members`) and
+  the transform service's `iiif/<path>`.
 
-Code layout: `core/` (configuration, the `LdpService` HTTP client, RDF parsing and helpers),
-`shared/` (term rendering, property table, breadcrumb, dialogs), and one folder per view
-(`browse/`, `history/`, `search/`, `about/`).
+Code layout: `core/` (configuration, the `LdpService` HTTP client, RDF parsing and helpers,
+`auth/` (token and interceptor), `webac/`, `topology/`, `notify/`), `shared/` (term rendering,
+property table, breadcrumb, dialogs), and one folder per view (`browse/`, `history/`, `search/`,
+`permissions/`, `communities/`, `topology/`, `notifications/`, `about/`).
 
 ## Development
 
@@ -47,7 +59,7 @@ npm run lint
 npm run build              # production build in dist/ui/browser
 ```
 
-`ng serve` uses `proxy.conf.json`: `/platform` and `/api` go to the gateway
+`ng serve` uses `proxy.conf.json`: `/platform`, `/topology`, `/transform` and `/api` go to the gateway
 (`docker compose up` in the repository root), with `X-Forwarded-*` headers so the platform mints
 IRIs under `http://localhost:4200/platform/`.
 

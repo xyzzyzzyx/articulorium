@@ -36,13 +36,19 @@ open` for the interactive runner. `CYPRESS_BASE_URL` points the tests elsewhere.
 
 | Spec                | Covers                                                                   |
 |---------------------|--------------------------------------------------------------------------|
-| `navigation.cy.ts`  | gateway root and `/ui` redirects, main navigation, children and breadcrumbs, deep links, missing resources |
+| `navigation.cy.ts`  | gateway root and `/ui` redirects, main navigation (API link to the gateway's Swagger UI), children and breadcrumbs, deep links, missing resources |
 | `containers.cy.ts`  | basic containers at chosen or minted identifiers, no overwriting, invalid Turtle, direct/indirect templates, blank nodes |
 | `binaries.cy.ts`    | upload with metadata, download, replace content, fixity, editing a binary's description |
 | `properties.cy.ts`  | SPARQL Update with the prefix preamble, reset, invalid updates and protected triples |
-| `versions.cy.ts`    | versions of binaries (with historic bytes) and containers, the root, empty lists |
+| `versions.cy.ts`    | versions of binaries (with historic bytes and technical metadata) and containers, the root, empty lists |
 | `search.cy.ts`      | conditions, shareable URLs, ordering and paging                           |
 | `delete.cy.ts`      | cancel, delete binaries and containers recursively                       |
+| `archival-groups.cy.ts` | creating archival groups from the form, members versioned through their group |
+| `permissions.cy.ts` | effective access, granting and revoking on the Permissions page, enforcement of ACLs |
+| `communities.cy.ts` | communities, sub-communities and collections; building a book from a topology, adding pages and metadata |
+| `topologies.cy.ts`  | built-in topologies, duplicating, editing and deleting a custom one, building from the topology aside |
+| `notifications.cy.ts` | COAR Notify inbox listing and details, sending with recorded delivery failures, invalid notifications |
+| `iiif.cy.ts`        | IIIF Manifest of a book (image uploaded through the topology aside) and Collection of the communities |
 
 Each test creates its own uniquely named resources through the LDP API, so the suite runs
 against a repository that already holds data, and fails when the application logs a console

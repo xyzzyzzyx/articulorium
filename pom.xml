@@ -46,6 +46,7 @@
     <module>transform</module>
     <module>index</module>
     <module>triplestore</module>
+    <module>topology</module>
     <module>service</module>
     <module>gateway</module>
   </modules>

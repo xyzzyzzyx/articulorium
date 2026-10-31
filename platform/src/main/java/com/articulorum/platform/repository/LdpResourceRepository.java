@@ -75,4 +75,13 @@ public interface LdpResourceRepository extends JpaRepository<LdpResource, UUID>,
      */
     List<LdpResource> findByMembershipResourceStartingWith(String prefix);
 
+    /**
+     * Finds the archival groups among a set of paths.
+     *
+     * @param paths         candidate paths (typically the ancestors of a resource)
+     * @param archivalGroup {@code true}
+     * @return the archival groups whose path is in {@code paths}
+     */
+    List<LdpResource> findByPathInAndArchivalGroup(Collection<String> paths, Boolean archivalGroup);
+
 }

@@ -48,6 +48,52 @@ export const BINARY = {
   filename: 'http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#filename',
 } as const;
 
+/** Fedora's archival group class and Articulorum's link relation from members to their group. */
+export const ARCHIVAL_GROUP = {
+  type: 'http://fedora.info/definitions/v4/repository#ArchivalGroup',
+  rel: 'https://articulorum.org/ns/repository#archivalGroup',
+} as const;
+
+/** Web Access Control terms. */
+export const ACL = {
+  ns: 'http://www.w3.org/ns/auth/acl#',
+  foafAgent: 'http://xmlns.com/foaf/0.1/Agent',
+  authenticatedAgent: 'http://www.w3.org/ns/auth/acl#AuthenticatedAgent',
+} as const;
+
+/** Portland Common Data Model terms. */
+export const PCDM = {
+  ns: 'http://pcdm.org/models#',
+  collection: 'http://pcdm.org/models#Collection',
+  object: 'http://pcdm.org/models#Object',
+  file: 'http://pcdm.org/models#File',
+  hasMember: 'http://pcdm.org/models#hasMember',
+  hasFile: 'http://pcdm.org/models#hasFile',
+  use: 'http://pcdm.org/use#',
+} as const;
+
+/** Articulorum repository terms (community structure and topology links). */
+export const ART = {
+  ns: 'https://articulorum.org/ns/repository#',
+  community: 'https://articulorum.org/ns/repository#Community',
+  collection: 'https://articulorum.org/ns/repository#Collection',
+  communityRoot: 'https://articulorum.org/ns/repository#CommunityRoot',
+  topology: 'https://articulorum.org/ns/repository#topology',
+  topologyNode: 'https://articulorum.org/ns/repository#topologyNode',
+} as const;
+
+/** Dublin Core terms used by the forms. */
+export const DCTERMS = {
+  title: 'http://purl.org/dc/terms/title',
+  description: 'http://purl.org/dc/terms/description',
+} as const;
+
+/** Order of members among their siblings. */
+export const SCHEMA_POSITION = 'http://schema.org/position';
+
+/** Linked Data Notifications inbox link relation. */
+export const LDP_INBOX = 'http://www.w3.org/ns/ldp#inbox';
+
 /** Memento terms. */
 export const MEMENTO = {
   memento: 'http://mementoweb.org/ns#Memento',
@@ -68,6 +114,9 @@ export const TITLE_PROPERTIES: readonly string[] = [
 /** Default namespace prefixes (prefix to namespace IRI). */
 export const DEFAULT_PREFIXES: Readonly<Record<string, string>> = {
   acl: 'http://www.w3.org/ns/auth/acl#',
+  art: 'https://articulorum.org/ns/repository#',
+  as: 'https://www.w3.org/ns/activitystreams#',
+  bibo: 'http://purl.org/ontology/bibo/',
   dc: 'http://purl.org/dc/elements/1.1/',
   dcmitype: 'http://purl.org/dc/dcmitype/',
   dcterms: 'http://purl.org/dc/terms/',

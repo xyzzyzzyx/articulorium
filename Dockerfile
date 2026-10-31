@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/root/.m2 \
 FROM eclipse-temurin:25-jre
 ARG MODULE
 LABEL org.opencontainers.image.title="articulorum-${MODULE}" \
-      org.opencontainers.image.source="https://github.com/william-stanley-welling/articulorium"
+      org.opencontainers.image.source="https://github.com/xyzzyzzyx/articulorium"
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl \
  && rm -rf /var/lib/apt/lists/* \

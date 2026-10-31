@@ -37,10 +37,16 @@ describe('Navigation', () => {
     cy.get('h1').should('have.text', 'Search');
     cy.get('.ui-nav').contains('a', 'About').click();
     cy.get('h1').should('have.text', 'About Articulorum');
+    // the API link opens the gateway's Swagger UI, which lists every service's OpenAPI description
     cy.get('.ui-nav')
       .contains('a', 'API')
       .should('have.attr', 'href')
-      .and('match', /\/platform\/\.well-known\/swagger-ui\.html$/);
+      .and('match', /^http:\/\/localhost:8000\/swagger-ui\.html$/)
+      .then((href) => cy.request(String(href)).its('status').should('eq', 200));
+    cy.get('.ui-nav').contains('a', 'Communities').click();
+    cy.location('pathname').should('eq', '/ui/communities');
+    cy.get('.ui-nav').contains('a', 'Topologies').click();
+    cy.location('pathname').should('eq', '/ui/topologies');
     cy.get('.ui-brand').click();
     cy.location('pathname').should('eq', '/ui/browse');
   });

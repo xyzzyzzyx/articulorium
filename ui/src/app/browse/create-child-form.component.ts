@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -14,11 +15,12 @@ import { childTemplate, isTemplate } from './child-templates';
 /**
  * "Create New Child Resource": a basic, direct or indirect container described in Turtle, or a
  * binary uploaded from a file. An identifier creates the child at that path (PUT); without one
- * the platform mints it (POST).
+ * the platform mints it (POST). Containers outside archival groups can be created as archival
+ * groups, which the platform stores (with everything later created inside) as one OCFL object.
  */
 @Component({
   selector: 'ui-create-child-form',
-  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatProgressBarModule, MatSelectModule],
+  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, MatProgressBarModule, MatSelectModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form (ngSubmit)="submit()" #form="ngForm" class="ui-form">
@@ -49,6 +51,12 @@ import { childTemplate, isTemplate } from './child-templates';
           <mat-label>RDF (Turtle)</mat-label>
           <textarea matInput name="turtle" rows="9" [(ngModel)]="turtle"></textarea>
         </mat-form-field>
+        @if (allowArchivalGroup()) {
+          <mat-checkbox name="archivalGroup" [(ngModel)]="archivalGroup" class="ui-archival-group">
+            Archival group
+          </mat-checkbox>
+          <p class="ui-hint">Stores the container and everything created inside it as one OCFL object, versioned as a unit.</p>
+        }
       }
       @if (busy()) {
         <mat-progress-bar mode="indeterminate" />
@@ -70,6 +78,9 @@ export class CreateChildFormComponent implements OnInit {
   /** IRI of the parent container (used by the membership templates). */
   readonly parentIri = input.required<string>();
 
+  /** Whether the new container may be an archival group (not inside another one). */
+  readonly allowArchivalGroup = input(true);
+
   /** Emits the URL of the created resource. */
   readonly created = output<string>();
 
@@ -84,6 +95,8 @@ export class CreateChildFormComponent implements OnInit {
   protected mimeType = '';
 
   protected turtle = '';
+
+  protected archivalGroup = false;
 
   /** Starts with the basic container template. */
   ngOnInit(): void {
@@ -130,6 +143,7 @@ export class CreateChildFormComponent implements OnInit {
     this.ldp
       .createChild(this.parentPath(), {
         kind: this.kind(),
+        archivalGroup: this.kind() !== 'binary' && this.allowArchivalGroup() && this.archivalGroup,
         slug: this.slug,
         turtle: this.kind() === 'binary' ? undefined : this.turtle,
         file: this.kind() === 'binary' ? this.file() : undefined,
@@ -141,6 +155,7 @@ export class CreateChildFormComponent implements OnInit {
           this.busy.set(false);
           this.notifier.success('Resource created');
           this.slug = '';
+          this.archivalGroup = false;
           this.created.emit(location);
         },
         error: (error: unknown) => {

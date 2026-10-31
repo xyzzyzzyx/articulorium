@@ -32,14 +32,17 @@ class GatewayApplicationTest {
         final List<Route> routes = routeLocator.getRoutes().collectList().block();
 
         assertThat(routes).extracting(Route::getId)
-            .contains("articulorum-platform", "articulorum-transform", "articulorum-service", "articulorum-root",
-                "articulorum-ui-slash");
+            .contains("articulorum-platform", "articulorum-transform", "articulorum-topology", "articulorum-service",
+                "articulorum-root", "articulorum-ui-slash");
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorum-platform"))
             .singleElement()
             .satisfies(route -> {
                 assertThat(route.getUri().toString()).isEqualTo("lb://articulorum-platform");
                 assertThat(route.getFilters()).isNotEmpty();
             });
+        assertThat(routes).filteredOn(route -> route.getId().equals("articulorum-topology"))
+            .singleElement()
+            .satisfies(route -> assertThat(route.getUri().toString()).isEqualTo("lb://articulorum-topology"));
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorum-service"))
             .singleElement()
             .satisfies(route -> assertThat(route.getUri().toString()).isEqualTo("lb://articulorum-service"));

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Triplestore module: mirrors every LDP resource into a SPARQL 1.1 store (Blazegraph by default).
+  Triplestore module: mirrors every LDP resource into a SPARQL 1.1 store (QLever by default).
 
   Consumes ResourceEvents from the bus and keeps one named graph per resource, using only the
-  standard SPARQL 1.1 Protocol, so any compliant store (Blazegraph, Fuseki, GraphDB...) works.
+  standard SPARQL 1.1 Protocol and Graph Store HTTP Protocol, so any compliant store (QLever,
+  Fuseki, GraphDB, Oxigraph...) works.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

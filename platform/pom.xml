@@ -49,6 +49,12 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
+    <!-- HTTP client for Consul ACL token checks (WebAC) and outgoing COAR Notify notifications -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+
     <!-- Spring Cloud: Consul discovery/configuration and the Kafka bus -->
     <!-- only Consul configuration and discovery: consul-all would also add a Consul bus
          integration that requires a stream binder -->

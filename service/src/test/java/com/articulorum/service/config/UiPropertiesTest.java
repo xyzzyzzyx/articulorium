@@ -14,6 +14,19 @@ class UiPropertiesTest {
         final UiProperties properties = new UiProperties(null, " ");
         assertThat(properties.platformUrl()).isEqualTo(UiProperties.DEFAULT_PLATFORM_URL);
         assertThat(properties.title()).isEqualTo(UiProperties.DEFAULT_TITLE);
+        assertThat(properties.apiDocsUrl()).isEqualTo("../swagger-ui.html");
+        assertThat(properties.topologyUrl()).isEqualTo("../topology/");
+        assertThat(properties.transformUrl()).isEqualTo("../transform/");
+        assertThat(properties.communitiesPath()).isEqualTo("communities");
+    }
+
+    @Test
+    void keepsEveryConfiguredUrl() {
+        final UiProperties properties = new UiProperties("p/", "T", " /docs ", "t/", "x/", "orgs");
+        assertThat(properties.apiDocsUrl()).isEqualTo("/docs");
+        assertThat(properties.topologyUrl()).isEqualTo("t/");
+        assertThat(properties.transformUrl()).isEqualTo("x/");
+        assertThat(properties.communitiesPath()).isEqualTo("orgs");
     }
 
     @Test

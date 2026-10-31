@@ -6,7 +6,8 @@ import { ConfigService } from '../config.service';
 import { Graph, lastSegment } from '../rdf/graph';
 import { parseNTriples } from '../rdf/ntriples';
 import { IriTerm } from '../rdf/term';
-import { BINARY, LDP } from '../rdf/vocabulary';
+import { ARCHIVAL_GROUP, BINARY, LDP, LDP_INBOX } from '../rdf/vocabulary';
+import { parseWacAllow } from '../webac/webac';
 import { linksWithRel, parseLinks } from './link-header';
 import {
   BinaryInfo,
@@ -90,6 +91,7 @@ export class LdpService {
             allow: allowOf(response),
             linkTypes: linksWithRel(parseLinks(response.headers.getAll('Link') ?? []), 'type'),
             etag: response.headers.get('ETag') ?? undefined,
+            ...headerFacts(response),
           };
           if (!graph.hasType(subject, LDP.nonRdfSource)) {
             return of(view);
@@ -100,6 +102,7 @@ export class LdpService {
               ...view,
               allow: allowOf(head),
               linkTypes: linksWithRel(parseLinks(head.headers.getAll('Link') ?? []), 'type'),
+              ...headerFacts(head),
               binary: binaryInfo(graph, subject, url, descriptionUrl),
             })),
           );
@@ -117,6 +120,9 @@ export class LdpService {
    */
   createChild(parent: string, request: ChildRequest): Observable<string> {
     let headers = new HttpHeaders().set('Link', `<${KIND_TYPES[request.kind]}>; rel="type"`);
+    if (request.archivalGroup && request.kind !== 'binary') {
+      headers = headers.append('Link', `<${ARCHIVAL_GROUP.type}>; rel="type"`);
+    }
     let body: Blob | string | null;
     if (request.kind === 'binary') {
       if (!request.file) {
@@ -138,7 +144,7 @@ export class LdpService {
     const response$ = slug
       ? this.http.put(target, body, { headers: headers.set('If-None-Match', '*'), observe: 'response', responseType: 'text' })
       : this.http.post(target, body, {
-          headers: request.filename ? headers.set('Slug', request.filename) : headers,
+          headers: request.slugHint || request.filename ? headers.set('Slug', request.slugHint || request.filename || '') : headers,
           observe: 'response',
           responseType: 'text',
         });
@@ -302,6 +308,25 @@ export function findSubject(graph: Graph, url: string): IriTerm {
  * @param response - the response
  * @returns the upper-case methods
  */
+/**
+ * Reads what the platform says about a resource in its headers: the modes Web Access Control
+ * grants, archival group membership and the notification inbox.
+ *
+ * @param response - a GET or HEAD response
+ * @returns the facts
+ */
+export function headerFacts(
+  response: HttpResponse<unknown>,
+): Pick<ResourceView, 'wacAllow' | 'archivalGroup' | 'archivalGroupIri' | 'inbox'> {
+  const links = parseLinks(response.headers.getAll('Link') ?? []);
+  return {
+    wacAllow: parseWacAllow(response.headers.get('WAC-Allow')),
+    archivalGroup: linksWithRel(links, 'type').includes(ARCHIVAL_GROUP.type),
+    archivalGroupIri: linksWithRel(links, ARCHIVAL_GROUP.rel)[0],
+    inbox: linksWithRel(links, LDP_INBOX)[0],
+  };
+}
+
 export function allowOf(response: HttpResponse<unknown>): Set<string> {
   return new Set(
     (response.headers.get('Allow') ?? '')

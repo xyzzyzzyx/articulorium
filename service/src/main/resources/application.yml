@@ -6,6 +6,13 @@ articulorum:
     # the platform under /platform/) or absolute
     platform-url: ../platform/
     title: Articulorum
+    # the gateway's Swagger UI, which lists the OpenAPI description of every service
+    api-docs-url: ../swagger-ui.html
+    # topology service (PCDM structures) and transform service (IIIF exports) on the gateway
+    topology-url: ../topology/
+    transform-url: ../transform/
+    # container of the community / sub-community / collection structure on the platform
+    communities-path: communities
 
 logging:
   level:

@@ -44,6 +44,13 @@ public final class Fedora {
     /** Path segment prefix of Fedora API extensions such as {@code fcr:versions}. */
     public static final String EXTENSION_PREFIX = "fcr:";
 
+    /**
+     * Class of an archival group: a container that is persisted, together with everything below
+     * it, as one OCFL object and versioned as a unit. Requested on creation with
+     * {@code Link: <fedora:ArchivalGroup>; rel="type"}.
+     */
+    public static final String ARCHIVAL_GROUP = NAMESPACE + "ArchivalGroup";
+
     /** {@code xsd:dateTime}, the datatype of {@link #CREATED} and {@link #LAST_MODIFIED}. */
     public static final String XSD_DATE_TIME = Rdf.XSD_NAMESPACE + "dateTime";
 

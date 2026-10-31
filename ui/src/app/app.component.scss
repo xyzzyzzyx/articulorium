@@ -52,3 +52,23 @@
   color: #666;
   font-size: 0.85rem;
 }
+
+.ui-account {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  button {
+    color: inherit;
+  }
+}
+
+.ui-agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

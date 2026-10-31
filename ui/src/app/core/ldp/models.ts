@@ -1,5 +1,6 @@
 import { Graph } from '../rdf/graph';
 import { IriTerm } from '../rdf/term';
+import { WacAllow } from '../webac/webac';
 
 /** Interaction models a child resource can be created with. */
 export type ChildKind = 'basic' | 'direct' | 'indirect' | 'binary';
@@ -35,11 +36,23 @@ export interface ResourceView {
   readonly linkTypes: readonly string[];
   /** Entity tag of the representation, used as `If-Match` for updates. */
   readonly etag?: string;
+  /** Modes granted by Web Access Control (`WAC-Allow`), when reported. */
+  readonly wacAllow?: WacAllow;
+  /** Whether the resource is an archival group. */
+  readonly archivalGroup?: boolean;
+  /** IRI of the archival group a member belongs to. */
+  readonly archivalGroupIri?: string;
+  /** IRI of the resource's notification inbox (containers). */
+  readonly inbox?: string;
 }
 
 /** Request to create a child resource. */
 export interface ChildRequest {
   readonly kind: ChildKind;
+  /** Whether a container is created as an archival group. */
+  readonly archivalGroup?: boolean;
+  /** A name suggested to the platform (POST with `Slug`); it picks another when taken. */
+  readonly slugHint?: string;
   /** Identifier of the child; when empty the platform mints one. */
   readonly slug?: string;
   /** Turtle body for RDF sources. */

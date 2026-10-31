@@ -35,6 +35,17 @@ public class BinaryContent {
     private String sha256;
 
     /** Creates empty metadata; required by JPA and Jackson. */
+    /**
+     * Logical path of the bytes inside the storage object; {@code null} means
+     * {@value #DEFAULT_CONTENT_PATH} (the object holds only this binary). Binaries inside an
+     * archival group share the group's object and keep their bytes below their own directory.
+     */
+    @Column(name = "binary_logical_path", length = 2048)
+    private String logicalPath;
+
+    /** Logical path of the bytes of a binary that owns its storage object. */
+    public static final String DEFAULT_CONTENT_PATH = "content";
+
     public BinaryContent() {
         // for JPA and Jackson
     }
@@ -119,6 +130,34 @@ public class BinaryContent {
         this.sha256 = sha256;
     }
 
+    /**
+     * Returns the stored logical path, {@code null} for the default.
+     *
+     * @return the logical path or {@code null}
+     */
+    public String getLogicalPath() {
+        return logicalPath;
+    }
+
+    /**
+     * Sets the logical path of the bytes inside the storage object.
+     *
+     * @param logicalPath the path, or {@code null} (or {@value #DEFAULT_CONTENT_PATH}) for the
+     *                    default
+     */
+    public void setLogicalPath(final String logicalPath) {
+        this.logicalPath = logicalPath == null || DEFAULT_CONTENT_PATH.equals(logicalPath) ? null : logicalPath;
+    }
+
+    /**
+     * Returns the logical path of the bytes inside the storage object.
+     *
+     * @return the stored path, or {@value #DEFAULT_CONTENT_PATH}
+     */
+    public String contentPath() {
+        return logicalPath == null ? DEFAULT_CONTENT_PATH : logicalPath;
+    }
+
     @Override
     public boolean equals(final Object other) {
         if (this == other) {
@@ -133,12 +172,13 @@ public class BinaryContent {
             && Objects.equals(contentType, that.contentType)
             && Objects.equals(filename, that.filename)
             && Objects.equals(size, that.size)
-            && Objects.equals(sha256, that.sha256);
+            && Objects.equals(sha256, that.sha256)
+            && Objects.equals(logicalPath, that.logicalPath);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(storageKey, storageVersion, contentType, filename, size, sha256);
+        return Objects.hash(storageKey, storageVersion, contentType, filename, size, sha256, logicalPath);
     }
 
 }

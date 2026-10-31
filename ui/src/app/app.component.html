@@ -3,10 +3,20 @@
     <a class="ui-brand" [routerLink]="['/browse']"><mat-icon>account_tree</mat-icon> {{ title() }}</a>
     <nav class="ui-nav" aria-label="Main">
       <a mat-button routerLink="/browse" routerLinkActive="ui-active"><mat-icon>folder_open</mat-icon> Browse</a>
+      <a mat-button routerLink="/communities" routerLinkActive="ui-active"><mat-icon>corporate_fare</mat-icon> Communities</a>
+      <a mat-button routerLink="/topologies" routerLinkActive="ui-active"><mat-icon>schema</mat-icon> Topologies</a>
       <a mat-button routerLink="/search" routerLinkActive="ui-active"><mat-icon>search</mat-icon> Search</a>
       <a mat-button [href]="apiDocs()" target="_blank" rel="noopener"><mat-icon>api</mat-icon> API</a>
       <a mat-button routerLink="/about" routerLinkActive="ui-active"><mat-icon>info</mat-icon> About</a>
     </nav>
+    <div class="ui-account">
+      @if (agent(); as name) {
+        <span class="ui-agent" [title]="name"><mat-icon>person</mat-icon> {{ shortAgent() }}</span>
+        <button mat-button type="button" (click)="signOut()">Sign out</button>
+      } @else {
+        <button mat-button type="button" (click)="signIn()"><mat-icon>login</mat-icon> Sign in</button>
+      }
+    </div>
   </mat-toolbar>
   <main class="ui-content">
     <router-outlet />

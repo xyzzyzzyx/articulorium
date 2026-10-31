@@ -7,6 +7,9 @@ import java.util.List;
 import com.articulorum.domain.InteractionModel;
 import com.articulorum.domain.LdpResource;
 import com.articulorum.domain.Triple;
+import com.articulorum.domain.rdf.ResourcePaths;
+import com.articulorum.domain.vocabulary.Articulorum;
+import com.articulorum.domain.vocabulary.Rdf;
 import com.articulorum.platform.namespace.NamespacePrefix;
 import com.articulorum.platform.namespace.NamespacePrefixRepository;
 import com.articulorum.platform.namespace.NamespaceRegistry;
@@ -35,6 +38,9 @@ import lombok.extern.slf4j.Slf4j;
  *       registry plus common vocabularies) that are not yet known
  *       and loads all known prefixes into the {@link NamespaceRegistry}.</li>
  *   <li>Creates the root container from {@code root.ttl} when it does not exist.</li>
+ *   <li>Creates the container of the community structure
+ *       ({@link LdpProperties#getCommunitiesPath()}, typed {@code art:CommunityRoot}) when it does
+ *       not exist.</li>
  * </ol>
  *
  * <p>Both steps are idempotent and tolerate concurrent start-up of several instances.</p>
@@ -61,6 +67,8 @@ public class PlatformInitializer implements ApplicationRunner {
 
     private final TransactionTemplate transactions;
 
+    private final LdpProperties properties;
+
     /**
      * Creates the initializer.
      *
@@ -70,26 +78,62 @@ public class PlatformInitializer implements ApplicationRunner {
      * @param resourceRepository the resource repository
      * @param registry           the in-memory prefix registry
      * @param transactions       transaction template
+     * @param properties         LDP settings
      */
     public PlatformInitializer(@Value("classpath:namespaces.yml") final Resource namespaces,
             @Value("classpath:root.ttl") final Resource root,
             final NamespacePrefixRepository prefixRepository,
             final LdpResourceRepository resourceRepository,
             final NamespaceRegistry registry,
-            final TransactionTemplate transactions) {
+            final TransactionTemplate transactions,
+            final LdpProperties properties) {
         this.namespaces = namespaces;
         this.root = root;
         this.prefixRepository = prefixRepository;
         this.resourceRepository = resourceRepository;
         this.registry = registry;
         this.transactions = transactions;
+        this.properties = properties;
     }
 
     @Override
     public void run(final ApplicationArguments args) throws IOException {
         seedNamespaces();
         createRoot();
+        createCommunityRoot();
     }
+
+    /**
+     * Creates the container of the community structure when it is configured and missing.
+     */
+    void createCommunityRoot() {
+        final String path = ResourcePaths.normalize(properties.getCommunitiesPath() == null
+            ? "" : properties.getCommunitiesPath());
+        if (path.isEmpty() || path.contains("/") || resourceRepository.existsByPath(path)) {
+            return;
+        }
+        try {
+            transactions.executeWithoutResult(status -> {
+                final LdpResource container = new LdpResource(path, InteractionModel.BASIC_CONTAINER)
+                    .createdBy(SYSTEM_AGENT);
+                final String subject = container.getRelativeIri();
+                container.setTriples(List.of(
+                    Triple.iri(subject, Rdf.TYPE, Articulorum.COMMUNITY_ROOT),
+                    Triple.literal(subject, DCTERMS_TITLE, "Communities")));
+                resourceRepository.save(container);
+                resourceRepository.findByPath("").ifPresent(root -> {
+                    root.touch(SYSTEM_AGENT);
+                    resourceRepository.save(root);
+                });
+            });
+            log.info("Created the community container /{}", path);
+        } catch (DataIntegrityViolationException e) {
+            log.debug("Community container was created concurrently");
+        }
+    }
+
+    /** {@code dcterms:title}. */
+    static final String DCTERMS_TITLE = "http://purl.org/dc/terms/title";
 
     /**
      * Registers missing namespace prefixes and loads every prefix into the registry.

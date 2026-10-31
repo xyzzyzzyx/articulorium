@@ -7,9 +7,9 @@
 # Compose builds all images in parallel, which exhausts Docker's memory, so build them one at a
 # time first, then start the stack:
 #
-#   bash:        for s in gateway platform transform index triplestore service; do
+#   bash:        for s in gateway platform transform index triplestore topology service; do
 #                  docker compose -f docker-compose.yml -f docker-compose.native.yml build $s; done
-#   PowerShell:  foreach ($s in 'gateway','platform','transform','index','triplestore','service') {
+#   PowerShell:  foreach ($s in 'gateway','platform','transform','index','triplestore','topology','service') {
 #                  docker compose -f docker-compose.yml -f docker-compose.native.yml build $s }
 #
 #   docker compose -f docker-compose.yml -f docker-compose.native.yml up
@@ -38,6 +38,11 @@ services:
 
   transform:
     image: articulorum/transform:native
+    build:
+      dockerfile: Dockerfile.native
+
+  topology:
+    image: articulorum/topology:native
     build:
       dockerfile: Dockerfile.native
 

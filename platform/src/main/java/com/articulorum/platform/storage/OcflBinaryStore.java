@@ -53,8 +53,8 @@ public class OcflBinaryStore implements BinaryStore {
     }
 
     @Override
-    public StoredVersion write(final String objectId, final List<SourceFile> files, final InlineFile inline,
-            final VersionNote note) throws IOException {
+    public StoredVersion write(final String objectId, final VersionChanges changes, final VersionNote note)
+            throws IOException {
         StorageKeys.validate(objectId);
         final VersionInfo info = new VersionInfo();
         if (note != null && note.agent() != null) {
@@ -65,10 +65,13 @@ public class OcflBinaryStore implements BinaryStore {
         }
         try {
             final ObjectVersionId written = repository.updateObject(ObjectVersionId.head(objectId), info, updater -> {
-                for (final SourceFile file : files) {
+                for (final String removed : changes.removed()) {
+                    updater.removeFile(removed);
+                }
+                for (final SourceFile file : changes.files()) {
                     updater.addPath(file.source(), file.logicalPath(), OcflOption.OVERWRITE);
                 }
-                if (inline != null) {
+                for (final InlineFile inline : changes.inline()) {
                     updater.writeFile(new ByteArrayInputStream(inline.content()), inline.logicalPath(),
                         OcflOption.OVERWRITE);
                 }

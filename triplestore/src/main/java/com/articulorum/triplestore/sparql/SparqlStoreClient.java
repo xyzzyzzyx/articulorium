@@ -1,36 +1,42 @@
 package com.articulorum.triplestore.sparql;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
-import com.articulorum.domain.rdf.NTriplesSerializer;
 import com.articulorum.triplestore.config.TriplestoreProperties;
 
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * Writes resources to a SPARQL 1.1 store, one named graph per resource.
+ * Client of the SPARQL store (QLever by default).
  *
- * <p>Updates use the standard SPARQL 1.1 Protocol ({@code update=} form parameter), so they work
- * with any compliant store. Namespace creation uses Blazegraph's REST API and is optional.</p>
+ * <p>Each LDP resource is kept in a named graph of its own, named by the resource's IRI. Graphs
+ * are replaced and dropped with the SPARQL 1.1 Graph Store HTTP Protocol
+ * ({@code PUT}/{@code DELETE <endpoint>?graph=<iri>}); queries use the SPARQL 1.1 Protocol. The
+ * configured access token is sent as {@code Authorization: Bearer} with every request.</p>
  */
 @Component
 public class SparqlStoreClient {
 
-    /** Media type of SPARQL 1.1 JSON query results. */
+    /** Media type of SPARQL JSON results. */
     static final MediaType SPARQL_RESULTS_JSON = MediaType.parseMediaType("application/sparql-results+json");
+
+    /** Media type of SPARQL Update requests. */
+    static final MediaType SPARQL_UPDATE = MediaType.parseMediaType("application/sparql-update");
+
+    /** Media type of graph uploads; N-Triples is a subset of Turtle. */
+    static final MediaType TURTLE = new MediaType("text", "turtle", StandardCharsets.UTF_8);
 
     private static final ParameterizedTypeReference<Map<String, Object>> JSON_OBJECT =
         new ParameterizedTypeReference<>() { };
@@ -42,119 +48,88 @@ public class SparqlStoreClient {
     /**
      * Creates the client.
      *
-     * @param builder    the auto-configured REST client builder
+     * @param builder    HTTP client builder
      * @param properties store settings
      */
     public SparqlStoreClient(final RestClient.Builder builder, final TriplestoreProperties properties) {
-        this.client = builder.build();
         this.properties = properties;
+        this.client = builder
+            .defaultHeaders(headers -> {
+                if (StringUtils.hasText(properties.getAccessToken())) {
+                    headers.setBearerAuth(properties.getAccessToken());
+                }
+            })
+            .build();
     }
 
     /**
-     * Creates the Blazegraph namespace in quads mode unless it exists.
-     *
-     * @return {@code true} when the namespace was created
-     */
-    public boolean ensureNamespace() {
-        try {
-            client.get()
-                .uri(properties.namespacesEndpoint() + "/" + properties.getNamespace() + "/properties")
-                .retrieve()
-                .toBodilessEntity();
-            return false;
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode().value() != HttpStatus.NOT_FOUND.value()) {
-                throw e;
-            }
-        }
-        client.post()
-            .uri(properties.namespacesEndpoint())
-            .contentType(MediaType.APPLICATION_XML)
-            .body(namespaceProperties(properties.getNamespace()))
-            .retrieve()
-            .toBodilessEntity();
-        return true;
-    }
-
-    /**
-     * Replaces the content of a named graph.
+     * Replaces the content of a named graph (creating it when missing); an empty graph is dropped.
      *
      * @param graph    the graph IRI
-     * @param nTriples the new content as N-Triples (absolute IRIs)
+     * @param nTriples the new content
      */
     public void replaceGraph(final String graph, final String nTriples) {
-        update(replaceGraphUpdate(graph, nTriples));
+        if (nTriples == null || nTriples.isBlank()) {
+            dropGraph(graph);
+            return;
+        }
+        client.put()
+            .uri(graphUri(graph))
+            .contentType(TURTLE)
+            .body(nTriples)
+            .retrieve()
+            .toBodilessEntity();
     }
 
     /**
-     * Removes a named graph.
+     * Drops a named graph; a missing graph is not an error.
      *
      * @param graph the graph IRI
      */
     public void dropGraph(final String graph) {
-        update(dropGraphUpdate(graph));
+        try {
+            client.delete()
+                .uri(graphUri(graph))
+                .retrieve()
+                .toBodilessEntity();
+        } catch (HttpClientErrorException.NotFound e) {
+            // already gone
+        }
     }
 
     /**
-     * Sends a SPARQL 1.1 Update.
+     * Runs a SPARQL 1.1 Update.
      *
-     * @param update the update request
+     * @param update the update
      */
     public void update(final String update) {
-        final MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("update", update);
         client.post()
             .uri(properties.sparqlEndpoint())
-            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .body(form)
+            .contentType(SPARQL_UPDATE)
+            .body(update)
             .retrieve()
             .toBodilessEntity();
     }
 
     /**
-     * Builds the update replacing a graph: drop it, then insert the new triples.
+     * Runs an ASK query.
      *
-     * @param graph    the graph IRI
-     * @param nTriples the content as N-Triples
-     * @return the update request
-     */
-    /**
-     * Runs a SPARQL ASK query against the namespace's endpoint.
-     *
-     * @param query the ASK query
-     * @return the boolean result
-     * @throws org.springframework.web.client.RestClientException when the store cannot be reached
-     *         or the namespace does not exist
+     * @param query the query
+     * @return the answer
      */
     public boolean ask(final String query) {
-        final MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("query", query);
-        final Map<String, Object> response = client.post()
-            .uri(properties.sparqlEndpoint())
-            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .accept(SPARQL_RESULTS_JSON, MediaType.APPLICATION_JSON)
-            .body(form)
-            .retrieve()
-            .body(JSON_OBJECT);
+        final Map<String, Object> response = query(query);
         return response != null && Boolean.TRUE.equals(response.get("boolean"));
     }
 
     /**
-     * Counts the named graphs (one per mirrored resource) of the namespace.
+     * Counts the named graphs (one per mirrored resource).
      *
-     * @return the number of graphs, or {@code -1} when the store returned no count
+     * @return the number of graphs, or -1 when the answer cannot be read
      */
     @SuppressWarnings("unchecked")
     public long countGraphs() {
-        final MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("query", "SELECT (COUNT(DISTINCT ?g) AS ?graphs) WHERE { GRAPH ?g { ?s ?p ?o } }");
-        final Map<String, Object> response = client.post()
-            .uri(properties.sparqlEndpoint())
-            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .accept(SPARQL_RESULTS_JSON, MediaType.APPLICATION_JSON)
-            .body(form)
-            .retrieve()
-            .body(JSON_OBJECT);
+        final Map<String, Object> response = query("SELECT (COUNT(DISTINCT ?g) AS ?graphs) WHERE { GRAPH ?g { ?s ?p ?o } }");
         try {
             final Map<String, Object> results = (Map<String, Object>) response.get("results");
             final List<Map<String, Object>> bindings = (List<Map<String, Object>>) results.get("bindings");
@@ -165,46 +140,48 @@ public class SparqlStoreClient {
         }
     }
 
-    static String replaceGraphUpdate(final String graph, final String nTriples) {
-        final String target = NTriplesSerializer.iri(graph);
-        final StringBuilder update = new StringBuilder("DROP SILENT GRAPH ").append(target).append(" ;\n");
-        if (!nTriples.isBlank()) {
-            update.append("INSERT DATA { GRAPH ").append(target).append(" {\n").append(nTriples).append("} }");
-        }
-        return update.toString();
+    /**
+     * Checks that the store answers its liveness probe ({@code GET /ping} on QLever).
+     *
+     * @return {@code true} when the probe succeeded
+     */
+    public boolean ping() {
+        client.get()
+            .uri(join(properties.getServiceUrl(), "ping"))
+            .retrieve()
+            .toBodilessEntity();
+        return true;
+    }
+
+    private Map<String, Object> query(final String query) {
+        final MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("query", query);
+        return client.post()
+            .uri(properties.sparqlEndpoint())
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .accept(SPARQL_RESULTS_JSON, MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT_CHARSET, StandardCharsets.UTF_8.name())
+            .body(form)
+            .retrieve()
+            .body(JSON_OBJECT);
     }
 
     /**
-     * Builds the update removing a graph.
+     * Builds the Graph Store Protocol URI of a graph.
      *
      * @param graph the graph IRI
-     * @return the update request
+     * @return {@code <endpoint>?graph=<encoded iri>}
      */
-    static String dropGraphUpdate(final String graph) {
-        return "DROP SILENT GRAPH " + NTriplesSerializer.iri(graph);
+    URI graphUri(final String graph) {
+        return UriComponentsBuilder.fromUriString(properties.graphStoreEndpoint())
+            .queryParam("graph", "{graph}")
+            .encode()
+            .buildAndExpand(graph)
+            .toUri();
     }
 
-    /**
-     * Serialises the Blazegraph properties of a quads-mode namespace as a Java properties XML
-     * document, the format Blazegraph's namespace API accepts.
-     *
-     * @param namespace the namespace name
-     * @return the XML document
-     */
-    static String namespaceProperties(final String namespace) {
-        final Properties settings = new Properties();
-        settings.setProperty("com.bigdata.rdf.sail.namespace", namespace);
-        settings.setProperty("com.bigdata.rdf.store.AbstractTripleStore.quads", "true");
-        settings.setProperty("com.bigdata.rdf.store.AbstractTripleStore.statementIdentifiers", "false");
-        settings.setProperty("com.bigdata.rdf.sail.truthMaintenance", "false");
-        settings.setProperty("com.bigdata.rdf.store.AbstractTripleStore.axiomsClass", "com.bigdata.rdf.axioms.NoAxioms");
-        settings.setProperty("com.bigdata.rdf.store.AbstractTripleStore.textIndex", "false");
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            settings.storeToXML(out, "Articulorum namespace", StandardCharsets.UTF_8);
-            return out.toString(StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    private static String join(final String url, final String path) {
+        return (url.endsWith("/") ? url : url + "/") + path;
     }
 
 }

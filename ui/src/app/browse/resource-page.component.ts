@@ -17,7 +17,10 @@ import { ResourceView } from '../core/ldp/models';
 import { normalizePath, parentPath, pathOf, routeTo } from '../core/ldp/paths';
 import { errorMessage } from '../core/ldp/problem';
 import { compact } from '../core/rdf/graph';
-import { FEDORA, LDP } from '../core/rdf/vocabulary';
+import { ART, FEDORA, LDP, PCDM } from '../core/rdf/vocabulary';
+import { allows } from '../core/webac/webac';
+import { ConfigService } from '../core/config.service';
+import { TopologyPanelComponent } from '../topology/topology-panel.component';
 import { BreadcrumbComponent } from '../shared/breadcrumb.component';
 import { ConfirmDialogComponent, ConfirmData } from '../shared/confirm-dialog.component';
 import { Notifier } from '../shared/notifier.service';
@@ -37,7 +40,9 @@ interface Child {
  * The view of one LDP resource, at feature parity with Fedora Commons' HTML view: breadcrumb,
  * creation and modification details, children, properties and the other subjects of the
  * representation, plus the actions the platform allows (create child, update properties,
- * download/update/fixity of binaries, versioning and delete).
+ * download/update/fixity of binaries, versioning and delete), archival group membership, access
+ * control (permissions), notification inboxes, IIIF export of PCDM structures and the topology
+ * aside that builds and navigates PCDM structures.
  */
 @Component({
   selector: 'ui-resource-page',
@@ -56,6 +61,7 @@ interface Child {
     PropertyTableComponent,
     RouterLink,
     SparqlUpdateFormComponent,
+    TopologyPanelComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './resource-page.component.html',
@@ -70,6 +76,8 @@ export class ResourcePageComponent {
 
   private readonly notifier = inject(Notifier);
 
+  private readonly config = inject(ConfigService);
+
   /** Path of the resource (bound from the route); empty for the root container. */
   readonly path = input('');
 
@@ -81,6 +89,9 @@ export class ResourcePageComponent {
     params: () => this.resourcePath(),
     stream: ({ params }) => this.ldp.load(params),
   });
+
+  /** {@code art:topology}, used by the template. */
+  protected readonly artTopology = ART.topology;
 
   /** The platform base. */
   protected readonly base = computed(() => this.ldp.base());
@@ -166,6 +177,37 @@ export class ResourcePageComponent {
       : view.graph.title(view.subject);
   });
 
+  /** Path of the archival group a member belongs to. */
+  protected readonly archivalGroupRoute = computed(() => {
+    const iri = this.view()?.archivalGroupIri;
+    const path = iri ? pathOf(this.base(), iri) : undefined;
+    return path === undefined ? undefined : routeTo('browse', path);
+  });
+
+  /** Whether versions can be created here (not for members of an archival group). */
+  protected readonly versionable = computed(() => {
+    const view = this.view();
+    return !!view && view.path !== '' && !view.archivalGroupIri && allows(view.wacAllow, 'write');
+  });
+
+  /** Whether the user may change the resource. */
+  protected readonly writable = computed(() => allows(this.view()?.wacAllow, 'write'));
+
+  /** Whether the user may add children. */
+  protected readonly appendable = computed(() => allows(this.view()?.wacAllow, 'append'));
+
+  /** The IIIF export of a PCDM object or collection, or `undefined` for other resources. */
+  protected readonly iiifUrl = computed(() => {
+    const view = this.view();
+    if (!view) {
+      return undefined;
+    }
+    const exportable = [PCDM.object, PCDM.collection, ART.community, ART.collection, ART.communityRoot].some((type) =>
+      view.graph.hasType(view.subject, type),
+    );
+    return exportable ? `${this.config.transformBase()}iiif/${view.path}` : undefined;
+  });
+
   /** Target of SPARQL updates: the resource, or a binary's description. */
   protected readonly updateTarget = computed(() => {
     const view = this.view();
@@ -175,7 +217,7 @@ export class ResourcePageComponent {
   /** Whether the representation may be patched (for binaries: their description). */
   protected readonly patchable = computed(() => {
     const view = this.view();
-    return !!view && (view.binary ? true : view.allow.has('PATCH'));
+    return !!view && (view.binary ? true : view.allow.has('PATCH')) && allows(view.wacAllow, 'write');
   });
 
   /**

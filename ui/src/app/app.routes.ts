@@ -45,6 +45,31 @@ export const routes: Routes = [
     loadComponent: () => import('./history/fixity-page.component').then((m) => m.FixityPageComponent),
   },
   {
+    matcher: viewMatcher('permissions'),
+    title: 'Permissions',
+    loadComponent: () => import('./permissions/permissions-page.component').then((m) => m.PermissionsPageComponent),
+  },
+  {
+    matcher: viewMatcher('inbox'),
+    title: 'Notifications',
+    loadComponent: () => import('./notifications/notifications-page.component').then((m) => m.NotificationsPageComponent),
+  },
+  {
+    matcher: viewMatcher('communities'),
+    title: 'Communities',
+    loadComponent: () => import('./communities/communities-page.component').then((m) => m.CommunitiesPageComponent),
+  },
+  {
+    path: 'topologies',
+    title: 'Topologies',
+    loadComponent: () => import('./topology/topology-list-page.component').then((m) => m.TopologyListPageComponent),
+  },
+  {
+    path: 'topologies/:id',
+    title: 'Topology',
+    loadComponent: () => import('./topology/topology-editor-page.component').then((m) => m.TopologyEditorPageComponent),
+  },
+  {
     path: 'search',
     title: 'Search',
     loadComponent: () => import('./search/search-page.component').then((m) => m.SearchPageComponent),

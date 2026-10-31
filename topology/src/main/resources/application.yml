@@ -1,0 +1,68 @@
+# Articulorum topology service: PCDM structures and their instantiation in the platform.
+
+articulorum:
+  topology:
+    # LDP root of the platform; with load-balanced the host is the Consul service name
+    platform-url: http://articulorum-platform/
+    load-balanced: true
+    # container (below the LDP root) holding custom topologies, one JSON document each
+    container: topologies
+    # largest number of children of one kind a single build creates
+    max-children: 500
+
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+  info:
+    env:
+      enabled: true
+  server:
+    port: 8000
+
+info:
+  application:
+    name: ${spring.application.name}
+    description: PCDM topologies and their instantiation
+
+server:
+  port: 9000
+  # honour X-Forwarded-* set by the gateway (server URLs of the OpenAPI description)
+  forward-headers-strategy: framework
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+spring:
+  application:
+    name: topology
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorum-${spring.application.name}
+        prefer-ip-address: true

@@ -6,48 +6,61 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * SPARQL store settings ({@code articulorum.triplestore.*}).
+ * Settings of the SPARQL store the triplestore module mirrors resources into
+ * ({@code articulorum.triplestore.*}).
+ *
+ * <p>The default store is <a href="https://github.com/ad-freiburg/qlever">QLever</a>, which serves
+ * SPARQL 1.1 queries, SPARQL 1.1 Update and the SPARQL 1.1 Graph Store HTTP Protocol at the root
+ * of its HTTP port and requires an access token for every change. Any store implementing the same
+ * protocols works when its endpoint paths are configured.</p>
  */
 @Getter
 @Setter
 @ConfigurationProperties(prefix = "articulorum.triplestore")
 public class TriplestoreProperties {
 
-    /** Blazegraph service root, for example {@code http://blazegraph:8080/bigdata}. */
-    private String serviceUrl = "http://blazegraph:8080/bigdata";
+    /** Root URL of the store. */
+    private String serviceUrl = "http://qlever:7001";
 
-    /** Blazegraph namespace (data set) holding the resources. */
-    private String namespace = "articulorum";
+    /** Path of the SPARQL query and update endpoint below {@link #serviceUrl} (QLever: the root). */
+    private String sparqlPath = "";
 
-    /** Create the namespace (in quads mode) on start-up when it does not exist. */
-    private boolean createNamespace = true;
+    /** Path of the Graph Store HTTP Protocol endpoint below {@link #serviceUrl} (QLever: the root). */
+    private String graphStorePath = "";
 
     /**
-     * Base IRI used for resource and graph IRIs. When empty, the base the client used to reach
-     * the platform (carried by each event) is used.
+     * Access token sent as {@code Authorization: Bearer} with every request; QLever requires it for
+     * updates. Empty for stores without authentication.
      */
+    private String accessToken;
+
+    /** When set, resource IRIs (graph names) are minted under this base instead of the platform's. */
     private String baseUri;
 
     /**
-     * Returns the SPARQL 1.1 endpoint of the namespace.
+     * Returns the SPARQL query and update endpoint.
      *
-     * @return the endpoint URL
+     * @return for example {@code http://qlever:7001/}
      */
     public String sparqlEndpoint() {
-        return trim(serviceUrl) + "/namespace/" + namespace + "/sparql";
+        return join(serviceUrl, sparqlPath);
     }
 
     /**
-     * Returns the namespace administration URL.
+     * Returns the Graph Store HTTP Protocol endpoint.
      *
-     * @return the URL of the namespace collection
+     * @return for example {@code http://qlever:7001/}
      */
-    public String namespacesEndpoint() {
-        return trim(serviceUrl) + "/namespace";
+    public String graphStoreEndpoint() {
+        return join(serviceUrl, graphStorePath);
     }
 
-    private static String trim(final String url) {
-        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    private static String join(final String url, final String path) {
+        final String root = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        if (path == null || path.isBlank() || "/".equals(path)) {
+            return root + "/";
+        }
+        return root + (path.startsWith("/") ? path : "/" + path);
     }
 
 }

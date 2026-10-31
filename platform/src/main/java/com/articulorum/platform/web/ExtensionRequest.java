@@ -21,11 +21,20 @@ import com.articulorum.platform.ldp.exception.ResourceNotFoundException;
  *       version</td></tr>
  *   <tr><td>{@code <binary>/fcr:fixity}</td><td>{@link Extension#FIXITY}: a fixity check</td></tr>
  *   <tr><td>{@code /fcr:search}</td><td>{@link Extension#SEARCH}: the search API</td></tr>
+ *   <tr><td>{@code <resource>/fcr:acl}</td><td>{@link Extension#ACL}: the resource's WebAC access
+ *       control list</td></tr>
+ *   <tr><td>{@code <resource>/fcr:inbox}</td><td>{@link Extension#INBOX}: the resource's Linked
+ *       Data Notifications inbox (COAR Notify)</td></tr>
+ *   <tr><td>{@code <resource>/fcr:inbox/<id>}</td><td>{@link Extension#NOTIFICATION}: one
+ *       received notification</td></tr>
+ *   <tr><td>{@code <resource>/fcr:outbox}</td><td>{@link Extension#OUTBOX}: notifications sent on
+ *       behalf of the resource; POST sends one</td></tr>
  * </table>
  *
  * @param resourcePath the path of the resource the extension applies to (empty for the root)
  * @param extension    the extension
- * @param versionId    the memento's version identifier, {@code null} for other extensions
+ * @param versionId    the memento's version identifier or the notification's identifier,
+ *                     {@code null} for other extensions
  */
 public record ExtensionRequest(String resourcePath, Extension extension, String versionId) {
 
@@ -42,7 +51,19 @@ public record ExtensionRequest(String resourcePath, Extension extension, String 
         FIXITY,
 
         /** The search API (root only). */
-        SEARCH
+        SEARCH,
+
+        /** The access control list of a resource. */
+        ACL,
+
+        /** The notification inbox of a resource. */
+        INBOX,
+
+        /** One notification of an inbox. */
+        NOTIFICATION,
+
+        /** The notifications sent on behalf of a resource. */
+        OUTBOX
 
     }
 
@@ -54,6 +75,15 @@ public record ExtensionRequest(String resourcePath, Extension extension, String 
 
     /** Segment addressing the search API. */
     public static final String SEARCH_SEGMENT = Fedora.EXTENSION_PREFIX + "search";
+
+    /** Segment addressing the access control list of a resource. */
+    public static final String ACL_SEGMENT = Fedora.EXTENSION_PREFIX + "acl";
+
+    /** Segment addressing the notification inbox of a resource. */
+    public static final String INBOX_SEGMENT = Fedora.EXTENSION_PREFIX + "inbox";
+
+    /** Segment addressing the notification outbox of a resource. */
+    public static final String OUTBOX_SEGMENT = Fedora.EXTENSION_PREFIX + "outbox";
 
     /**
      * Recognises an extension path.
@@ -93,6 +123,15 @@ public record ExtensionRequest(String resourcePath, Extension extension, String 
             return Optional.of(new ExtensionRequest(resourcePath, Extension.FIXITY, null));
         } else if (SEARCH_SEGMENT.equals(segment) && remaining == 0 && index == 0) {
             return Optional.of(new ExtensionRequest("", Extension.SEARCH, null));
+        } else if (ACL_SEGMENT.equals(segment) && remaining == 0) {
+            return Optional.of(new ExtensionRequest(resourcePath, Extension.ACL, null));
+        } else if (INBOX_SEGMENT.equals(segment) && remaining == 0) {
+            return Optional.of(new ExtensionRequest(resourcePath, Extension.INBOX, null));
+        } else if (INBOX_SEGMENT.equals(segment) && remaining == 1) {
+            return Optional.of(new ExtensionRequest(resourcePath, Extension.NOTIFICATION,
+                decode(segments.get(index + 1))));
+        } else if (OUTBOX_SEGMENT.equals(segment) && remaining == 0) {
+            return Optional.of(new ExtensionRequest(resourcePath, Extension.OUTBOX, null));
         }
         throw new ResourceNotFoundException(path);
     }

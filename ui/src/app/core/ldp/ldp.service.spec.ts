@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
 
 import { BINARY_NT, CONTAINER_NT, TEST_BASE, provideTestConfig } from '../../testing/test-config';
-import { LDP } from '../rdf/vocabulary';
+import { ARCHIVAL_GROUP, LDP, LDP_INBOX } from '../rdf/vocabulary';
 import { LdpService, N_TRIPLES, SPARQL_UPDATE, contentDisposition, downloadName } from './ldp.service';
 
 describe('LdpService', () => {
@@ -55,6 +55,42 @@ describe('LdpService', () => {
     request.flush('', { status: 201, statusText: 'Created', headers: { Location: `${TEST_BASE}books/abc` } });
 
     expect(await creating).toBe(`${TEST_BASE}books/abc`);
+  });
+
+  it('reads access modes, archival groups and inboxes from the headers', async () => {
+    const loading = firstValueFrom(service.load('books/page'));
+    http.expectOne(`${TEST_BASE}books/page`).flush(CONTAINER_NT, {
+      headers: {
+        'WAC-Allow': 'user="read write",public="read"',
+        Link: [
+          `<${LDP.basicContainer}>; rel="type"`,
+          `<${TEST_BASE}books>; rel="${ARCHIVAL_GROUP.rel}"`,
+          `<${TEST_BASE}books/page/fcr:inbox>; rel="${LDP_INBOX}"`,
+        ].join(', '),
+      },
+    });
+
+    const view = await loading;
+    expect([...(view.wacAllow?.user ?? [])]).toEqual(['read', 'write']);
+    expect([...(view.wacAllow?.public ?? [])]).toEqual(['read']);
+    expect(view.archivalGroup).toBe(false);
+    expect(view.archivalGroupIri).toBe(`${TEST_BASE}books`);
+    expect(view.inbox).toBe(`${TEST_BASE}books/page/fcr:inbox`);
+  });
+
+  it('requests archival groups with a second type link and suggests names with Slug', async () => {
+    const creating = firstValueFrom(
+      service.createChild('', { kind: 'basic', archivalGroup: true, slugHint: 'moby', turtle: '<> a <urn:x> .' }),
+    );
+    const request = http.expectOne({ method: 'POST', url: TEST_BASE });
+    expect(request.request.headers.getAll('Link')).toEqual([
+      `<${LDP.basicContainer}>; rel="type"`,
+      `<${ARCHIVAL_GROUP.type}>; rel="type"`,
+    ]);
+    expect(request.request.headers.get('Slug')).toBe('moby');
+    request.flush('', { status: 201, statusText: 'Created', headers: { Location: `${TEST_BASE}moby` } });
+
+    expect(await creating).toBe(`${TEST_BASE}moby`);
   });
 
   it('creates children with an identifier by PUT without overwriting', async () => {

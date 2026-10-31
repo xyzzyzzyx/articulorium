@@ -103,6 +103,14 @@ public class LdpResource {
     @Column(name = "versioned", nullable = false)
     private boolean versioned;
 
+    /**
+     * Whether the resource is an archival group ({@code fedora:ArchivalGroup}): a container whose
+     * subtree is stored in one OCFL object and versioned as a unit. Nullable so that the column
+     * can be added to existing tables; {@code null} means {@code false}.
+     */
+    @Column(name = "archival_group")
+    private Boolean archivalGroup;
+
     @Version
     @Column(name = "row_version", nullable = false)
     private Long version;
@@ -270,6 +278,24 @@ public class LdpResource {
     }
 
     /** @return the optimistic-locking version, or {@code null} before the first flush */
+    /**
+     * Tells whether the resource is an archival group.
+     *
+     * @return {@code true} for archival groups
+     */
+    public boolean isArchivalGroup() {
+        return Boolean.TRUE.equals(archivalGroup);
+    }
+
+    /**
+     * Marks the resource as an archival group (or not).
+     *
+     * @param archivalGroup whether it is an archival group
+     */
+    public void setArchivalGroup(final boolean archivalGroup) {
+        this.archivalGroup = archivalGroup ? Boolean.TRUE : null;
+    }
+
     public Long getVersion() {
         return version;
     }

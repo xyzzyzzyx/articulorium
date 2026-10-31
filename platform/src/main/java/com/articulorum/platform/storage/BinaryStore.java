@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Versioned file storage for the content of LDP resources, organised as OCFL objects.
@@ -53,8 +54,48 @@ public interface BinaryStore {
      * @return the new version
      * @throws IOException when the version cannot be written
      */
-    StoredVersion write(String objectId, List<SourceFile> files, InlineFile inline, VersionNote note)
-        throws IOException;
+    default StoredVersion write(final String objectId, final List<SourceFile> files, final InlineFile inline,
+            final VersionNote note) throws IOException {
+        return write(objectId, new VersionChanges(files, inline == null ? List.of() : List.of(inline), Set.of()), note);
+    }
+
+    /**
+     * The changes a new version makes to an object.
+     *
+     * @param files   local files to add or replace
+     * @param inline  small files to write from memory
+     * @param removed logical paths to remove (missing paths are ignored)
+     */
+    record VersionChanges(List<SourceFile> files, List<InlineFile> inline, Set<String> removed) {
+
+        /**
+         * Creates the changes, replacing {@code null} lists with empty ones.
+         *
+         * @param files   local files to add or replace
+         * @param inline  small files to write from memory
+         * @param removed logical paths to remove
+         */
+        public VersionChanges {
+            files = files == null ? List.of() : List.copyOf(files);
+            inline = inline == null ? List.of() : List.copyOf(inline);
+            removed = removed == null ? Set.of() : Set.copyOf(removed);
+        }
+
+    }
+
+    /**
+     * Writes a new version of an object, creating the object when it does not exist yet.
+     *
+     * <p>Files are removed first, then local and inline files are added or replaced; every other
+     * file of the previous version is kept unchanged.</p>
+     *
+     * @param objectId the object identifier
+     * @param changes  the files to add, replace and remove
+     * @param note     author and message of the version
+     * @return the new version
+     * @throws IOException when the version cannot be written
+     */
+    StoredVersion write(String objectId, VersionChanges changes, VersionNote note) throws IOException;
 
     /**
      * A small file written from memory.

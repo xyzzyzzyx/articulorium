@@ -3,7 +3,8 @@
 #   /, /ui            redirect to the user interface (/ui/)
 #   /ui/**            service (Angular UI and its API)
 #   /platform/**      platform (Linked Data Platform root)
-#   /transform/**     transform (transformer preview API)
+#   /transform/**     transform (transformer preview API, IIIF Presentation exports)
+#   /topology/**      topology (PCDM topologies and their instantiation)
 #   /swagger-ui.html  Swagger UI for the OpenAPI descriptions of every service above
 
 logging:
@@ -38,6 +39,8 @@ springdoc:
         url: /platform/.well-known/openapi
       - name: transform
         url: /transform/v3/api-docs
+      - name: topology
+        url: /topology/v3/api-docs
       - name: service
         url: /ui/api/docs
 
@@ -93,6 +96,12 @@ spring:
               uri: lb://articulorum-transform
               predicates:
                 - Path=/transform,/transform/**
+              filters:
+                - StripPrefix=1
+            - id: articulorum-topology
+              uri: lb://articulorum-topology
+              predicates:
+                - Path=/topology,/topology/**
               filters:
                 - StripPrefix=1
             # /ui is redirected here (relative to the gateway's address): the service's own

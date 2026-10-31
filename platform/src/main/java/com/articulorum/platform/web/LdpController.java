@@ -16,6 +16,9 @@ import com.articulorum.domain.InteractionModel;
 import com.articulorum.domain.LdpResource;
 import com.articulorum.domain.rdf.Iris;
 import com.articulorum.domain.rdf.ResourcePaths;
+import com.articulorum.domain.vocabulary.Acl;
+import com.articulorum.domain.vocabulary.Articulorum;
+import com.articulorum.domain.vocabulary.Fedora;
 import com.articulorum.domain.vocabulary.Ldp;
 import com.articulorum.domain.vocabulary.Memento;
 import com.articulorum.platform.config.LdpProperties;
@@ -27,12 +30,14 @@ import com.articulorum.platform.ldp.exception.BadRequestException;
 import com.articulorum.platform.ldp.exception.PayloadTooLargeException;
 import com.articulorum.platform.ldp.exception.UnsupportedMediaTypeException;
 import com.articulorum.platform.rdf.RdfMediaTypes;
+import com.articulorum.platform.notify.NotificationService;
 import com.articulorum.platform.service.LdpService;
 import com.articulorum.platform.service.Payload;
 import com.articulorum.platform.service.PutResult;
 import com.articulorum.platform.service.ResolvedTarget;
 import com.articulorum.platform.storage.SpooledUpload;
 import com.articulorum.platform.storage.StorageProperties;
+import com.articulorum.platform.webac.AccessControlService;
 
 import org.apache.jena.rdf.model.Model;
 import org.springframework.http.ContentDisposition;
@@ -240,7 +245,8 @@ public class LdpController {
         final InteractionModel requested = requestedModel(request);
         try (RequestBody body = readBody(request, requested, false)) {
             final String slug = Optional.ofNullable(request.getHeader(LdpHeaders.SLUG)).orElse(body.slug());
-            final LdpResource created = service.create(path, slug, requested, body.payload(), base);
+            final LdpResource created = service.create(path, slug, requested, requestsArchivalGroup(request),
+                body.payload(), base);
             final String location = Iris.resolve(base, created.getRelativeIri());
             if (body.fromForm() && AcceptPreferences.prefersHtml(request.getHeader(HttpHeaders.ACCEPT))) {
                 return ResponseEntity.status(HttpStatus.SEE_OTHER)
@@ -265,12 +271,15 @@ public class LdpController {
     public ResponseEntity<?> put(final HttpServletRequest request) throws IOException {
         final String base = RequestTargets.base(request);
         final String path = RequestTargets.path(request);
-        rejectExtension(path);
+        final Optional<ExtensionRequest> extension = ExtensionRequest.parse(path);
+        if (extension.isPresent()) {
+            return extensions.put(request, extension.get());
+        }
         final InteractionModel requested = requestedModel(request);
         final Optional<ResolvedTarget> existing = service.find(path);
         final boolean binaryTarget = existing.map(target -> !target.isRdf()).orElse(false);
         try (RequestBody body = readBody(request, requested, binaryTarget)) {
-            final PutResult result = service.put(path, requested, body.payload(),
+            final PutResult result = service.put(path, requested, requestsArchivalGroup(request), body.payload(),
                 request.getHeader(HttpHeaders.IF_MATCH), request.getHeader(HttpHeaders.IF_NONE_MATCH), base);
             final boolean description = existing.map(ResolvedTarget::description).orElse(false);
             final HttpHeaders headers = ldpHeaders(new ResolvedTarget(result.resource(), description), base);
@@ -292,10 +301,13 @@ public class LdpController {
      * @throws IOException when the body cannot be read
      */
     @PatchMapping(ALL)
-    public ResponseEntity<Void> patch(final HttpServletRequest request) throws IOException {
+    public ResponseEntity<?> patch(final HttpServletRequest request) throws IOException {
         final String base = RequestTargets.base(request);
         final String path = RequestTargets.path(request);
-        rejectExtension(path);
+        final Optional<ExtensionRequest> extension = ExtensionRequest.parse(path);
+        if (extension.isPresent()) {
+            return extensions.patch(request, extension.get());
+        }
         final MediaType contentType = contentType(request);
         if (contentType == null || !contentType.equalsTypeAndSubtype(RdfMediaTypes.APPLICATION_SPARQL_UPDATE)) {
             throw new UnsupportedMediaTypeException("PATCH requires " + RdfMediaTypes.APPLICATION_SPARQL_UPDATE,
@@ -315,25 +327,14 @@ public class LdpController {
      * @return 204 No Content
      */
     @DeleteMapping(ALL)
-    public ResponseEntity<Void> delete(final HttpServletRequest request) {
-        rejectExtension(RequestTargets.path(request));
+    public ResponseEntity<?> delete(final HttpServletRequest request) {
+        final Optional<ExtensionRequest> extension = ExtensionRequest.parse(RequestTargets.path(request));
+        if (extension.isPresent()) {
+            return extensions.delete(extension.get());
+        }
         service.delete(RequestTargets.path(request), request.getHeader(HttpHeaders.IF_MATCH),
             RequestTargets.base(request));
         return ResponseEntity.noContent().build();
-    }
-
-    /**
-     * Refuses methods the Fedora API extensions do not support.
-     *
-     * @param path the request path
-     * @throws com.articulorum.platform.ldp.exception.MethodNotAllowedException when the path
-     *         addresses an extension
-     */
-    private void rejectExtension(final String path) {
-        final Optional<ExtensionRequest> extension = ExtensionRequest.parse(path);
-        if (extension.isPresent()) {
-            throw extensions.notAllowed(extension.get());
-        }
     }
 
     // ------------------------------------------------------------------------------------------
@@ -356,6 +357,12 @@ public class LdpController {
         for (final String type : types) {
             headers.add(HttpHeaders.LINK, LinkHeader.format(type, LdpHeaders.REL_TYPE));
         }
+        if (!target.description() && resource.isArchivalGroup()) {
+            headers.add(HttpHeaders.LINK, LinkHeader.format(Fedora.ARCHIVAL_GROUP, LdpHeaders.REL_TYPE));
+        } else if (!resource.isRoot()) {
+            service.archivalGroupOf(resource).ifPresent(group -> headers.add(HttpHeaders.LINK,
+                LinkHeader.format(Iris.resolve(base, group.getRelativeIri()), Articulorum.ARCHIVAL_GROUP_REL)));
+        }
         headers.add(HttpHeaders.LINK, LinkHeader.format(Iris.normalizeBase(base) + ConstraintsController.PATH,
             Ldp.CONSTRAINED_BY));
         if (target.description()) {
@@ -365,6 +372,16 @@ public class LdpController {
             headers.add(HttpHeaders.LINK, LinkHeader.format(
                 Iris.resolve(base, resource.getRelativeIri() + "/" + LdpService.DESCRIPTION_SEGMENT),
                 LdpHeaders.REL_DESCRIBED_BY));
+        }
+        if (!target.description()) {
+            // Web Access Control: every resource has an ACL resource, whether or not it exists yet
+            headers.add(HttpHeaders.LINK, LinkHeader.format(
+                AccessControlService.aclIri(base, resource.getPath()), Acl.REL_ACL));
+        }
+        if (resource.isContainer() && !target.description()) {
+            // Linked Data Notifications: containers receive COAR Notify notifications
+            headers.add(HttpHeaders.LINK, LinkHeader.format(NotificationService.inboxIri(base, resource.getPath()),
+                Ldp.INBOX));
         }
         if (!resource.isRoot()) {
             // Memento (RFC 7089): the resource is its own TimeGate and lists its versions in a TimeMap
@@ -516,6 +533,18 @@ public class LdpController {
             }
         }
         return requested;
+    }
+
+    /**
+     * Tells whether a request asks for an archival group with
+     * {@code Link: <http://fedora.info/definitions/v4/repository#ArchivalGroup>; rel="type"}.
+     *
+     * @param request the request
+     * @return {@code true} when an archival group is requested
+     */
+    static boolean requestsArchivalGroup(final HttpServletRequest request) {
+        return LinkHeader.targets(Collections.list(request.getHeaders(HttpHeaders.LINK)), LdpHeaders.REL_TYPE)
+            .contains(Fedora.ARCHIVAL_GROUP);
     }
 
     /** Specificity of an interaction model when several are requested. */

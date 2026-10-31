@@ -28,6 +28,20 @@ describe('ConfigService', () => {
     expect(service.platformBase()).toBe('http://x/ldp/');
   });
 
+  it('resolves the API documentation, topology and transform services and the community path', async () => {
+    const service = TestBed.inject(ConfigService);
+    const loaded = service.load();
+    TestBed.inject(HttpTestingController)
+      .expectOne('api/config')
+      .flush({ platformUrl: '../platform/', title: 'Repo', apiDocsUrl: '../swagger-ui.html', communitiesPath: '/orgs/' });
+    await loaded;
+
+    expect(service.apiDocs()).toBe(new URL('../swagger-ui.html', document.baseURI).toString());
+    expect(service.topologyBase()).toBe(new URL('../topology/', document.baseURI).toString());
+    expect(service.transformBase()).toBe(new URL('../transform/', document.baseURI).toString());
+    expect(service.communitiesPath()).toBe('orgs');
+  });
+
   it('keeps the defaults when the settings are unavailable', async () => {
     const service = TestBed.inject(ConfigService);
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);

@@ -26,6 +26,9 @@ public final class Ldp {
     /** Class of RDF sources that also contain other resources. */
     public static final String CONTAINER = NAMESPACE + "Container";
 
+    /** Linked Data Notifications inbox of a resource ({@code ldp:inbox}, also a link relation). */
+    public static final String INBOX = NAMESPACE + "inbox";
+
     /** Container that only maintains containment triples. */
     public static final String BASIC_CONTAINER = NAMESPACE + "BasicContainer";
 

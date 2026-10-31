@@ -1,0 +1,33 @@
+# Root authorizations for deployments that identify agents with Consul ACL tokens
+# (articulorum.webac.root-acl=classpath:webac/root-acl-consul.ttl, used by docker-compose.acl.yml).
+#
+#   everyone                       read
+#   Consul role "editors"          read, write (create, change, delete)
+#   Consul role "administrators"   read, write, control (change access control lists)
+#
+# Roles are matched by name: a token with the role "editors" is a member of the group
+# <info:consul/role/editors>. Policies work the same way with <info:consul/policy/<name>>.
+
+@prefix acl: <http://www.w3.org/ns/auth/acl#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+<#public>
+    a acl:Authorization ;
+    acl:agentClass foaf:Agent ;
+    acl:accessTo <> ;
+    acl:default <> ;
+    acl:mode acl:Read .
+
+<#editors>
+    a acl:Authorization ;
+    acl:agentGroup <info:consul/role/editors> ;
+    acl:accessTo <> ;
+    acl:default <> ;
+    acl:mode acl:Read, acl:Write .
+
+<#administrators>
+    a acl:Authorization ;
+    acl:agentGroup <info:consul/role/administrators> ;
+    acl:accessTo <> ;
+    acl:default <> ;
+    acl:mode acl:Read, acl:Write, acl:Control .

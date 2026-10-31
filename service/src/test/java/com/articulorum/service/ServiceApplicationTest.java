@@ -81,7 +81,11 @@ class ServiceApplicationTest {
         mvc.perform(get("/api/config"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.platformUrl").value("../platform/"))
-            .andExpect(jsonPath("$.title").value("Articulorum"));
+            .andExpect(jsonPath("$.title").value("Articulorum"))
+            .andExpect(jsonPath("$.apiDocsUrl").value("../swagger-ui.html"))
+            .andExpect(jsonPath("$.topologyUrl").value("../topology/"))
+            .andExpect(jsonPath("$.transformUrl").value("../transform/"))
+            .andExpect(jsonPath("$.communitiesPath").value("communities"));
     }
 
     @Test

@@ -26,4 +26,10 @@ public class LdpProperties {
     /** Largest number of results a single {@code fcr:search} request may return. */
     private int maxSearchResults = 1000;
 
+    /**
+     * Path of the container holding the community, sub-community and collection structure,
+     * created on start-up (typed {@code art:CommunityRoot}). Empty to create none.
+     */
+    private String communitiesPath = "communities";
+
 }

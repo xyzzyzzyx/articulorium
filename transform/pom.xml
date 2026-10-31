@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Transform module: turns LDP resources into search documents.
+  Transform module: turns LDP resources into search documents, and exports PCDM structures as
+  IIIF Presentation 3.0 manifests and collections.
 
   Consumes ResourceEvents from the bus, runs every active Transformer (an SPI: any Spring bean
   implementing com.articulorum.transform.spi.Transformer) against the resource's RDF and
@@ -31,6 +32,12 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+
+    <!-- HTTP client reading PCDM resources from the platform for IIIF exports -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
     </dependency>
 
     <!-- OpenAPI description and Swagger UI of the preview API -->

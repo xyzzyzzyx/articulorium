@@ -85,8 +85,8 @@ public class OpenApiConfiguration {
                 .description("W3C Linked Data Platform 1.0 server with Fedora Commons compatible versioning "
                     + "(Memento), fixity and search, backed by an OCFL storage layer. "
                     + "Constraints on clients: `/.well-known/ldp-constraints`.")
-                .contact(new Contact().name("Articulorum").url("https://github.com/william-stanley-welling/articulorium"))
-                .license(new License().name("See LICENSE").url("https://github.com/william-stanley-welling/articulorium")))
+                .contact(new Contact().name("Articulorum").url("https://github.com/xyzzyzzyx/articulorium"))
+                .license(new License().name("See LICENSE").url("https://github.com/xyzzyzzyx/articulorium")))
             .addTagsItem(new Tag().name(TAG_LDP).description("Read, create, replace, patch and delete LDP resources"))
             .addTagsItem(new Tag().name(TAG_VERSIONS).description("Resource versions stored as OCFL object versions"))
             .addTagsItem(new Tag().name(TAG_REPOSITORY).description("Fedora API extensions: fixity and search"));

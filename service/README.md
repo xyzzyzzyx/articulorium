@@ -5,7 +5,7 @@ Hosts the Angular user interface (`ui` module) and the small REST API it uses:
 | Path                 | What                                                       |
 |----------------------|------------------------------------------------------------|
 | `/`, client routes   | the single page application (HTML5 routing)                |
-| `/api/config`        | settings for the UI (platform URL, title)                  |
+| `/api/config`        | settings for the UI (platform, API docs, topology and transform URLs, title, community path) |
 | `/api/agents`        | the agents known to the service (`agent` module)           |
 | `/api/media-type`    | media type detection of an uploaded file (Apache Tika)     |
 | `/api/swagger`       | Swagger UI; the OpenAPI document is at `/api/docs`         |

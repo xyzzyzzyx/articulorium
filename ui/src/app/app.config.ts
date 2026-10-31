@@ -1,4 +1,4 @@
-import { provideHttpClient, withFetch } from '@angular/common/http';
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
   Provider,
@@ -14,6 +14,7 @@ import { provideStore } from '@ngrx/store';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 
 import { routes } from './app.routes';
+import { authInterceptor } from './core/auth/auth.interceptor';
 import { ConfigService } from './core/config.service';
 
 /**
@@ -27,7 +28,8 @@ export const appConfig = (providers: Provider[]): ApplicationConfig => {
     providers: [
       ...providers,
       provideZonelessChangeDetection(),
-      provideHttpClient(withFetch()),
+      // the signed-in user's token goes to the repository's services only
+      provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
       // route parameters (the resource path, the version) are bound to component inputs
       provideRouter(routes, withComponentInputBinding()),
       provideAppInitializer(() => inject(ConfigService).load()),

@@ -2,10 +2,13 @@
 
 articulorum:
   triplestore:
-    # Blazegraph service root; the SPARQL endpoint is <service-url>/namespace/<namespace>/sparql
-    service-url: http://blazegraph:8080/bigdata
-    namespace: articulorum
-    create-namespace: true
+    # QLever serves SPARQL queries, updates and the Graph Store HTTP Protocol at its root; for
+    # other stores set sparql-path / graph-store-path (Fuseki: /ds/sparql and /ds/data)
+    service-url: http://qlever:7001
+    sparql-path:
+    graph-store-path:
+    # QLever's access token (sent as Authorization: Bearer); required for updates
+    access-token: ${QLEVER_ACCESS_TOKEN:articulorum-qlever}
     # when set, resource IRIs are minted under this base instead of the one the client used
     base-uri:
 

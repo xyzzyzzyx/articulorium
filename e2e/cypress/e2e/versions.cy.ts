@@ -26,6 +26,29 @@ describe('Versions', () => {
     });
   });
 
+  it('shows the technical metadata a binary had in each version', () => {
+    cy.createContainer('Technical history').then((parent) => {
+      cy.request({
+        method: 'POST',
+        url: `/platform/${parent}`,
+        headers: { 'Content-Type': 'text/plain', 'Content-Disposition': 'attachment; filename="draft.txt"' },
+        body: 'draft',
+      }).then((response) => {
+        const path = String(response.headers['location']).split('/platform/')[1];
+        cy.request({
+          method: 'PUT',
+          url: `/platform/${path}`,
+          headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="final.csv"' },
+          body: 'a,b\n1,2\n',
+        });
+        cy.visitUi(`memento/v1/${path}`);
+        cy.get('ui-property-table').should('contain.text', 'draft.txt').and('contain.text', 'text/plain').and('not.contain.text', 'final.csv');
+        cy.visitUi(`memento/v2/${path}`);
+        cy.get('ui-property-table').should('contain.text', 'final.csv').and('contain.text', 'text/csv');
+      });
+    });
+  });
+
   it('records versions of containers on request', () => {
     cy.createContainer('Snapshot').then((name) => {
       cy.visitUi(`browse/${name}`);

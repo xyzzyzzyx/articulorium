@@ -17,9 +17,14 @@
 #   http://localhost:8500/            Consul UI
 #   http://localhost:9101/            MinIO console (articulorum / articulorum-secret)
 #   http://localhost:8983/            Solr admin
-#   http://localhost:8080/bigdata/    Blazegraph workbench
+#   http://localhost:7001/            QLever SPARQL endpoint (queries; updates need QLEVER_ACCESS_TOKEN)
+#   http://localhost:8000/topology/topologies
+#                                     PCDM topologies (topology service)
+#   http://localhost:8000/transform/iiif/<path>
+#                                     IIIF Presentation 3 manifest / collection of a PCDM resource
 #
 # Credentials can be overridden with environment variables or an .env file next to this file.
+# docker-compose.acl.yml turns on Consul ACLs and accepts Consul tokens as WebAC identities.
 
 name: articulorum
 
@@ -148,7 +153,8 @@ services:
         MODULE: triplestore
     environment:
       <<: *spring-env
-      ARTICULORUM_TRIPLESTORE_SERVICE_URL: http://blazegraph:8080/bigdata
+      ARTICULORUM_TRIPLESTORE_SERVICE_URL: http://qlever:7001
+      QLEVER_ACCESS_TOKEN: ${QLEVER_ACCESS_TOKEN:-articulorum-qlever}
     ports:
       - "9004:9000"
     depends_on:
@@ -156,8 +162,28 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      blazegraph:
-        condition: service_started
+      qlever:
+        condition: service_healthy
+
+  topology:
+    # PCDM topologies (Book, Newspaper, Journal, Postcards, ... and custom ones) and building them
+    # in the platform; the gateway serves it under /topology/
+    <<: *service
+    image: articulorum/topology:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: topology
+    environment:
+      <<: *spring-env
+    ports:
+      - "9006:9000"
+    depends_on:
+      consul:
+        condition: service_healthy
+      platform:
+        condition: service_healthy
 
   service:
     # Angular user interface and its support API (agents, media type detection, UI settings);
@@ -304,14 +330,32 @@ services:
       zookeeper:
         condition: service_healthy
 
-  blazegraph:
-    # derived data: the triplestore service rebuilds graphs from platform events
-    image: lyrasis/blazegraph:2.1.5
+  qlever:
+    # SPARQL store (QLever) holding one named graph per resource; derived data that the
+    # triplestore service writes from platform events. triplestore/qlever/entrypoint.sh builds an
+    # empty index on first start and runs the server with an access token and persisted updates.
+    image: docker.io/adfreiburg/qlever:0.6.0
+    entrypoint: ["/bin/bash", "/opt/articulorum-qlever/entrypoint.sh"]
+    # the index lives in a named volume; run as root to avoid volume permission problems
+    user: "0:0"
     restart: unless-stopped
+    environment:
+      QLEVER_ACCESS_TOKEN: ${QLEVER_ACCESS_TOKEN:-articulorum-qlever}
+      QLEVER_MEMORY: ${QLEVER_MEMORY:-2G}
     ports:
-      - "8080:8080"
+      - "7001:7001"
+    volumes:
+      - ./triplestore/qlever:/opt/articulorum-qlever:ro
+      - qlever-data:/data
     networks:
       - cloud
+    healthcheck:
+      # no curl in the image: probe the port with bash
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/7001"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 20s
 
   # ----------------------------------------------------------------------------------------------
   # Tests
@@ -347,6 +391,10 @@ services:
         condition: service_healthy
       service:
         condition: service_healthy
+      topology:
+        condition: service_healthy
+      transform:
+        condition: service_healthy
     networks:
       - cloud
 
@@ -376,3 +424,4 @@ volumes:
   zookeeper-data:
   zookeeper-datalog:
   solr-data:
+  qlever-data:

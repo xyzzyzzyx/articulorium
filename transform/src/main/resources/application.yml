@@ -9,6 +9,20 @@ articulorum:
     field-mappings: classpath:transform/field-mappings.yml
     # optional: mint document identifiers under this base instead of the one the platform reports
     base-uri:
+  iiif:
+    # IIIF Presentation 3.0 export (GET /iiif/<path>): where this service reads the platform
+    platform-url: http://articulorum-platform/
+    load-balanced: true
+    # where clients reach the platform and the UI, relative to this service's public base
+    # (the gateway serves it under /transform/) or absolute
+    platform-public-url: ../platform/
+    ui-public-url: ../ui/
+    # read image dimensions from the first bytes of each image (JPEG, PNG, GIF, BMP, TIFF)
+    probe-image-size: true
+    probe-bytes: 262144
+    default-width: 1000
+    default-height: 1000
+    max-resources: 2000
 
 logging:
   level:
@@ -33,7 +47,7 @@ management:
 info:
   application:
     name: ${spring.application.name}
-    description: Transformation of LDP resources into search documents
+    description: Transformation of LDP resources into search documents and IIIF exports
 
 server:
   port: 9000

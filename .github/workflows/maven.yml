@@ -61,6 +61,14 @@ jobs:
           curl -fsS http://localhost:8000/swagger-ui.html -o /dev/null -w "%{http_code}" | grep -qE "200|302"
           curl -fsS http://localhost:8000/ui/ | grep -q '<ui-root'
           docker compose exec -T platform curl -fsS http://localhost:8000/actuator/health | grep -q '"db"' 
+      - name: Smoke test topologies, communities, access control, notifications, IIIF and QLever
+        run: |
+          curl -fsS http://localhost:8000/topology/topologies | grep -q '"book"'
+          curl -fsS -H 'Accept: application/n-triples' http://localhost:8000/platform/communities | grep -q CommunityRoot
+          curl -fsS 'http://localhost:8000/platform/.well-known/webac?resource=communities' | grep -q '"userModes"'
+          curl -fsS -H 'Accept: application/json' http://localhost:8000/platform/communities/fcr:inbox | grep -q '"notifications"'
+          curl -fsS http://localhost:8000/transform/iiif/communities | grep -q '"Collection"'
+          docker compose exec -T triplestore curl -fsS http://localhost:8000/actuator/health | grep -q '"qlever"' 
       - name: End-to-end tests (Cypress, e2e compose service)
         run: docker compose --profile e2e run --rm e2e
       - name: End-to-end screenshots

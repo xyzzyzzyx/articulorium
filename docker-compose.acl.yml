@@ -1,0 +1,56 @@
+# Consul ACLs as the identity provider of Web Access Control.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.acl.yml up --build
+#
+# Consul runs with ACLs enabled and a management token (CONSUL_MANAGEMENT_TOKEN). The platform
+# accepts Consul ACL tokens (Authorization: Bearer <secret id>, as the UI's "Sign in" sends them)
+# and applies webac/root-acl-consul.ttl: everyone reads, the Consul role "editors" writes and the
+# role "administrators" also controls access control lists. Create roles and tokens with the
+# Consul CLI (see README.md, "Access control"). The Cypress tests expect anonymous write access
+# and therefore run against docker-compose.yml alone.
+#
+# The default ACL policy stays "allow" so that services register and read configuration without
+# tokens; with default_policy "deny", give every service a token through SPRING_CLOUD_CONSUL_TOKEN
+# (set below to the management token for convenience - use a token per service in production).
+
+x-consul-token: &consul-token
+  SPRING_CLOUD_CONSUL_TOKEN: ${CONSUL_MANAGEMENT_TOKEN:-articulorum-consul-management}
+
+services:
+
+  consul:
+    environment:
+      CONSUL_LOCAL_CONFIG: >-
+        {"acl": {"enabled": true, "default_policy": "allow", "enable_token_persistence": true,
+        "tokens": {"initial_management": "${CONSUL_MANAGEMENT_TOKEN:-articulorum-consul-management}"}}}
+
+  platform:
+    environment:
+      <<: *consul-token
+      ARTICULORUM_WEBAC_CONSUL_ENABLED: "true"
+      ARTICULORUM_WEBAC_CONSUL_URL: http://consul:8500
+      ARTICULORUM_WEBAC_ROOT_ACL: classpath:webac/root-acl-consul.ttl
+
+  gateway:
+    environment:
+      <<: *consul-token
+
+  transform:
+    environment:
+      <<: *consul-token
+
+  index:
+    environment:
+      <<: *consul-token
+
+  triplestore:
+    environment:
+      <<: *consul-token
+
+  topology:
+    environment:
+      <<: *consul-token
+
+  service:
+    environment:
+      <<: *consul-token

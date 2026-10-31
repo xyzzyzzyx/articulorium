@@ -111,6 +111,10 @@ public class LdpService {
 
     private final CurrentAgent agent;
 
+    private final StorageLocator locator;
+
+    private final List<ResourceDeletionListener> deletionListeners;
+
     /**
      * Creates the service.
      *
@@ -120,16 +124,21 @@ public class LdpService {
      * @param eventPublisher       publishes change events
      * @param namespaces           namespace prefixes for rendered models
      * @param agent                determines the agent making changes
+     * @param locator              locates resources in the storage layer (archival groups)
+     * @param deletionListeners    data attached to resources that is deleted with them
      */
     public LdpService(final LdpResourceRepository repository, final BinaryStore binaryStore,
             final ServerManagedTriples serverManagedTriples, final ResourceEventPublisher eventPublisher,
-            final NamespaceRegistry namespaces, final CurrentAgent agent) {
+            final NamespaceRegistry namespaces, final CurrentAgent agent, final StorageLocator locator,
+            final List<ResourceDeletionListener> deletionListeners) {
         this.repository = repository;
         this.binaryStore = binaryStore;
         this.serverManagedTriples = serverManagedTriples;
         this.eventPublisher = eventPublisher;
         this.namespaces = namespaces;
         this.agent = agent;
+        this.locator = locator;
+        this.deletionListeners = List.copyOf(deletionListeners);
     }
 
     // ------------------------------------------------------------------------------------------
@@ -188,6 +197,17 @@ public class LdpService {
     }
 
     /**
+     * Finds the archival group a resource belongs to (possibly the resource itself).
+     *
+     * @param resource the resource
+     * @return the archival group, or empty when the resource is not inside one
+     */
+    @Transactional(readOnly = true)
+    public Optional<LdpResource> archivalGroupOf(final LdpResource resource) {
+        return locator.archivalGroupOf(resource);
+    }
+
+    /**
      * Opens the bytes of a non-RDF source.
      *
      * @param resource the non-RDF source
@@ -199,7 +219,7 @@ public class LdpService {
             throw new ResourceNotFoundException(resource.getPath());
         }
         return binaryStore.open(resource.getBinary().getStorageKey(), resource.getBinary().getStorageVersion(),
-            StorageKeys.CONTENT);
+            resource.getBinary().contentPath());
     }
 
     // ------------------------------------------------------------------------------------------
@@ -220,22 +240,43 @@ public class LdpService {
     @Transactional
     public LdpResource create(final String containerPath, final String slug, final InteractionModel requested,
             final Payload payload, final String base) {
+        return create(containerPath, slug, requested, false, payload, base);
+    }
+
+    /**
+     * Creates a resource in a container (HTTP POST, LDP 5.2.3), optionally as an archival group.
+     *
+     * @param containerPath the container path
+     * @param slug          the client's suggested name, may be {@code null}
+     * @param requested     the interaction model requested with a {@code Link} header, may be
+     *                      {@code null}
+     * @param archivalGroup whether {@code fedora:ArchivalGroup} was requested
+     * @param payload       the request body
+     * @param base          the server base of the request
+     * @return the created resource
+     */
+    @Transactional
+    public LdpResource create(final String containerPath, final String slug, final InteractionModel requested,
+            final boolean archivalGroup, final Payload payload, final String base) {
         final ResolvedTarget target = resolve(containerPath);
         if (target.description() || !target.resource().isContainer()) {
             throw new MethodNotAllowedException("Only containers accept POST", target.allowedMethods());
         }
         final LdpResource container = target.resource();
-        return createAt(container, mintPath(container.getPath(), slug), requested, payload, base);
+        return createAt(container, mintPath(container.getPath(), slug), requested, archivalGroup, payload, base);
     }
 
     private LdpResource createAt(final LdpResource container, final String path, final InteractionModel requested,
-            final Payload payload, final String base) {
+            final boolean archivalGroup, final Payload payload, final String base) {
         final ChangeSet changes = new ChangeSet();
         final String who = agent.name();
         final LdpResource resource;
         if (payload instanceof Payload.Binary binary) {
             if (requested != null && requested != InteractionModel.NON_RDF_SOURCE) {
                 throw rdfRequired(requested);
+            }
+            if (archivalGroup) {
+                throw notAContainerGroup();
             }
             resource = new LdpResource(path, InteractionModel.NON_RDF_SOURCE).createdBy(who);
             storeBinary(resource, binary, "Create " + resource.getRelativeIri());
@@ -250,6 +291,12 @@ public class LdpService {
             resource = new LdpResource(path, model).createdBy(who);
             resource.setTriples(LdpRules.acceptClientTriples(resource, incoming, List.of()));
             LdpRules.configureMembership(resource);
+            if (archivalGroup) {
+                makeArchivalGroup(resource);
+            } else if (locator.archivalGroupOf(container).isPresent()) {
+                // members of an archival group share its history
+                resource.setVersioned(true);
+            }
         }
         repository.save(resource);
         changes.created(resource);
@@ -311,10 +358,33 @@ public class LdpService {
     @Transactional
     public PutResult put(final String path, final InteractionModel requested, final Payload payload,
             final String ifMatch, final String ifNoneMatch, final String base) {
+        return put(path, requested, false, payload, ifMatch, ifNoneMatch, base);
+    }
+
+    /**
+     * Replaces a resource, or creates it (optionally as an archival group) at the given path.
+     *
+     * @param path          the target path
+     * @param requested     the interaction model requested with a {@code Link} header, may be
+     *                      {@code null}
+     * @param archivalGroup whether {@code fedora:ArchivalGroup} was requested; an existing
+     *                      resource must already be one
+     * @param payload       the request body
+     * @param ifMatch       the {@code If-Match} header, may be {@code null}
+     * @param ifNoneMatch   the {@code If-None-Match} header, may be {@code null}
+     * @param base          the server base of the request
+     * @return the outcome
+     */
+    @Transactional
+    public PutResult put(final String path, final InteractionModel requested, final boolean archivalGroup,
+            final Payload payload, final String ifMatch, final String ifNoneMatch, final String base) {
         final String normalized = ResourcePaths.normalize(path);
         rejectExtensionSegments(normalized);
         final Optional<ResolvedTarget> existing = find(normalized);
         if (existing.isPresent()) {
+            if (archivalGroup && !existing.get().resource().isArchivalGroup()) {
+                throw new ConstraintViolationException("An existing resource cannot become an archival group");
+            }
             return new PutResult(replace(existing.get(), requested, payload, ifMatch, ifNoneMatch, base), false);
         }
         if (ifMatch != null) {
@@ -330,7 +400,7 @@ public class LdpService {
         if (containerPath.isEmpty() && RESERVED_ROOT_NAMES.contains(ResourcePaths.nameOf(normalized))) {
             throw new ConstraintViolationException("The name " + ResourcePaths.nameOf(normalized) + " is reserved");
         }
-        return new PutResult(createAt(container, normalized, requested, payload, base), true);
+        return new PutResult(createAt(container, normalized, requested, archivalGroup, payload, base), true);
     }
 
     private LdpResource replace(final ResolvedTarget target, final InteractionModel requested, final Payload payload,
@@ -469,11 +539,24 @@ public class LdpService {
         doomed.sort(Comparator.comparingInt((LdpResource r) -> r.getPath().length()).reversed());
         doomed.add(resource);
 
+        // deleting inside a surviving archival group removes the files from the group's object
+        // (a new version); deleting the group itself (or an ancestor) purges the whole object
+        final StorageLocator.Location location = locator.locate(resource);
+        if (location.isGroupMember()) {
+            removeFromGroup(location, "Delete " + resource.getRelativeIri());
+        }
+
         final ChangeSet changes = new ChangeSet();
         final Set<String> affectedMembershipResources = new LinkedHashSet<>();
         for (final LdpResource victim : doomed) {
             if (victim.getInteractionModel().isMembershipContainer() && victim.getMembershipResource() != null) {
                 affectedMembershipResources.add(victim.getMembershipResource());
+            }
+            if (location.isGroupMember()) {
+                // the group's object survives; its files were removed above
+                repository.delete(victim);
+                changes.deleted(victim);
+                continue;
             }
             if (victim.isVersioned() || victim.getBinary() != null) {
                 final String objectId = victim.getBinary() != null
@@ -485,6 +568,9 @@ public class LdpService {
             changes.deleted(victim);
         }
         repository.flush();
+        for (final ResourceDeletionListener listener : deletionListeners) {
+            listener.subtreeDeleted(resource.getPath());
+        }
 
         final LdpResource container = repository.findByPath(resource.getParentPath())
             .orElseThrow(() -> new IllegalStateException("Parent of " + resource.getPath() + " is missing"));
@@ -560,21 +646,96 @@ public class LdpService {
      * @param message  the version message
      */
     private void storeBinary(final LdpResource resource, final Payload.Binary binary, final String message) {
-        final String objectId = StorageKeys.objectId(resource.getPath());
+        final StorageLocator.Location location = locator.locate(resource);
+        final String objectId = location.objectId();
+        final BinaryContent content = new BinaryContent(objectId, null, binary.contentType(), binary.filename(),
+            binary.upload().size(), binary.upload().sha256());
+        content.setLogicalPath(location.contentPath());
         final StoredVersion version;
         try {
-            version = binaryStore.write(objectId,
-                List.of(new BinaryStore.SourceFile(StorageKeys.CONTENT, binary.upload().file())),
-                descriptionSnapshot(resource),
+            version = binaryStore.write(objectId, new BinaryStore.VersionChanges(
+                    List.of(new BinaryStore.SourceFile(location.contentPath(), binary.upload().file())),
+                    List.of(descriptionSnapshot(resource, location.descriptionPath()),
+                        technicalSnapshot(resource, content, location.technicalPath())),
+                    Set.of()),
                 new BinaryStore.VersionNote(agent.name(), message));
         } catch (IOException e) {
             throw new LdpException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to store binary: " + e.getMessage(),
                 new HttpHeaders(), e);
         }
         onRollback(() -> undoWrite(objectId, version.versionId()));
-        resource.setBinary(new BinaryContent(objectId, version.versionId(), binary.contentType(), binary.filename(),
-            binary.upload().size(), binary.upload().sha256()));
+        content.setStorageVersion(version.versionId());
+        resource.setBinary(content);
         resource.setVersioned(true);
+    }
+
+    /**
+     * Turns a newly created container into an archival group: it must not be nested in another
+     * archival group, and its OCFL object (which will hold its whole subtree) is created right away
+     * with a first version.
+     *
+     * @param resource the new container
+     */
+    private void makeArchivalGroup(final LdpResource resource) {
+        if (!resource.isContainer()) {
+            throw notAContainerGroup();
+        }
+        final Optional<LdpResource> enclosing = locator.archivalGroupOf(resource.getParentPath());
+        if (enclosing.isPresent()) {
+            throw new ConstraintViolationException("Archival groups cannot be nested: "
+                + resource.getRelativeIri() + " is inside the archival group " + enclosing.get().getRelativeIri());
+        }
+        resource.setArchivalGroup(true);
+        final String objectId = StorageKeys.objectId(resource.getPath());
+        final StoredVersion version;
+        try {
+            version = binaryStore.write(objectId, new BinaryStore.VersionChanges(List.of(),
+                    List.of(descriptionSnapshot(resource, StorageKeys.DESCRIPTION)), Set.of()),
+                new BinaryStore.VersionNote(agent.name(), "Create archival group " + resource.getRelativeIri()));
+        } catch (IOException e) {
+            throw new LdpException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to create archival group: " + e.getMessage(),
+                new HttpHeaders(), e);
+        }
+        onRollback(() -> undoWrite(objectId, version.versionId()));
+        resource.setVersioned(true);
+    }
+
+    private static ConstraintViolationException notAContainerGroup() {
+        return new ConstraintViolationException("Only containers can be archival groups ("
+            + Fedora.ARCHIVAL_GROUP + ")");
+    }
+
+    /**
+     * Removes the files of a deleted member (and everything below it) from its archival group's
+     * object by writing a new version of the group.
+     *
+     * @param location the location of the deleted member
+     * @param message  the version message
+     */
+    private void removeFromGroup(final StorageLocator.Location location, final String message) {
+        try {
+            final Optional<StoredVersion> head = binaryStore.head(location.objectId());
+            if (head.isEmpty()) {
+                return;
+            }
+            final String directory = location.directory();
+            final Set<String> removed = new LinkedHashSet<>();
+            for (final String file : head.get().files().keySet()) {
+                if (file.startsWith(directory)) {
+                    removed.add(file);
+                }
+            }
+            if (removed.isEmpty()) {
+                return;
+            }
+            final StoredVersion version = binaryStore.write(location.objectId(),
+                new BinaryStore.VersionChanges(List.of(), List.of(), removed),
+                new BinaryStore.VersionNote(agent.name(), message));
+            onRollback(() -> undoWrite(location.objectId(), version.versionId()));
+        } catch (IOException e) {
+            throw new LdpException(HttpStatus.SERVICE_UNAVAILABLE, "Unable to update archival group: " + e.getMessage(),
+                new HttpHeaders(), e);
+        }
     }
 
     /**
@@ -584,8 +745,35 @@ public class LdpService {
      * @return the N-Triples snapshot, with IRIs resolved against {@link #SNAPSHOT_BASE}
      */
     static BinaryStore.InlineFile descriptionSnapshot(final LdpResource resource) {
-        return new BinaryStore.InlineFile(StorageKeys.DESCRIPTION,
+        return descriptionSnapshot(resource, StorageKeys.DESCRIPTION);
+    }
+
+    /**
+     * Serialises the client-managed triples of a resource for the storage layer.
+     *
+     * @param resource    the resource
+     * @param logicalPath where the snapshot goes inside the object
+     * @return the N-Triples snapshot, with IRIs resolved against {@link #SNAPSHOT_BASE}
+     */
+    static BinaryStore.InlineFile descriptionSnapshot(final LdpResource resource, final String logicalPath) {
+        return new BinaryStore.InlineFile(logicalPath,
             NTriplesSerializer.serialize(resource.getTriples(), SNAPSHOT_BASE).getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Serialises the technical metadata of a binary (size, digest, media type, file name) for the
+     * storage layer, so that each version records the metadata of the bytes it holds.
+     *
+     * @param resource    the binary
+     * @param content     the stored content the metadata describes
+     * @param logicalPath where the snapshot goes inside the object
+     * @return the N-Triples snapshot, with IRIs resolved against {@link #SNAPSHOT_BASE}
+     */
+    static BinaryStore.InlineFile technicalSnapshot(final LdpResource resource, final BinaryContent content,
+            final String logicalPath) {
+        final List<Triple> triples = ServerManagedTriples.technicalMetadata(resource.getRelativeIri(), content);
+        return new BinaryStore.InlineFile(logicalPath,
+            NTriplesSerializer.serialize(triples, SNAPSHOT_BASE).getBytes(StandardCharsets.UTF_8));
     }
 
     /**

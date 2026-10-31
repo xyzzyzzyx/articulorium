@@ -11,6 +11,25 @@ articulorum:
     default-agent: anonymous
     # upper bound of max_results for /fcr:search
     max-search-results: 1000
+    # container of the community / sub-community / collection structure (created on start-up)
+    communities-path: communities
+  webac:
+    # enforce Web Access Control (acl:Read/Write/Append/Control) on every LDP request
+    enabled: true
+    # authorizations used when no resource on the path has an ACL; the default grants everyone
+    # full access - replace it for production (see the file for an example)
+    root-acl: classpath:webac/root-acl.ttl
+    # header with an agent authenticated by a trusted reverse proxy (for example X-Forwarded-User)
+    trusted-agent-header:
+    consul:
+      # accept Consul ACL tokens (Authorization: Bearer <token> or X-Consul-Token) as identities;
+      # roles and policies of the token become acl:agentGroup IRIs
+      enabled: false
+      url: http://${spring.cloud.consul.host:consul}:${spring.cloud.consul.port:8500}
+      cache-ttl: 60s
+      agent-prefix: "info:consul/agent/"
+      role-prefix: "info:consul/role/"
+      policy-prefix: "info:consul/policy/"
   storage:
     # where the OCFL storage root lives: "s3" (default, MinIO in docker compose) or "filesystem"
     type: s3

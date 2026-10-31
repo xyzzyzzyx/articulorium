@@ -26,6 +26,23 @@
         <mat-chip [matTooltip]="type.iri">{{ type.name }}</mat-chip>
       }
     </mat-chip-set>
+    <p class="ui-chip-row">
+      @if (v.archivalGroup) {
+        <span class="ui-pill ui-archival-group-badge" matTooltip="Stored and versioned as one OCFL object">
+          <mat-icon inline>inventory_2</mat-icon> Archival group
+        </span>
+      }
+      @if (archivalGroupRoute(); as group) {
+        <a class="ui-pill ui-archival-member-badge" [routerLink]="group">
+          <mat-icon inline>inventory_2</mat-icon> Part of an archival group
+        </a>
+      }
+      @if (v.wacAllow; as allow) {
+        <span class="ui-pill ui-access-badge" matTooltip="Your access modes on this resource">
+          <mat-icon inline>lock_open</mat-icon> {{ [...allow.user].join(', ') || 'no access' }}
+        </span>
+      }
+    </p>
   </header>
 
   <div class="ui-resource-layout">
@@ -66,7 +83,7 @@
             <ui-binary-content
               [path]="v.path"
               [binary]="v.binary"
-              [writable]="v.allow.has('PUT')"
+              [writable]="v.allow.has('PUT') && writable()"
               (replaced)="reload()"
             />
           </mat-card-content>
@@ -104,14 +121,37 @@
           @if (v.path !== '') {
             <a mat-stroked-button [routerLink]="routeOf('versions')"><mat-icon>history</mat-icon> Versions</a>
           }
+          <a mat-stroked-button [routerLink]="routeOf('permissions')"><mat-icon>admin_panel_settings</mat-icon> Permissions</a>
+          @if (v.inbox) {
+            <a mat-stroked-button [routerLink]="routeOf('inbox')"><mat-icon>inbox</mat-icon> Notifications</a>
+          }
+          @if (iiifUrl(); as iiif) {
+            <a mat-stroked-button class="ui-iiif-link" [href]="iiif" target="_blank" rel="noopener">
+              <mat-icon>photo_library</mat-icon> IIIF
+            </a>
+          }
         </mat-card-content>
       </mat-card>
 
-      @if (isContainer() && v.allow.has('POST')) {
+      @if (!v.binary && (isContainer() || v.graph.value(v.subject, artTopology))) {
+        <mat-card appearance="outlined" class="ui-topology-card">
+          <mat-card-header><mat-card-title>Topology</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-topology-panel [view]="v" (changed)="reload()" />
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @if (isContainer() && v.allow.has('POST') && appendable()) {
         <mat-card appearance="outlined">
           <mat-card-header><mat-card-title>Create new child resource</mat-card-title></mat-card-header>
           <mat-card-content>
-            <ui-create-child-form [parentPath]="v.path" [parentIri]="v.subject.value" (created)="openCreated($event)" />
+            <ui-create-child-form
+              [parentPath]="v.path"
+              [parentIri]="v.subject.value"
+              [allowArchivalGroup]="!v.archivalGroup && !v.archivalGroupIri"
+              (created)="openCreated($event)"
+            />
           </mat-card-content>
         </mat-card>
       }
@@ -134,15 +174,30 @@
         <mat-card appearance="outlined">
           <mat-card-header><mat-card-title>Versioning</mat-card-title></mat-card-header>
           <mat-card-content>
-            <p>Record the current state as a new version; earlier versions stay readable.</p>
-            <div class="ui-row">
-              <button mat-flat-button color="primary" (click)="createVersion()">Create version</button>
+            @if (archivalGroupRoute(); as group) {
+              <p class="ui-archival-versioning">
+                This resource belongs to an archival group: its versions are created by
+                <a [routerLink]="group">versioning the archival group</a>.
+              </p>
               <a mat-button [routerLink]="routeOf('versions')">View versions</a>
-            </div>
+            } @else {
+              <p>
+                Record the current state as a new version; earlier versions stay readable.
+                @if (v.archivalGroup) {
+                  The version includes everything inside the archival group.
+                }
+              </p>
+              <div class="ui-row">
+                @if (versionable()) {
+                  <button mat-flat-button color="primary" (click)="createVersion()">Create version</button>
+                }
+                <a mat-button [routerLink]="routeOf('versions')">View versions</a>
+              </div>
+            }
           </mat-card-content>
         </mat-card>
 
-        @if (v.allow.has('DELETE')) {
+        @if (v.allow.has('DELETE') && writable()) {
           <mat-card appearance="outlined">
             <mat-card-header><mat-card-title>Delete resource</mat-card-title></mat-card-header>
             <mat-card-content>

@@ -5,6 +5,12 @@ import { ConfigService, UiConfig } from '../core/config.service';
 /** Platform base used by the tests. */
 export const TEST_BASE = 'http://host/platform/';
 
+/** Topology service base used by the tests. */
+export const TEST_TOPOLOGY = 'http://host/topology/';
+
+/** Transform service base used by the tests. */
+export const TEST_TRANSFORM = 'http://host/transform/';
+
 /**
  * Provides a {@link ConfigService} with fixed settings, so tests need no `api/config` request.
  *
@@ -14,7 +20,15 @@ export function provideTestConfig(): Provider {
   const config = signal<UiConfig>({ platformUrl: TEST_BASE, title: 'Test repository' });
   return {
     provide: ConfigService,
-    useValue: { config, platformBase: () => TEST_BASE, load: () => Promise.resolve() } satisfies Partial<ConfigService>,
+    useValue: {
+      config,
+      platformBase: () => TEST_BASE,
+      apiDocs: () => 'http://host/swagger-ui.html',
+      topologyBase: () => TEST_TOPOLOGY,
+      transformBase: () => TEST_TRANSFORM,
+      communitiesPath: () => 'communities',
+      load: () => Promise.resolve(),
+    } satisfies Partial<ConfigService>,
   };
 }
 

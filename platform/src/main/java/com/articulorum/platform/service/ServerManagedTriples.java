@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
  *       <em>member</em> ({@code ldp:isMemberOfRelation}) (LDP 5.4, 5.5);</li>
  *   <li>technical metadata of non-RDF sources (size, digest, media type, file name);</li>
  *   <li>Fedora repository metadata, as a Fedora 6 server emits it: the {@code fedora:Resource},
- *       {@code fedora:Container} and {@code fedora:Binary} types and {@code fedora:created},
+ *       {@code fedora:Container}, {@code fedora:ArchivalGroup} and {@code fedora:Binary} types and {@code fedora:created},
  *       {@code fedora:createdBy}, {@code fedora:lastModified} and
  *       {@code fedora:lastModifiedBy}.</li>
  * </ul>
@@ -94,6 +94,9 @@ public class ServerManagedTriples {
         if (resource.isContainer()) {
             triples.add(Triple.iri(subject, Rdf.TYPE, Fedora.CONTAINER));
         }
+        if (resource.isArchivalGroup()) {
+            triples.add(Triple.iri(subject, Rdf.TYPE, Fedora.ARCHIVAL_GROUP));
+        }
         if (resource.isNonRdfSource()) {
             triples.add(Triple.iri(subject, Rdf.TYPE, Fedora.BINARY));
         }
@@ -114,7 +117,14 @@ public class ServerManagedTriples {
         return triples;
     }
 
-    private static List<Triple> technicalMetadata(final String subject, final BinaryContent binary) {
+    /**
+     * Computes the technical metadata of a binary: size, SHA-256 digest, media type and file name.
+     *
+     * @param subject the relative IRI of the binary
+     * @param binary  the stored content
+     * @return the triples
+     */
+    public static List<Triple> technicalMetadata(final String subject, final BinaryContent binary) {
         final List<Triple> triples = new ArrayList<>();
         if (binary.getSize() != null) {
             triples.add(Triple.literal(subject, Premis.HAS_SIZE, Long.toString(binary.getSize()), Premis.XSD_LONG, null));

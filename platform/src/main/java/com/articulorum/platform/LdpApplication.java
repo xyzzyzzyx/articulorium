@@ -10,13 +10,16 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  * Entry point of the Articulorum Linked Data Platform service.
  *
  * <p>Component scanning covers {@code com.articulorum} so the shared bus configuration from the
- * event module is picked up. Entities come from the domain module and this module's namespace
- * package; repositories live in this module.</p>
+ * event module is picked up. Entities come from the domain module and this module's namespace,
+ * WebAC (access control lists) and notify (COAR Notify inboxes) packages; repositories live in
+ * this module.</p>
  */
 @SpringBootApplication(scanBasePackages = "com.articulorum")
 @ConfigurationPropertiesScan("com.articulorum.platform")
-@EntityScan(basePackages = { "com.articulorum.domain", "com.articulorum.platform.namespace" })
-@EnableJpaRepositories(basePackages = { "com.articulorum.platform.repository", "com.articulorum.platform.namespace" })
+@EntityScan(basePackages = { "com.articulorum.domain", "com.articulorum.platform.namespace",
+    "com.articulorum.platform.webac", "com.articulorum.platform.notify" })
+@EnableJpaRepositories(basePackages = { "com.articulorum.platform.repository", "com.articulorum.platform.namespace",
+    "com.articulorum.platform.webac", "com.articulorum.platform.notify" })
 public class LdpApplication {
 
     /**

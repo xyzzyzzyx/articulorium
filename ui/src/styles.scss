@@ -200,3 +200,81 @@ body {
 .ui-snack-success {
   --mdc-snackbar-container-color: #2e7d32;
 }
+
+.ui-hint {
+  margin: 0 0 8px;
+  color: var(--ui-muted);
+  font-size: 0.85rem;
+}
+
+.ui-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.ui-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: #e3f2fd;
+  color: #0d47a1;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.ui-pill-warn {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.ui-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.ui-tree {
+  list-style: none;
+  margin: 0;
+  padding-left: 16px;
+
+  li {
+    margin: 4px 0;
+  }
+}
+
+.ui-inline-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+
+  mat-form-field {
+    flex: 1 1 160px;
+  }
+
+  .ui-narrow {
+    flex: 0 1 100px;
+  }
+}
+
+.ui-node-editor {
+  border-left: 3px solid #90a4ae;
+  margin: 8px 0;
+  padding: 8px 0 8px 12px;
+}
+
+.ui-json {
+  max-height: 320px;
+  overflow: auto;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
