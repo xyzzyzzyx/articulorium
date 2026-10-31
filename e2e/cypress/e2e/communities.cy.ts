@@ -29,7 +29,12 @@ describe('Communities', () => {
     cy.chooseOption('.ui-topology-build mat-select[name=topology]', 'Book');
     cy.get('.ui-topology-build input[name=title]').type('Moby Dick');
     cy.get('.ui-topology-build input[name=count-page]').clear().type('2');
+    // Synchronize with the asynchronous topology creation request
+    cy.intercept('POST', '**/topology/topologies/book/instances').as('buildBook');
     cy.get('.ui-topology-build').contains('button', 'Build').click();
+    // Wait for the server to finish processing the request
+    cy.wait('@buildBook').its('response.statusCode').should('be.oneOf', [200, 201]);
+    // Assert the notification after the operation completes
     cy.notified(/Built \d+ resources/);
     cy.location('pathname').should('match', /^\/ui\/browse\/communities\/.+\/moby-dick$/);
     cy.get('h1').should('have.text', 'Moby Dick');
