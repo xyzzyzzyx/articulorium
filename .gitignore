@@ -36,3 +36,24 @@ hs_err_pid*
 target/
 
 temp/
+# local runtime data
+data/
+cache/
+**/data/
+**/cache/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Angular build (ui module) and the locally installed Node used by the Maven build
+node/
+node_modules/
+dist/
+.angular/
+
+# Cypress run output
+e2e/cypress/screenshots/
+e2e/cypress/videos/
+e2e/cypress/downloads/

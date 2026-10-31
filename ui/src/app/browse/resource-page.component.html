@@ -1,0 +1,213 @@
+<ui-breadcrumb [path]="resourcePath()" />
+
+@if (resource.isLoading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (loadError(); as message) {
+  <mat-card class="ui-error" appearance="outlined">
+    <mat-card-content>
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </mat-card-content>
+    <mat-card-actions>
+      <button mat-button (click)="reload()">Retry</button>
+      <a mat-button [routerLink]="['/browse']">Go to root</a>
+    </mat-card-actions>
+  </mat-card>
+}
+
+@if (view(); as v) {
+  <header class="ui-resource-header">
+    <h1>{{ title() }}</h1>
+    <a class="ui-iri" [href]="v.subject.value" target="_blank" rel="noopener">{{ v.subject.value }}</a>
+    <mat-chip-set aria-label="Types">
+      @for (type of types(); track type.iri) {
+        <mat-chip [matTooltip]="type.iri">{{ type.name }}</mat-chip>
+      }
+    </mat-chip-set>
+    <p class="ui-chip-row">
+      @if (v.archivalGroup) {
+        <span class="ui-pill ui-archival-group-badge" matTooltip="Stored and versioned as one OCFL object">
+          <mat-icon inline>inventory_2</mat-icon> Archival group
+        </span>
+      }
+      @if (archivalGroupRoute(); as group) {
+        <a class="ui-pill ui-archival-member-badge" [routerLink]="group">
+          <mat-icon inline>inventory_2</mat-icon> Part of an archival group
+        </a>
+      }
+      @if (v.wacAllow; as allow) {
+        <span class="ui-pill ui-access-badge" matTooltip="Your access modes on this resource">
+          <mat-icon inline>lock_open</mat-icon> {{ [...allow.user].join(', ') || 'no access' }}
+        </span>
+      }
+    </p>
+  </header>
+
+  <div class="ui-resource-layout">
+    <section class="ui-resource-main">
+      @if (audit(); as a) {
+        <dl class="ui-facts">
+          <dt>Created</dt>
+          <dd>{{ a.created ? (a.created | date: 'medium') : '—' }} @if (a.createdBy) { by {{ a.createdBy }} }</dd>
+          <dt>Last modified</dt>
+          <dd>{{ a.modified ? (a.modified | date: 'medium') : '—' }} @if (a.modifiedBy) { by {{ a.modifiedBy }} }</dd>
+          @if (isContainer()) {
+            <dt>Children <span class="ui-badge">{{ children().length }}</span></dt>
+            <dd>
+              @if (children().length === 0) {
+                <span class="ui-muted">None</span>
+              } @else {
+                <ol class="ui-children">
+                  @for (child of children(); track child.iri) {
+                    <li>
+                      @if (child.route) {
+                        <a [routerLink]="child.route">{{ child.name }}</a>
+                      } @else {
+                        <a [href]="child.iri">{{ child.name }}</a>
+                      }
+                    </li>
+                  }
+                </ol>
+              }
+            </dd>
+          }
+        </dl>
+      }
+
+      @if (v.binary) {
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>Content</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-binary-content
+              [path]="v.path"
+              [binary]="v.binary"
+              [writable]="v.allow.has('PUT') && writable()"
+              (replaced)="reload()"
+            />
+          </mat-card-content>
+        </mat-card>
+      }
+
+      <mat-card appearance="outlined">
+        <mat-card-header><mat-card-title>Properties</mat-card-title></mat-card-header>
+        <mat-card-content>
+          <ui-property-table [graph]="v.graph" [subject]="v.subject" [base]="base()" />
+        </mat-card-content>
+      </mat-card>
+
+      @if (otherSubjects().length > 0) {
+        <h2>Other resources</h2>
+        <mat-accordion multi>
+          @for (other of otherSubjects(); track $index) {
+            <mat-expansion-panel>
+              <mat-expansion-panel-header>
+                <mat-panel-title>{{ other.title }}</mat-panel-title>
+              </mat-expansion-panel-header>
+              <ui-property-table [graph]="v.graph" [subject]="other.subject" [base]="base()" />
+            </mat-expansion-panel>
+          }
+        </mat-accordion>
+      }
+    </section>
+
+    <aside class="ui-resource-actions">
+      <mat-card appearance="outlined">
+        <mat-card-content class="ui-row">
+          <a mat-stroked-button [href]="v.url" target="_blank" rel="noopener">
+            <mat-icon>open_in_new</mat-icon> Open in platform
+          </a>
+          @if (v.path !== '') {
+            <a mat-stroked-button [routerLink]="routeOf('versions')"><mat-icon>history</mat-icon> Versions</a>
+          }
+          <a mat-stroked-button [routerLink]="routeOf('permissions')"><mat-icon>admin_panel_settings</mat-icon> Permissions</a>
+          @if (v.inbox) {
+            <a mat-stroked-button [routerLink]="routeOf('inbox')"><mat-icon>inbox</mat-icon> Notifications</a>
+          }
+          @if (iiifUrl(); as iiif) {
+            <a mat-stroked-button class="ui-iiif-link" [href]="iiif" target="_blank" rel="noopener">
+              <mat-icon>photo_library</mat-icon> IIIF
+            </a>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      @if (!v.binary && (isContainer() || v.graph.value(v.subject, artTopology))) {
+        <mat-card appearance="outlined" class="ui-topology-card">
+          <mat-card-header><mat-card-title>Topology</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-topology-panel [view]="v" (changed)="reload()" />
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @if (isContainer() && v.allow.has('POST') && appendable()) {
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>Create new child resource</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-create-child-form
+              [parentPath]="v.path"
+              [parentIri]="v.subject.value"
+              [allowArchivalGroup]="!v.archivalGroup && !v.archivalGroupIri"
+              (created)="openCreated($event)"
+            />
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @if (patchable()) {
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>Update properties</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-sparql-update-form
+              [target]="updateTarget()"
+              [graph]="v.graph"
+              [etag]="v.binary ? undefined : v.etag"
+              (updated)="reload()"
+            />
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @if (v.path !== '') {
+        <mat-card appearance="outlined">
+          <mat-card-header><mat-card-title>Versioning</mat-card-title></mat-card-header>
+          <mat-card-content>
+            @if (archivalGroupRoute(); as group) {
+              <p class="ui-archival-versioning">
+                This resource belongs to an archival group: its versions are created by
+                <a [routerLink]="group">versioning the archival group</a>.
+              </p>
+              <a mat-button [routerLink]="routeOf('versions')">View versions</a>
+            } @else {
+              <p>
+                Record the current state as a new version; earlier versions stay readable.
+                @if (v.archivalGroup) {
+                  The version includes everything inside the archival group.
+                }
+              </p>
+              <div class="ui-row">
+                @if (versionable()) {
+                  <button mat-flat-button color="primary" (click)="createVersion()">Create version</button>
+                }
+                <a mat-button [routerLink]="routeOf('versions')">View versions</a>
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+
+        @if (v.allow.has('DELETE') && writable()) {
+          <mat-card appearance="outlined">
+            <mat-card-header><mat-card-title>Delete resource</mat-card-title></mat-card-header>
+            <mat-card-content>
+              <button mat-flat-button color="warn" class="ui-danger" (click)="delete()">
+                <mat-icon>delete</mat-icon> Delete
+              </button>
+            </mat-card-content>
+          </mat-card>
+        }
+      }
+    </aside>
+  </div>
+}

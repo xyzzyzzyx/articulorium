@@ -1,34 +1,100 @@
-ldpath:
-  name: Articulorum Web API
-  namespace: http://platform:9000
-  default-expiry: 5
-  cache-location: cache
+# Articulorum transform: turns LDP resources into search documents with pluggable transformers.
+
+articulorum:
+  transform:
+    # transformers run for every resource change, in order (beans implementing spi.Transformer)
+    transformers:
+      - field-mapping
+    # field definitions of the field-mapping transformer
+    field-mappings: classpath:transform/field-mappings.yml
+    # optional: mint document identifiers under this base instead of the one the platform reports
+    base-uri:
+  iiif:
+    # IIIF Presentation 3.0 export (GET /iiif/<path>): where this service reads the platform
+    platform-url: http://articulorum-platform/
+    load-balanced: true
+    # where clients reach the platform and the UI, relative to this service's public base
+    # (the gateway serves it under /transform/) or absolute
+    platform-public-url: ../platform/
+    ui-public-url: ../ui/
+    # read image dimensions from the first bytes of each image (JPEG, PNG, GIF, BMP, TIFF)
+    probe-image-size: true
+    probe-bytes: 262144
+    default-width: 1000
+    default-height: 1000
+    max-resources: 2000
 
 logging:
   level:
     root: INFO
-    org.springframework.cloud.bus: DEBUG
 
 management:
   endpoint:
     health:
-      enabled: true
-      showDetails: always
-    info:
-      enabled: true
+      show-details: always
+      probes:
+        enabled: true
   endpoints:
-    enabled-by-default: false
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,env,configprops,loggers
+  info:
+    env:
+      enabled: true
   server:
     port: 8000
 
+info:
+  application:
+    name: ${spring.application.name}
+    description: Transformation of LDP resources into search documents and IIIF exports
+
 server:
   port: 9000
-  servlet:
-    context-path:
+  # honour X-Forwarded-* set by the gateway (server URLs of the OpenAPI description)
+  forward-headers-strategy: framework
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
 spring:
-  main:
-    lazy-initialization: false
+  application:
+    name: transform
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    bus:
+      destination: resource-bus
+      ack:
+        enabled: false
+
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorum-${spring.application.name}
+        prefer-ip-address: true
+
+    stream:
+      kafka:
+        binder:
+          brokers: kafka:9092
+          auto-add-partitions: true
+      bindings:
+        springCloudBusInput:
+          destination: resource-bus
+        springCloudBusOutput:
+          destination: document-bus
+          producer:
+            partition-count: 3

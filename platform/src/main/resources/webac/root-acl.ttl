@@ -1,0 +1,21 @@
+# Authorizations used when no resource on a request's path has its own access control list
+# (articulorum.webac.root-acl). <> is the root container.
+#
+# The default lets everyone do everything, so a fresh repository is usable without credentials.
+# For production, replace it, for example with read access for everyone and full access for a
+# Consul role:
+#
+#   <#public> a acl:Authorization ; acl:agentClass foaf:Agent ;
+#       acl:accessTo <> ; acl:default <> ; acl:mode acl:Read .
+#   <#editors> a acl:Authorization ; acl:agentGroup <info:consul/role/editors> ;
+#       acl:accessTo <> ; acl:default <> ; acl:mode acl:Read, acl:Write, acl:Control .
+
+@prefix acl: <http://www.w3.org/ns/auth/acl#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+<#public>
+    a acl:Authorization ;
+    acl:agentClass foaf:Agent ;
+    acl:accessTo <> ;
+    acl:default <> ;
+    acl:mode acl:Read, acl:Write, acl:Control .

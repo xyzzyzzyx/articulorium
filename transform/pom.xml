@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Transform module: turns LDP resources into search documents, and exports PCDM structures as
+  IIIF Presentation 3.0 manifests and collections.
+
+  Consumes ResourceEvents from the bus, runs every active Transformer (an SPI: any Spring bean
+  implementing com.articulorum.transform.spi.Transformer) against the resource's RDF and
+  publishes the merged result as a DocumentEvent. The built-in "field-mapping" transformer is
+  driven by a YAML file of property paths and replaces the retired Apache Marmotta LDPath
+  engine, so the module has no Sesame/Marmotta dependencies and builds as a native image.
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  
+
   <modelVersion>4.0.0</modelVersion>
-  
+
   <parent>
     <groupId>com.articulorum</groupId>
     <artifactId>parent</artifactId>
@@ -12,27 +22,28 @@
   </parent>
 
   <artifactId>transform</artifactId>
-
-  <name>Articulorum Repository LDPath Module</name>
-  <description></description>
-
   <packaging>jar</packaging>
 
-  <properties>
-    <ldpath.version>3.4.0</ldpath.version>
-  </properties>
+  <name>Articulorum Transform Module</name>
+  <description>Pluggable transformation of LDP resources into search documents.</description>
 
   <dependencies>
 
     <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-consul-all</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
     </dependency>
 
+    <!-- HTTP client reading PCDM resources from the platform for IIIF exports -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-configuration-processor</artifactId>
-      <optional>true</optional>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+
+    <!-- OpenAPI description and Swagger UI of the preview API -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
     </dependency>
 
     <dependency>
@@ -40,14 +51,16 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
+    <!-- only Consul configuration and discovery: consul-all would also add a Consul bus
+         integration that requires a stream binder -->
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-consul-config</artifactId>
     </dependency>
 
     <dependency>
       <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-bus</artifactId>
+      <artifactId>spring-cloud-starter-consul-discovery</artifactId>
     </dependency>
 
     <dependency>
@@ -55,88 +68,75 @@
       <artifactId>spring-cloud-starter-bus-kafka</artifactId>
     </dependency>
 
-
+    <!-- RDF parsing and the in-memory models transformers work on -->
     <dependency>
-      <groupId>org.apache.marmotta</groupId>
-      <artifactId>ldpath-core</artifactId>
-      <version>${ldpath.version}</version>
+      <groupId>org.apache.jena</groupId>
+      <artifactId>jena-arq</artifactId>
     </dependency>
 
+    <!-- field mapping definitions -->
     <dependency>
-      <groupId>org.apache.marmotta</groupId>
-      <artifactId>ldcache-backend-file</artifactId>
-      <version>${ldpath.version}</version>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
     </dependency>
-
-    <dependency>
-      <groupId>org.apache.marmotta</groupId>
-      <artifactId>ldpath-backend-linkeddata</artifactId>
-      <version>${ldpath.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.marmotta</groupId>
-      <artifactId>ldcache-api</artifactId>
-      <version>${ldpath.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.marmotta</groupId>
-      <artifactId>ldclient-provider-xml</artifactId>
-      <version>${ldpath.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.marmotta</groupId>
-      <artifactId>ldclient-provider-rdf</artifactId>
-      <version>${ldpath.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.semarglproject</groupId>
-      <artifactId>semargl-sesame</artifactId>
-      <version>0.7</version>
-    </dependency>
-
-
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.junit.vintage</groupId>
-          <artifactId>junit-vintage-engine</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
 
     <dependency>
       <groupId>com.articulorum</groupId>
       <artifactId>domain</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
       <groupId>com.articulorum</groupId>
       <artifactId>event</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>
 
   <build>
     <plugins>
-
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
-
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <id>native</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>process-aot</id>
+                <configuration>
+                  <profiles>native</profiles>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
 </project>
-
-

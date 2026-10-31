@@ -1,0 +1,32 @@
+<h1>About Articulorum</h1>
+<mat-card appearance="outlined">
+  <mat-card-content>
+    <p>
+      Articulorum is a W3C Linked Data Platform with Fedora Commons compatible extensions:
+      versions (Memento), fixity checks and search, on an OCFL storage layer.
+    </p>
+    <p>This interface lets you:</p>
+    <ul>
+      <li>browse containers and resources, with their properties and children;</li>
+      <li>create basic, direct and indirect containers and upload binaries;</li>
+      <li>edit properties with SPARQL Update, replace and download binary content;</li>
+      <li>create, list and view versions, and check the fixity of binaries;</li>
+      <li>delete resources and search the repository.</li>
+    </ul>
+  </mat-card-content>
+</mat-card>
+@if (client; as c) {
+  <mat-card appearance="outlined" class="ui-client">
+    <mat-card-header><mat-card-title>Your client</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <dl class="ui-facts">
+        <dt>Browser</dt>
+        <dd>{{ c.browser.name }} {{ c.browser.version }}</dd>
+        <dt>Operating system</dt>
+        <dd>{{ c.os.name }} {{ c.os.version }}</dd>
+        <dt>Platform</dt>
+        <dd>{{ c.platform.type }}</dd>
+      </dl>
+    </mat-card-content>
+  </mat-card>
+}

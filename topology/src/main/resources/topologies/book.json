@@ -1,0 +1,151 @@
+{
+  "id": "book",
+  "name": "Book",
+  "description": "A monograph: a book object with ordered pages, each with master and access images and OCR text.",
+  "builtIn": true,
+  "root": {
+    "key": "book",
+    "label": "Book",
+    "pcdmType": "Object",
+    "types": [
+      "http://purl.org/ontology/bibo/Book"
+    ],
+    "metadata": [
+      {
+        "predicate": "http://purl.org/dc/terms/title",
+        "label": "Title",
+        "required": true,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/creator",
+        "label": "Creator",
+        "required": false,
+        "repeatable": true,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/date",
+        "label": "Date",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/publisher",
+        "label": "Publisher",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/ontology/bibo/isbn13",
+        "label": "ISBN-13",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/language",
+        "label": "Language",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": "en",
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/subject",
+        "label": "Subject",
+        "required": false,
+        "repeatable": true,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/description",
+        "label": "Description",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      }
+    ],
+    "files": [
+      {
+        "use": "http://pcdm.org/use#OriginalFile",
+        "label": "Complete PDF",
+        "mediaTypes": [
+          "application/pdf"
+        ]
+      }
+    ],
+    "children": [
+      {
+        "min": 1,
+        "max": -1,
+        "initial": 4,
+        "slugPattern": "page-{n}",
+        "node": {
+          "key": "page",
+          "label": "Page",
+          "pcdmType": "Object",
+          "types": [],
+          "metadata": [
+            {
+              "predicate": "http://purl.org/dc/terms/title",
+              "label": "Title",
+              "required": true,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            },
+            {
+              "predicate": "http://purl.org/ontology/bibo/pages",
+              "label": "Page number",
+              "required": false,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            }
+          ],
+          "files": [
+            {
+              "use": "http://pcdm.org/use#OriginalFile",
+              "label": "Master image",
+              "mediaTypes": [
+                "image/tiff",
+                "image/jp2",
+                "image/jpeg",
+                "image/png"
+              ]
+            },
+            {
+              "use": "http://pcdm.org/use#ServiceFile",
+              "label": "Access image",
+              "mediaTypes": [
+                "image/jp2",
+                "image/jpeg"
+              ]
+            },
+            {
+              "use": "http://pcdm.org/use#ExtractedText",
+              "label": "OCR text",
+              "mediaTypes": [
+                "text/plain",
+                "application/xml",
+                "text/html"
+              ]
+            }
+          ],
+          "children": []
+        }
+      }
+    ]
+  }
+}

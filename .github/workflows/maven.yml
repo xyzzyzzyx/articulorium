@@ -1,24 +1,86 @@
-# This workflow will build a Java project with Maven
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+# Builds and tests every module (JVM unit and integration tests, Angular unit tests), checks that
+# the gateway compiles to a GraalVM native image, then starts the docker compose stack and runs the
+# Cypress end-to-end tests against it (the e2e compose service).
 
 name: maven_build
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ master ]
+    branches: [ main, master ]
 
 jobs:
+
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up JDK 14
-      uses: actions/setup-java@v1
-      with:
-        java-version: 14
-    - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      - uses: actions/checkout@v4
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+      - name: Build and run the unit tests
+        run: mvn -B -ntp verify
+
+  native:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up GraalVM 25
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: 25
+          distribution: graalvm-community
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+      - name: Native image (gateway)
+        run: mvn -B -ntp -Pnative -pl gateway -am package -DskipTests
+
+  compose:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start the stack
+        run: docker compose up --build -d --wait --wait-timeout 600
+      - name: Smoke test the LDP root through the gateway
+        run: |
+          curl -fsS -H 'Accept: text/turtle' http://localhost:8000/platform/
+          curl -fsS -X POST -H 'Slug: smoke' -H 'Content-Type: text/plain' --data 'hello' http://localhost:8000/platform/
+          curl -fsS http://localhost:8000/platform/smoke | grep -q hello
+          # resources are minted under the gateway's address (forwarded headers reach the platform)
+          curl -fsS -D - -o /dev/null -X POST -H 'Content-Type: text/plain' --data 'x' http://localhost:8000/platform/ \
+            | grep -i '^location: http://localhost:8000/platform/' 
+      - name: Smoke test health, OpenAPI and the UI
+        run: |
+          curl -fsS http://localhost:9001/.well-known/openapi | grep -q openapi
+          curl -fsS http://localhost:8000/swagger-ui.html -o /dev/null -w "%{http_code}" | grep -qE "200|302"
+          curl -fsS http://localhost:8000/ui/ | grep -q '<ui-root'
+          docker compose exec -T platform curl -fsS http://localhost:8000/actuator/health | grep -q '"db"' 
+      - name: Smoke test topologies, communities, access control, notifications, IIIF and QLever
+        run: |
+          curl -fsS http://localhost:8000/topology/topologies | grep -q '"book"'
+          curl -fsS -H 'Accept: application/n-triples' http://localhost:8000/platform/communities | grep -q CommunityRoot
+          curl -fsS 'http://localhost:8000/platform/.well-known/webac?resource=communities' | grep -q '"userModes"'
+          curl -fsS -H 'Accept: application/json' http://localhost:8000/platform/communities/fcr:inbox | grep -q '"notifications"'
+          curl -fsS http://localhost:8000/transform/iiif/communities | grep -q '"Collection"'
+          docker compose exec -T triplestore curl -fsS http://localhost:8000/actuator/health | grep -q '"qlever"' 
+      - name: End-to-end tests (Cypress, e2e compose service)
+        run: docker compose --profile e2e run --rm e2e
+      - name: End-to-end screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: e2e/cypress/screenshots
+          if-no-files-found: ignore
+      - name: Logs
+        if: always()
+        run: docker compose logs --no-color | tail -n 400
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

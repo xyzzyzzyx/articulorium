@@ -1,0 +1,239 @@
+{
+  "id": "journal",
+  "name": "Journal",
+  "description": "A scholarly journal (collection) of volumes, issues and articles; articles hold their PDF and supplementary files.",
+  "builtIn": true,
+  "root": {
+    "key": "journal",
+    "label": "Journal",
+    "pcdmType": "Collection",
+    "types": [
+      "http://purl.org/ontology/bibo/Journal"
+    ],
+    "metadata": [
+      {
+        "predicate": "http://purl.org/dc/terms/title",
+        "label": "Title",
+        "required": true,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/publisher",
+        "label": "Publisher",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/ontology/bibo/issn",
+        "label": "ISSN",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/ontology/bibo/eissn",
+        "label": "e-ISSN",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/description",
+        "label": "Scope",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      }
+    ],
+    "files": [],
+    "children": [
+      {
+        "min": 1,
+        "max": -1,
+        "initial": 1,
+        "slugPattern": "volume-{n}",
+        "node": {
+          "key": "volume",
+          "label": "Volume",
+          "pcdmType": "Collection",
+          "types": [
+            "http://purl.org/ontology/bibo/Collection"
+          ],
+          "metadata": [
+            {
+              "predicate": "http://purl.org/dc/terms/title",
+              "label": "Title",
+              "required": true,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            },
+            {
+              "predicate": "http://purl.org/ontology/bibo/volume",
+              "label": "Volume number",
+              "required": true,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            },
+            {
+              "predicate": "http://purl.org/dc/terms/date",
+              "label": "Year",
+              "required": false,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": "http://www.w3.org/2001/XMLSchema#gYear"
+            }
+          ],
+          "files": [],
+          "children": [
+            {
+              "min": 1,
+              "max": -1,
+              "initial": 1,
+              "slugPattern": "issue-{n}",
+              "node": {
+                "key": "issue",
+                "label": "Issue",
+                "pcdmType": "Object",
+                "types": [
+                  "http://purl.org/ontology/bibo/Issue"
+                ],
+                "metadata": [
+                  {
+                    "predicate": "http://purl.org/dc/terms/title",
+                    "label": "Title",
+                    "required": true,
+                    "repeatable": false,
+                    "defaultValue": null,
+                    "datatype": null
+                  },
+                  {
+                    "predicate": "http://purl.org/ontology/bibo/issue",
+                    "label": "Issue number",
+                    "required": true,
+                    "repeatable": false,
+                    "defaultValue": null,
+                    "datatype": null
+                  },
+                  {
+                    "predicate": "http://purl.org/dc/terms/date",
+                    "label": "Date",
+                    "required": false,
+                    "repeatable": false,
+                    "defaultValue": null,
+                    "datatype": null
+                  }
+                ],
+                "files": [],
+                "children": [
+                  {
+                    "min": 0,
+                    "max": -1,
+                    "initial": 2,
+                    "slugPattern": "article-{n}",
+                    "node": {
+                      "key": "article",
+                      "label": "Article",
+                      "pcdmType": "Object",
+                      "types": [
+                        "http://purl.org/ontology/bibo/AcademicArticle"
+                      ],
+                      "metadata": [
+                        {
+                          "predicate": "http://purl.org/dc/terms/title",
+                          "label": "Title",
+                          "required": true,
+                          "repeatable": false,
+                          "defaultValue": null,
+                          "datatype": null
+                        },
+                        {
+                          "predicate": "http://purl.org/dc/terms/creator",
+                          "label": "Author",
+                          "required": true,
+                          "repeatable": true,
+                          "defaultValue": null,
+                          "datatype": null
+                        },
+                        {
+                          "predicate": "http://purl.org/dc/terms/abstract",
+                          "label": "Abstract",
+                          "required": false,
+                          "repeatable": false,
+                          "defaultValue": null,
+                          "datatype": null
+                        },
+                        {
+                          "predicate": "http://purl.org/ontology/bibo/doi",
+                          "label": "DOI",
+                          "required": false,
+                          "repeatable": false,
+                          "defaultValue": null,
+                          "datatype": null
+                        },
+                        {
+                          "predicate": "http://purl.org/ontology/bibo/pageStart",
+                          "label": "First page",
+                          "required": false,
+                          "repeatable": false,
+                          "defaultValue": null,
+                          "datatype": null
+                        },
+                        {
+                          "predicate": "http://purl.org/ontology/bibo/pageEnd",
+                          "label": "Last page",
+                          "required": false,
+                          "repeatable": false,
+                          "defaultValue": null,
+                          "datatype": null
+                        },
+                        {
+                          "predicate": "http://purl.org/dc/terms/subject",
+                          "label": "Keyword",
+                          "required": false,
+                          "repeatable": true,
+                          "defaultValue": null,
+                          "datatype": null
+                        }
+                      ],
+                      "files": [
+                        {
+                          "use": "http://pcdm.org/use#OriginalFile",
+                          "label": "Article PDF",
+                          "mediaTypes": [
+                            "application/pdf"
+                          ]
+                        },
+                        {
+                          "use": "http://pcdm.org/use#ServiceFile",
+                          "label": "Article HTML",
+                          "mediaTypes": [
+                            "text/html"
+                          ]
+                        },
+                        {
+                          "use": "http://pcdm.org/use#Transcript",
+                          "label": "Supplementary data",
+                          "mediaTypes": []
+                        }
+                      ],
+                      "children": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

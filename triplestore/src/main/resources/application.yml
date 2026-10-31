@@ -1,32 +1,79 @@
-blazegraph:
-  service-url: http://blazegraph:8080/bigdata
-  use-lbs: false
+# Articulorum triplestore: SPARQL store synchronisation of LDP resources.
+
+articulorum:
+  triplestore:
+    # QLever serves SPARQL queries, updates and the Graph Store HTTP Protocol at its root; for
+    # other stores set sparql-path / graph-store-path (Fuseki: /ds/sparql and /ds/data)
+    service-url: http://qlever:7001
+    sparql-path:
+    graph-store-path:
+    # QLever's access token (sent as Authorization: Bearer); required for updates
+    access-token: ${QLEVER_ACCESS_TOKEN:articulorum-qlever}
+    # when set, resource IRIs are minted under this base instead of the one the client used
+    base-uri:
 
 logging:
   level:
     root: INFO
-    org.springframework.cloud.bus: DEBUG
 
 management:
   endpoint:
     health:
-      enabled: true
-      showDetails: always
-    info:
-      enabled: true
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
   endpoints:
-    enabled-by-default: false
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,loggers
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
   server:
     port: 8000
 
+info:
+  application:
+    name: ${spring.application.name}
+    description: SPARQL store synchronisation of LDP resources
+
 server:
   port: 9000
-  servlet:
-    context-path:
 
 spring:
-  main:
-    lazy-initialization: false
+  application:
+    name: triplestore
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    bus:
+      destination: resource-bus
+      ack:
+        enabled: false
+
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorum-${spring.application.name}
+        prefer-ip-address: true
+
+    stream:
+      kafka:
+        binder:
+          brokers: kafka:9092
+          auto-add-partitions: true
+      bindings:
+        springCloudBusInput:
+          destination: resource-bus

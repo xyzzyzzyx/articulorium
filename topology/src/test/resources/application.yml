@@ -1,0 +1,27 @@
+# Test configuration: no Consul, plain HTTP client towards a mocked platform.
+articulorum:
+  topology:
+    platform-url: http://platform.test/
+    load-balanced: false
+
+management:
+  server:
+    port: 0
+
+spring:
+  application:
+    name: topology
+  config:
+    import: ""
+  cloud:
+    consul:
+      enabled: false
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+    discovery:
+      enabled: false
+    service-registry:
+      auto-registration:
+        enabled: false

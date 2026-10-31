@@ -1,0 +1,45 @@
+Articulorum Linked Data Platform - constraints on clients (W3C LDP 1.0, section 4.2.1.6)
+
+Interaction models
+  * POST and PUT may request an interaction model with Link: <ldp:...>; rel="type".
+    Supported: ldp:RDFSource, ldp:BasicContainer, ldp:DirectContainer, ldp:IndirectContainer,
+    ldp:NonRDFSource. ldp:Container means ldp:BasicContainer.
+  * Without a Link header an RDF body creates a container: a DirectContainer when it declares
+    ldp:membershipResource/ldp:hasMemberRelation, an IndirectContainer when it also declares
+    ldp:insertedContentRelation, otherwise a BasicContainer. Any other body creates a NonRDFSource.
+  * The interaction model of an existing resource cannot be changed (409 Conflict).
+
+Server-managed triples
+  * ldp:contains, membership triples, rdf:type values in the LDP namespace and the technical
+    metadata of non-RDF sources (premis:hasSize, premis:hasMessageDigest, ebucore:hasMimeType,
+    ebucore:filename) are maintained by the server.
+  * Requests may repeat their current values; requests that add, change or remove them are
+    rejected with 409 Conflict.
+  * Fedora repository metadata (rdf:type fedora:Resource/Container/Binary, fedora:created,
+    fedora:createdBy, fedora:lastModified, fedora:lastModifiedBy) is also server-managed. Values
+    sent by clients are ignored rather than rejected, as with Fedora's lenient handling.
+
+Direct and indirect containers
+  * ldp:membershipResource defaults to the container itself; at most one value is allowed.
+  * Exactly one of ldp:hasMemberRelation or ldp:isMemberOfRelation is allowed; ldp:member is
+    used when neither is given.
+  * Indirect containers require exactly one ldp:insertedContentRelation.
+
+Other
+  * Only containers accept POST. Non-RDF sources accept neither POST nor PATCH.
+  * PATCH accepts application/sparql-update only.
+  * A non-RDF source <file> is described by the RDF source <file>/description.
+  * The root container cannot be deleted. Deleting a container deletes everything it contains.
+  * The root name ".well-known" is reserved, as is every path segment starting with "fcr:".
+
+Versions, fixity and search (Fedora API extensions)
+  * <resource>/fcr:versions lists the resource's versions (JSON, or application/link-format);
+    POST to it records the current state as a new version. The root container is not versioned.
+  * <resource>/fcr:versions/<id> is a memento: the RDF state at that version or, for a non-RDF
+    source, its bytes. Mementos are read-only.
+  * Replacing the bytes of a non-RDF source always creates a new version.
+  * <binary>/fcr:fixity re-computes the binary's size and SHA-256 digest and validates its OCFL
+    object.
+  * /fcr:search?condition=<field><op><value> searches fedora_id, created, modified,
+    content_size, mime_type and rdf_type (operators =, <, <=, >, >=; * wildcards with =).
+  * PUT may create a resource when its parent exists and is a container.

@@ -1,0 +1,113 @@
+# Articulorum service: user interface host and UI support API.
+
+articulorum:
+  ui:
+    # where browsers reach the LDP root: relative to the UI (served under /ui/ by the gateway,
+    # the platform under /platform/) or absolute
+    platform-url: ../platform/
+    title: Articulorum
+    # the gateway's Swagger UI, which lists the OpenAPI description of every service
+    api-docs-url: ../swagger-ui.html
+    # topology service (PCDM structures) and transform service (IIIF exports) on the gateway
+    topology-url: ../topology/
+    transform-url: ../transform/
+    # container of the community / sub-community / collection structure on the platform
+    communities-path: communities
+
+logging:
+  level:
+    root: INFO
+    com.articulorum: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
+  server:
+    port: 8000
+
+info:
+  application:
+    name: Articulorum service
+    description: User interface host and UI support API
+
+server:
+  port: 9000
+  servlet:
+    # the UI and its API live under /ui, the path the gateway routes unchanged, so the base
+    # href is /ui/ whether or not a proxy sends X-Forwarded-Prefix (/ui redirects to /ui/)
+    context-path: /ui
+  # honour X-Forwarded-* set by the gateway (base href and links)
+  forward-headers-strategy: framework
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+  error:
+    whitelabel:
+      enabled: false
+
+springdoc:
+  api-docs:
+    path: /api/docs
+  swagger-ui:
+    path: /api/swagger
+  writer-with-default-pretty-printer: true
+
+spring:
+  application:
+    name: service
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorum-${spring.application.name}
+        prefer-ip-address: true
+
+  devtools:
+    livereload:
+      enabled: true
+    restart:
+      additional-paths: ../ui/dist
+
+  servlet:
+    multipart:
+      max-file-size: 2GB
+      max-request-size: 2GB
+      file-size-threshold: 1MB
+
+  thymeleaf:
+    # index.html of the Angular build is the only template (for <base th:href>)
+    prefix: classpath:/static/
+    view-names: index
+
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          max-age: 365d

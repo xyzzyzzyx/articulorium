@@ -1,0 +1,178 @@
+{
+  "id": "manuscript",
+  "name": "Manuscript",
+  "description": "A manuscript or archival volume of folios, each with recto and verso images.",
+  "builtIn": true,
+  "root": {
+    "key": "manuscript",
+    "label": "Manuscript",
+    "pcdmType": "Object",
+    "types": [
+      "http://purl.org/ontology/bibo/Manuscript"
+    ],
+    "metadata": [
+      {
+        "predicate": "http://purl.org/dc/terms/title",
+        "label": "Title",
+        "required": true,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/creator",
+        "label": "Author",
+        "required": false,
+        "repeatable": true,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/date",
+        "label": "Date",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/extent",
+        "label": "Extent",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/language",
+        "label": "Language",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/provenance",
+        "label": "Provenance",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      }
+    ],
+    "files": [],
+    "children": [
+      {
+        "min": 1,
+        "max": -1,
+        "initial": 2,
+        "slugPattern": "folio-{n}",
+        "node": {
+          "key": "folio",
+          "label": "Folio",
+          "pcdmType": "Object",
+          "types": [],
+          "metadata": [
+            {
+              "predicate": "http://purl.org/dc/terms/title",
+              "label": "Title",
+              "required": true,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            }
+          ],
+          "files": [],
+          "children": [
+            {
+              "min": 1,
+              "max": 1,
+              "initial": 1,
+              "slugPattern": "recto",
+              "node": {
+                "key": "recto",
+                "label": "Recto",
+                "pcdmType": "Object",
+                "types": [],
+                "metadata": [
+                  {
+                    "predicate": "http://purl.org/dc/terms/title",
+                    "label": "Title",
+                    "required": true,
+                    "repeatable": false,
+                    "defaultValue": null,
+                    "datatype": null
+                  }
+                ],
+                "files": [
+                  {
+                    "use": "http://pcdm.org/use#OriginalFile",
+                    "label": "Image",
+                    "mediaTypes": [
+                      "image/tiff",
+                      "image/jp2",
+                      "image/jpeg",
+                      "image/png"
+                    ]
+                  },
+                  {
+                    "use": "http://pcdm.org/use#Transcript",
+                    "label": "Transcription",
+                    "mediaTypes": [
+                      "text/plain",
+                      "application/tei+xml"
+                    ]
+                  }
+                ],
+                "children": []
+              }
+            },
+            {
+              "min": 0,
+              "max": 1,
+              "initial": 1,
+              "slugPattern": "verso",
+              "node": {
+                "key": "verso",
+                "label": "Verso",
+                "pcdmType": "Object",
+                "types": [],
+                "metadata": [
+                  {
+                    "predicate": "http://purl.org/dc/terms/title",
+                    "label": "Title",
+                    "required": true,
+                    "repeatable": false,
+                    "defaultValue": null,
+                    "datatype": null
+                  }
+                ],
+                "files": [
+                  {
+                    "use": "http://pcdm.org/use#OriginalFile",
+                    "label": "Image",
+                    "mediaTypes": [
+                      "image/tiff",
+                      "image/jp2",
+                      "image/jpeg",
+                      "image/png"
+                    ]
+                  },
+                  {
+                    "use": "http://pcdm.org/use#Transcript",
+                    "label": "Transcription",
+                    "mediaTypes": [
+                      "text/plain",
+                      "application/tei+xml"
+                    ]
+                  }
+                ],
+                "children": []
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

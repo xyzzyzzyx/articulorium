@@ -1,0 +1,118 @@
+{
+  "id": "audiovisual",
+  "name": "Audiovisual recording",
+  "description": "An audio or video recording of one or more parts (sides, reels, tracks) with preservation and access files.",
+  "builtIn": true,
+  "root": {
+    "key": "recording",
+    "label": "Recording",
+    "pcdmType": "Object",
+    "types": [
+      "http://purl.org/dc/dcmitype/MovingImage"
+    ],
+    "metadata": [
+      {
+        "predicate": "http://purl.org/dc/terms/title",
+        "label": "Title",
+        "required": true,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/creator",
+        "label": "Creator",
+        "required": false,
+        "repeatable": true,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/date",
+        "label": "Recording date",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/extent",
+        "label": "Duration",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      },
+      {
+        "predicate": "http://purl.org/dc/terms/description",
+        "label": "Description",
+        "required": false,
+        "repeatable": false,
+        "defaultValue": null,
+        "datatype": null
+      }
+    ],
+    "files": [
+      {
+        "use": "http://pcdm.org/use#ThumbnailImage",
+        "label": "Thumbnail",
+        "mediaTypes": [
+          "image/jpeg",
+          "image/png"
+        ]
+      }
+    ],
+    "children": [
+      {
+        "min": 1,
+        "max": -1,
+        "initial": 1,
+        "slugPattern": "part-{n}",
+        "node": {
+          "key": "part",
+          "label": "Part",
+          "pcdmType": "Object",
+          "types": [],
+          "metadata": [
+            {
+              "predicate": "http://purl.org/dc/terms/title",
+              "label": "Title",
+              "required": true,
+              "repeatable": false,
+              "defaultValue": null,
+              "datatype": null
+            }
+          ],
+          "files": [
+            {
+              "use": "http://pcdm.org/use#OriginalFile",
+              "label": "Preservation file",
+              "mediaTypes": [
+                "audio/wav",
+                "video/x-matroska",
+                "video/mp4"
+              ]
+            },
+            {
+              "use": "http://pcdm.org/use#ServiceFile",
+              "label": "Access file",
+              "mediaTypes": [
+                "audio/mpeg",
+                "video/mp4"
+              ]
+            },
+            {
+              "use": "http://pcdm.org/use#Transcript",
+              "label": "Transcript",
+              "mediaTypes": [
+                "text/vtt",
+                "text/plain"
+              ]
+            }
+          ],
+          "children": []
+        }
+      }
+    ]
+  }
+}

@@ -1,7 +1,8 @@
-@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix platform:   <http://www.w3.org/ns/platform#> .
-@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+# Client-managed state of the root container, created on first start-up.
+# The root's LDP types and containment triples are server-managed and therefore not listed here.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
 
-<http://platform:9000/>
-        a           platform:BasicContainer , platform:Container , platform:RDFSource ;
-        rdfs:label  "articulorum" .
+<>
+    rdfs:label "articulorum" ;
+    dcterms:description "Root container of the Articulorum Linked Data Platform." .

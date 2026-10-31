@@ -1,0 +1,1 @@
+<urn:articulorum:triplestore> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/sparql-service-description#Service> <urn:articulorum:system> .

@@ -1,0 +1,135 @@
+<header class="ui-page-header">
+  <h1>Search</h1>
+</header>
+
+<div class="ui-search-layout">
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      <form (ngSubmit)="submit()" class="ui-form">
+        @for (row of rows(); track $index; let i = $index) {
+          <div class="ui-condition">
+            <mat-form-field>
+              <mat-label>Field</mat-label>
+              <mat-select [name]="'field' + i" [(ngModel)]="row.field">
+                @for (field of fields; track field) {
+                  <mat-option [value]="field">{{ field }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="ui-operator">
+              <mat-label>Operator</mat-label>
+              <mat-select [name]="'operator' + i" [(ngModel)]="row.operator">
+                @for (operator of operators; track operator) {
+                  <mat-option [value]="operator">{{ operator }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="ui-grow">
+              <mat-label>Query term</mat-label>
+              <input matInput [name]="'value' + i" [(ngModel)]="row.value" />
+            </mat-form-field>
+            <button mat-icon-button type="button" (click)="removeCondition(i)" [disabled]="rows().length === 1" aria-label="Remove condition">
+              <mat-icon>remove_circle_outline</mat-icon>
+            </button>
+          </div>
+        }
+        <div class="ui-row">
+          <button mat-button type="button" (click)="addCondition()"><mat-icon>add</mat-icon> Add condition</button>
+        </div>
+        <div class="ui-condition">
+          <mat-form-field>
+            <mat-label>Order by</mat-label>
+            <mat-select name="orderBy" [(ngModel)]="orderBy">
+              <mat-option value="">(none)</mat-option>
+              @for (field of fields; track field) {
+                <mat-option [value]="field">{{ field }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field>
+            <mat-label>Order</mat-label>
+            <mat-select name="order" [(ngModel)]="order">
+              <mat-option value="asc">ascending</mat-option>
+              <mat-option value="desc">descending</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+        <button mat-flat-button color="primary" type="submit"><mat-icon>search</mat-icon> Search</button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card appearance="outlined" class="ui-help">
+    <mat-card-content>
+      <p><strong>Fields</strong></p>
+      <ul>
+        <li><b>fedora_id</b>: the IRI or path of the resource</li>
+        <li><b>created</b>, <b>modified</b>: dates or date-times</li>
+        <li><b>content_size</b>: size of a binary in bytes</li>
+        <li><b>mime_type</b>: media type of a binary</li>
+        <li><b>rdf_type</b>: an <code>rdf:type</code> of the resource</li>
+      </ul>
+      <p>
+        Use <code>*</code> wildcards with <code>=</code> on fedora_id, mime_type and rdf_type
+        (escape a literal <code>*</code> as <code>\*</code>).
+      </p>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+@if (results.isLoading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+@if (error(); as message) {
+  <p class="ui-error-text">{{ message }}</p>
+}
+@if (results.hasValue()) {
+  @let page = results.value();
+  <p class="ui-muted">{{ page.pagination.totalResults | number }} result(s)</p>
+  <table mat-table [dataSource]="page.items" class="ui-table">
+    <ng-container matColumnDef="fedora_id">
+      <th mat-header-cell *matHeaderCellDef>Resource</th>
+      <td mat-cell *matCellDef="let item">
+        @if (itemRoute(item); as commands) {
+          <a [routerLink]="commands">{{ item.fedora_id }}</a>
+        } @else {
+          {{ item.fedora_id }}
+        }
+      </td>
+    </ng-container>
+    <ng-container matColumnDef="created">
+      <th mat-header-cell *matHeaderCellDef>Created</th>
+      <td mat-cell *matCellDef="let item">{{ item.created | date: 'short' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="modified">
+      <th mat-header-cell *matHeaderCellDef>Modified</th>
+      <td mat-cell *matCellDef="let item">{{ item.modified | date: 'short' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="content_size">
+      <th mat-header-cell *matHeaderCellDef>Size</th>
+      <td mat-cell *matCellDef="let item">{{ (item.content_size ?? null) === null ? '' : (item.content_size | number) }}</td>
+    </ng-container>
+    <ng-container matColumnDef="mime_type">
+      <th mat-header-cell *matHeaderCellDef>MIME type</th>
+      <td mat-cell *matCellDef="let item">{{ item.mime_type ?? '' }}</td>
+    </ng-container>
+    <ng-container matColumnDef="rdf_type">
+      <th mat-header-cell *matHeaderCellDef>Types</th>
+      <td mat-cell *matCellDef="let item">
+        @for (type of item.rdf_type ?? []; track type) {
+          <span class="ui-type">{{ typeName(type) }}</span>
+        }
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns"></tr>
+  </table>
+  <mat-paginator
+    [length]="page.pagination.totalResults"
+    [pageSize]="page.pagination.maxResults"
+    [pageIndex]="page.pagination.pageNumber"
+    [pageSizeOptions]="[10, 20, 50, 100]"
+    (page)="changePage($event)"
+    aria-label="Result pages"
+  />
+}

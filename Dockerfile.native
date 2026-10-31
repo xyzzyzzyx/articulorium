@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1.7
+#
+# GraalVM native image for one Articulorum service.
+#
+#   docker build -f Dockerfile.native --build-arg MODULE=gateway -t articulorum/gateway:native .
+#
+# Supported modules: gateway, platform, transform, index, triplestore, topology and service.
+# Native compilation is memory hungry: each build uses up to NATIVE_MAX_HEAP (default 8g) plus
+# overhead, so build the images one at a time (see docker-compose.native.yml).
+
+ARG MODULE=gateway
+ARG NATIVE_MAX_HEAP=8g
+
+FROM ghcr.io/graalvm/native-image-community:25 AS build
+ARG MODULE
+ARG NATIVE_MAX_HEAP
+ARG MAVEN_VERSION=3.9.11
+RUN microdnf install -y findutils gzip tar && microdnf clean all \
+ && curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
+    | tar -xz -C /opt \
+ && ln -s "/opt/apache-maven-${MAVEN_VERSION}/bin/mvn" /usr/local/bin/mvn
+WORKDIR /workspace
+COPY . .
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -ntp -Pnative -Dnative.max-heap="${NATIVE_MAX_HEAP}" -pl "${MODULE}" -am package -DskipTests \
+ && cp "${MODULE}/target/${MODULE}" /workspace/service
+
+FROM oraclelinux:9-slim
+ARG MODULE
+LABEL org.opencontainers.image.title="articulorum-${MODULE}-native" \
+      org.opencontainers.image.source="https://github.com/xyzzyzzyx/articulorium"
+# curl serves the compose healthchecks; newer base images ship curl (full or minimal) already,
+# and installing curl-minimal next to the full curl package conflicts
+RUN (command -v curl >/dev/null 2>&1 || microdnf install -y curl-minimal) \
+ && microdnf install -y shadow-utils && microdnf clean all \
+ && useradd --system --uid 10001 --home-dir /app articulorum
+WORKDIR /app
+COPY --from=build /workspace/service /app/service
+RUN mkdir -p /app/data && chown -R articulorum /app
+USER articulorum
+ENV SPRING_PROFILES_ACTIVE=native
+EXPOSE 9000 8000
+ENTRYPOINT ["/app/service"]

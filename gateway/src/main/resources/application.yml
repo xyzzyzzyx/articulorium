@@ -1,3 +1,12 @@
+# Articulorum gateway: public entry point routing to Consul-registered services.
+#
+#   /, /ui            redirect to the user interface (/ui/)
+#   /ui/**            service (Angular UI and its API)
+#   /platform/**      platform (Linked Data Platform root)
+#   /transform/**     transform (transformer preview API, IIIF Presentation exports)
+#   /topology/**      topology (PCDM topologies and their instantiation)
+#   /swagger-ui.html  Swagger UI for the OpenAPI descriptions of every service above
+
 logging:
   level:
     root: INFO
@@ -5,19 +14,113 @@ logging:
 management:
   endpoint:
     health:
-      enabled: true
-      showDetails: always
-    info:
-      enabled: true
+      show-details: always
+      probes:
+        enabled: true
   endpoints:
-    enabled-by-default: false
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,gateway
   server:
     port: 8000
 
 server:
   port: 9000
-  servlet:
-    context-path:
+
+springdoc:
+  # the gateway has no API of its own: its Swagger UI lists the routed services' descriptions
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    urls-primary-name: platform
+    urls:
+      - name: platform
+        url: /platform/.well-known/openapi
+      - name: transform
+        url: /transform/v3/api-docs
+      - name: topology
+        url: /topology/v3/api-docs
+      - name: service
+        url: /ui/api/docs
+
+spring:
+  application:
+    name: gateway
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorum-${spring.application.name}
+        prefer-ip-address: true
+
+    gateway:
+      server:
+        webflux:
+          # Services mint absolute URLs (resource IRIs, Location headers, OpenAPI servers) from
+          # X-Forwarded-Host/-Port/-Proto/-Prefix. Spring Cloud Gateway only writes those for
+          # clients matching trusted-proxies, strips them otherwise (CVE-2025-41235), and appends
+          # to whatever a trusted client sent. So: every client is "trusted", and the default
+          # filters below first drop any forwarded headers clients send themselves (gateway filters
+          # run before the header filters), so the gateway's own values are the only ones and
+          # nobody can choose the host IRIs are minted under. X-Forwarded-Prefix comes from the
+          # path StripPrefix removes. Behind a TLS-terminating proxy, stop removing
+          # X-Forwarded-Proto/-Host here and restrict trusted-proxies to that proxy's address.
+          trusted-proxies: '.*'
+          default-filters:
+            - RemoveRequestHeader=Forwarded
+            - RemoveRequestHeader=X-Forwarded-For
+            - RemoveRequestHeader=X-Forwarded-Host
+            - RemoveRequestHeader=X-Forwarded-Port
+            - RemoveRequestHeader=X-Forwarded-Proto
+            - RemoveRequestHeader=X-Forwarded-Prefix
+          routes:
+            - id: articulorum-platform
+              uri: lb://articulorum-platform
+              predicates:
+                - Path=/platform,/platform/**
+              filters:
+                - StripPrefix=1
+            - id: articulorum-transform
+              uri: lb://articulorum-transform
+              predicates:
+                - Path=/transform,/transform/**
+              filters:
+                - StripPrefix=1
+            - id: articulorum-topology
+              uri: lb://articulorum-topology
+              predicates:
+                - Path=/topology,/topology/**
+              filters:
+                - StripPrefix=1
+            # /ui is redirected here (relative to the gateway's address): the service's own
+            # context-root redirect would point browsers at the service's internal address
+            - id: articulorum-ui-slash
+              uri: no://op
+              predicates:
+                - Path=/ui
+              filters:
+                - RedirectTo=302, /ui/
+            # the service runs under the /ui context path itself: forward the path unchanged
+            - id: articulorum-service
+              uri: lb://articulorum-service
+              predicates:
+                - Path=/ui/**
+            # the bare root opens the user interface
+            - id: articulorum-root
+              uri: no://op
+              predicates:
+                - Path=/
+              filters:
+                - RedirectTo=302, /ui/

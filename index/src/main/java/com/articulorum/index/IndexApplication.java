@@ -1,30 +1,23 @@
 package com.articulorum.index;
 
-import com.articulorum.index.config.model.SolrConfig;
-
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.context.annotation.Bean;
-import org.springframework.integration.config.EnableIntegration;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
-@EnableIntegration
-@EnableDiscoveryClient
+/**
+ * Entry point of the Articulorum index service.
+ */
 @SpringBootApplication(scanBasePackages = "com.articulorum")
+@ConfigurationPropertiesScan("com.articulorum.index")
 public class IndexApplication {
 
-    public static void main(String[] args) {
+    /**
+     * Starts the service.
+     *
+     * @param args command line arguments
+     */
+    public static void main(final String[] args) {
         SpringApplication.run(IndexApplication.class, args);
-    }
-
-    @Bean
-    public SolrClient getCloudSolrClient(SolrConfig solrConfig) {
-        return new CloudSolrClient.Builder(solrConfig.getZkHosts(), solrConfig.getZkChroot())
-            .withConnectionTimeout(solrConfig.getConnectionTimeout())
-            .withSocketTimeout(solrConfig.getSocketTimeout())
-            .build();
     }
 
 }
