@@ -55,7 +55,12 @@ body {
   }
 }
 
-.ui-row {
+.ui-breadcrumb ol {
+  align-items: baseline;
+}
+
+.ui-row,
+.mat-mdc-card-content.ui-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
