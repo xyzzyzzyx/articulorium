@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Event module: Spring Cloud Bus events exchanged between Articulorum services.
+  Event module: Spring Cloud Bus events exchanged between Articulorium services.
 
   The platform publishes ResourceEvents when LDP resources change; transform consumes them and
   publishes DocumentEvents; index and triplestore consume those events to keep Solr and the
@@ -14,7 +14,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.articulorum</groupId>
+    <groupId>com.articulorium</groupId>
     <artifactId>parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
@@ -22,7 +22,7 @@
   <artifactId>event</artifactId>
   <packaging>jar</packaging>
 
-  <name>Articulorum Event Module</name>
+  <name>Articulorium Event Module</name>
   <description>Spring Cloud Bus events and listener infrastructure.</description>
 
   <dependencies>
@@ -61,7 +61,7 @@
     </dependency>
 
     <dependency>
-      <groupId>com.articulorum</groupId>
+      <groupId>com.articulorium</groupId>
       <artifactId>domain</artifactId>
     </dependency>
 

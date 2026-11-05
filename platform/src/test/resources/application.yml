@@ -1,5 +1,5 @@
 # Test configuration: in-memory H2, file system OCFL storage, no Consul, no bus.
-articulorum:
+articulorium:
   ldp:
     max-rdf-size: 1MB
   storage:
@@ -48,10 +48,10 @@ spring:
       auto-registration:
         enabled: false
   datasource:
-    url: jdbc:h2:mem:articulorum;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:articulorium;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
-    username: articulorum
-    password: articulorum
+    username: articulorium
+    password: articulorium
   jpa:
     hibernate:
       ddl-auto: create-drop

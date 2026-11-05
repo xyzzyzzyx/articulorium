@@ -4,7 +4,7 @@ import { MatCardModule } from '@angular/material/card';
 import { CLIENT, Client } from '../../main';
 
 /**
- * About Articulorum: what the user interface offers and the client it runs in.
+ * About Articulorium: what the user interface offers and the client it runs in.
  */
 @Component({
   selector: 'ui-about',

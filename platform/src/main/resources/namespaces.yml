@@ -1,7 +1,7 @@
 # Namespace prefixes registered on start-up (prefix: namespace IRI).
 #
 # The first block is Fedora 6's default namespace registry (fcrepo-webapp namespaces.yml), so
-# Articulorum serialises RDF with the same prefixes as a Fedora repository. The second block adds
+# Articulorium serialises RDF with the same prefixes as a Fedora repository. The second block adds
 # vocabularies commonly used with Fedora and the Portland Common Data Model. Prefixes already in
 # the database are kept; edit them there (table namespace_prefixes) to change a registered prefix.
 
@@ -44,9 +44,9 @@ pcdmrights: http://pcdm.org/rights#
 schema: http://schema.org/
 bibo: http://purl.org/ontology/bibo/
 
-# --- Articulorum ---------------------------------------------------------------------------------
+# --- Articulorium ---------------------------------------------------------------------------------
 # repository structure (communities, collections) and topology links
-art: https://articulorum.org/ns/repository#
+art: https://articulorium.org/ns/repository#
 # Activity Streams 2.0 and COAR Notify (Linked Data Notifications)
 as: https://www.w3.org/ns/activitystreams#
 coar-notify: https://coar-repositories.org/notify#

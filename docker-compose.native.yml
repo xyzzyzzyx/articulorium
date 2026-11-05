@@ -2,7 +2,7 @@
 #
 #   docker compose -f docker-compose.yml -f docker-compose.native.yml up --build
 #
-# Every Articulorum service supports native images. Native builds take several minutes per
+# Every Articulorium service supports native images. Native builds take several minutes per
 # service and each needs about 10 GB of memory (NATIVE_MAX_HEAP, default 8g, plus overhead).
 # Compose builds all images in parallel, which exhausts Docker's memory, so build them one at a
 # time first, then start the stack:
@@ -17,36 +17,36 @@
 services:
 
   gateway:
-    image: articulorum/gateway:native
+    image: articulorium/gateway:native
     build:
       dockerfile: Dockerfile.native
 
   platform:
-    image: articulorum/platform:native
+    image: articulorium/platform:native
     build:
       dockerfile: Dockerfile.native
 
   index:
-    image: articulorum/index:native
+    image: articulorium/index:native
     build:
       dockerfile: Dockerfile.native
 
   triplestore:
-    image: articulorum/triplestore:native
+    image: articulorium/triplestore:native
     build:
       dockerfile: Dockerfile.native
 
   transform:
-    image: articulorum/transform:native
+    image: articulorium/transform:native
     build:
       dockerfile: Dockerfile.native
 
   topology:
-    image: articulorum/topology:native
+    image: articulorium/topology:native
     build:
       dockerfile: Dockerfile.native
 
   service:
-    image: articulorum/service:native
+    image: articulorium/service:native
     build:
       dockerfile: Dockerfile.native

@@ -1,4 +1,4 @@
-# Articulorum: complete local stack.
+# Articulorium: complete local stack.
 #
 #   docker compose up --build            start everything (JVM images)
 #   docker compose --profile tools up    also start the Kafka UI
@@ -8,14 +8,14 @@
 #                                        use GraalVM native images where supported
 #
 # Entry points once healthy (allow a minute or two on first start):
-#   http://localhost:8000/ui/         Articulorum UI (browse, create, upload, edit, versions, search)
+#   http://localhost:8000/ui/         Articulorium UI (browse, create, upload, edit, versions, search)
 #   http://localhost:8000/platform/   LDP root through the gateway
 #   http://localhost:8000/swagger-ui.html
 #                                     Swagger UI for every service's OpenAPI description
 #   http://localhost:9001/            LDP root directly on the platform
-#   localhost:5432                    PostgreSQL (articulorum / articulorum), the platform database
+#   localhost:5432                    PostgreSQL (articulorium / articulorium), the platform database
 #   http://localhost:8500/            Consul UI
-#   http://localhost:9101/            MinIO console (articulorum / articulorum-secret)
+#   http://localhost:9101/            MinIO console (articulorium / articulorium-secret)
 #   http://localhost:8983/            Solr admin
 #   http://localhost:7001/            QLever SPARQL endpoint (queries; updates need QLEVER_ACCESS_TOKEN)
 #   http://localhost:8000/topology/topologies
@@ -26,7 +26,7 @@
 # Credentials can be overridden with environment variables or an .env file next to this file.
 # docker-compose.acl.yml turns on Consul ACLs and accepts Consul tokens as WebAC identities.
 
-name: articulorum
+name: articulorium
 
 x-service: &service
   restart: unless-stopped
@@ -48,12 +48,12 @@ x-spring-env: &spring-env
 services:
 
   # ----------------------------------------------------------------------------------------------
-  # Articulorum services
+  # Articulorium services
   # ----------------------------------------------------------------------------------------------
 
   gateway:
     <<: *service
-    image: articulorum/gateway:latest
+    image: articulorium/gateway:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -69,7 +69,7 @@ services:
 
   platform:
     <<: *service
-    image: articulorum/platform:latest
+    image: articulorium/platform:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -79,15 +79,15 @@ services:
       <<: *spring-env
       # PostgreSQL is the platform's default database (see platform application.yml)
       POSTGRES_HOST: postgres
-      POSTGRES_DB: ${POSTGRES_DB:-articulorum}
-      POSTGRES_USER: ${POSTGRES_USER:-articulorum}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-articulorum}
+      POSTGRES_DB: ${POSTGRES_DB:-articulorium}
+      POSTGRES_USER: ${POSTGRES_USER:-articulorium}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-articulorium}
       # binaries live in an OCFL storage root inside the MinIO bucket
-      ARTICULORUM_STORAGE_TYPE: s3
-      ARTICULORUM_STORAGE_S3_ENDPOINT: http://minio:9000
-      ARTICULORUM_STORAGE_S3_BUCKET: ${ARTICULORUM_BUCKET:-articulorum}
-      ARTICULORUM_STORAGE_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-articulorum}
-      ARTICULORUM_STORAGE_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-articulorum-secret}
+      ARTICULORIUM_STORAGE_TYPE: s3
+      ARTICULORIUM_STORAGE_S3_ENDPOINT: http://minio:9000
+      ARTICULORIUM_STORAGE_S3_BUCKET: ${ARTICULORIUM_BUCKET:-articulorium}
+      ARTICULORIUM_STORAGE_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-articulorium}
+      ARTICULORIUM_STORAGE_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-articulorium-secret}
     ports:
       - "9001:9000"
     volumes:
@@ -104,7 +104,7 @@ services:
 
   transform:
     <<: *service
-    image: articulorum/transform:latest
+    image: articulorium/transform:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -124,7 +124,7 @@ services:
 
   index:
     <<: *service
-    image: articulorum/index:latest
+    image: articulorium/index:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -132,7 +132,7 @@ services:
         MODULE: index
     environment:
       <<: *spring-env
-      ARTICULORUM_SOLR_BASE_URL: http://solr:8983/solr
+      ARTICULORIUM_SOLR_BASE_URL: http://solr:8983/solr
     ports:
       - "9003:9000"
     depends_on:
@@ -145,7 +145,7 @@ services:
 
   triplestore:
     <<: *service
-    image: articulorum/triplestore:latest
+    image: articulorium/triplestore:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -153,8 +153,8 @@ services:
         MODULE: triplestore
     environment:
       <<: *spring-env
-      ARTICULORUM_TRIPLESTORE_SERVICE_URL: http://qlever:7001
-      QLEVER_ACCESS_TOKEN: ${QLEVER_ACCESS_TOKEN:-articulorum-qlever}
+      ARTICULORIUM_TRIPLESTORE_SERVICE_URL: http://qlever:7001
+      QLEVER_ACCESS_TOKEN: ${QLEVER_ACCESS_TOKEN:-articulorium-qlever}
     ports:
       - "9004:9000"
     depends_on:
@@ -169,7 +169,7 @@ services:
     # PCDM topologies (Book, Newspaper, Journal, Postcards, ... and custom ones) and building them
     # in the platform; the gateway serves it under /topology/
     <<: *service
-    image: articulorum/topology:latest
+    image: articulorium/topology:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -189,7 +189,7 @@ services:
     # Angular user interface and its support API (agents, media type detection, UI settings);
     # the gateway serves it under /ui/
     <<: *service
-    image: articulorum/service:latest
+    image: articulorium/service:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -212,9 +212,9 @@ services:
     image: postgres:18
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-articulorum}
-      POSTGRES_USER: ${POSTGRES_USER:-articulorum}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-articulorum}
+      POSTGRES_DB: ${POSTGRES_DB:-articulorium}
+      POSTGRES_USER: ${POSTGRES_USER:-articulorium}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-articulorium}
     ports:
       - "5432:5432"
     volumes:
@@ -281,8 +281,8 @@ services:
     command: server /data --console-address ":9001"
     restart: unless-stopped
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-articulorum}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-articulorum-secret}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-articulorium}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-articulorium-secret}
     ports:
       - "9100:9000"
       - "9101:9001"
@@ -335,17 +335,17 @@ services:
     # triplestore service writes from platform events. triplestore/qlever/entrypoint.sh builds an
     # empty index on first start and runs the server with an access token and persisted updates.
     image: docker.io/adfreiburg/qlever:0.6.0
-    entrypoint: ["/bin/bash", "/opt/articulorum-qlever/entrypoint.sh"]
+    entrypoint: ["/bin/bash", "/opt/articulorium-qlever/entrypoint.sh"]
     # the index lives in a named volume; run as root to avoid volume permission problems
     user: "0:0"
     restart: unless-stopped
     environment:
-      QLEVER_ACCESS_TOKEN: ${QLEVER_ACCESS_TOKEN:-articulorum-qlever}
+      QLEVER_ACCESS_TOKEN: ${QLEVER_ACCESS_TOKEN:-articulorium-qlever}
       QLEVER_MEMORY: ${QLEVER_MEMORY:-2G}
     ports:
       - "7001:7001"
     volumes:
-      - ./triplestore/qlever:/opt/articulorum-qlever:ro
+      - ./triplestore/qlever:/opt/articulorium-qlever:ro
       - qlever-data:/data
     networks:
       - cloud
@@ -403,7 +403,7 @@ services:
     profiles:
       - tools
     environment:
-      KAFKA_CLUSTERS_0_NAME: articulorum
+      KAFKA_CLUSTERS_0_NAME: articulorium
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     ports:
       - "9091:8080"

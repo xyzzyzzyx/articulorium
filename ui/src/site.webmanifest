@@ -1,6 +1,6 @@
 {
-  "name": "Articulorum",
-  "short_name": "Articulorum",
+  "name": "Articulorium",
+  "short_name": "Articulorium",
   "icons": [
     {
       "src": "android-chrome-192x192.png",
@@ -17,4 +17,4 @@
   "theme_color": "#607d8b",
   "background_color": "#ffffff",
   "display": "standalone"
-}
+}

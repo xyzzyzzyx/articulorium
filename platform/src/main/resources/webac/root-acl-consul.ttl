@@ -1,5 +1,5 @@
 # Root authorizations for deployments that identify agents with Consul ACL tokens
-# (articulorum.webac.root-acl=classpath:webac/root-acl-consul.ttl, used by docker-compose.acl.yml).
+# (articulorium.webac.root-acl=classpath:webac/root-acl-consul.ttl, used by docker-compose.acl.yml).
 #
 #   everyone                       read
 #   Consul role "editors"          read, write (create, change, delete)

@@ -16,7 +16,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.articulorum</groupId>
+    <groupId>com.articulorium</groupId>
     <artifactId>parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
@@ -24,7 +24,7 @@
   <artifactId>topology</artifactId>
   <packaging>jar</packaging>
 
-  <name>Articulorum Topology Module</name>
+  <name>Articulorium Topology Module</name>
   <description>Definitions of PCDM structures and their instantiation in the Linked Data Platform.</description>
 
   <dependencies>
@@ -57,7 +57,7 @@
     </dependency>
 
     <!-- Consul configuration and discovery; discovery brings the load balancer that resolves
-         http://articulorum-platform -->
+         http://articulorium-platform -->
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-consul-config</artifactId>
@@ -75,7 +75,7 @@
     </dependency>
 
     <dependency>
-      <groupId>com.articulorum</groupId>
+      <groupId>com.articulorium</groupId>
       <artifactId>domain</artifactId>
     </dependency>
 

@@ -11,12 +11,12 @@ describe('buildNotification', () => {
         citeAs: 'https://doi.org/10.5555/1',
         summary: 'Please endorse',
       },
-      'Articulorum',
+      'Articulorium',
     );
     expect(notification).toEqual({
       '@context': ['https://www.w3.org/ns/activitystreams', 'https://coar-repositories.org/notify'],
       type: ['Offer', 'coar-notify:EndorsementAction'],
-      actor: { type: 'Service', name: 'Articulorum' },
+      actor: { type: 'Service', name: 'Articulorium' },
       target: { id: 'https://overlay.example/', inbox: 'https://overlay.example/inbox', type: 'Service' },
       object: { id: 'http://h/platform/c/item', 'ietf:cite-as': 'https://doi.org/10.5555/1' },
       summary: 'Please endorse',

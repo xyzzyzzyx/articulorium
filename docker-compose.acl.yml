@@ -14,7 +14,7 @@
 # (set below to the management token for convenience - use a token per service in production).
 
 x-consul-token: &consul-token
-  SPRING_CLOUD_CONSUL_TOKEN: ${CONSUL_MANAGEMENT_TOKEN:-articulorum-consul-management}
+  SPRING_CLOUD_CONSUL_TOKEN: ${CONSUL_MANAGEMENT_TOKEN:-articulorium-consul-management}
 
 services:
 
@@ -22,14 +22,14 @@ services:
     environment:
       CONSUL_LOCAL_CONFIG: >-
         {"acl": {"enabled": true, "default_policy": "allow", "enable_token_persistence": true,
-        "tokens": {"initial_management": "${CONSUL_MANAGEMENT_TOKEN:-articulorum-consul-management}"}}}
+        "tokens": {"initial_management": "${CONSUL_MANAGEMENT_TOKEN:-articulorium-consul-management}"}}}
 
   platform:
     environment:
       <<: *consul-token
-      ARTICULORUM_WEBAC_CONSUL_ENABLED: "true"
-      ARTICULORUM_WEBAC_CONSUL_URL: http://consul:8500
-      ARTICULORUM_WEBAC_ROOT_ACL: classpath:webac/root-acl-consul.ttl
+      ARTICULORIUM_WEBAC_CONSUL_ENABLED: "true"
+      ARTICULORIUM_WEBAC_CONSUL_URL: http://consul:8500
+      ARTICULORIUM_WEBAC_ROOT_ACL: classpath:webac/root-acl-consul.ttl
 
   gateway:
     environment:

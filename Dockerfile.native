@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 #
-# GraalVM native image for one Articulorum service.
+# GraalVM native image for one Articulorium service.
 #
-#   docker build -f Dockerfile.native --build-arg MODULE=gateway -t articulorum/gateway:native .
+#   docker build -f Dockerfile.native --build-arg MODULE=gateway -t articulorium/gateway:native .
 #
 # Supported modules: gateway, platform, transform, index, triplestore, topology and service.
 # Native compilation is memory hungry: each build uses up to NATIVE_MAX_HEAP (default 8g) plus
@@ -27,17 +27,17 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 FROM oraclelinux:9-slim
 ARG MODULE
-LABEL org.opencontainers.image.title="articulorum-${MODULE}-native" \
+LABEL org.opencontainers.image.title="articulorium-${MODULE}-native" \
       org.opencontainers.image.source="https://github.com/xyzzyzzyx/articulorium"
 # curl serves the compose healthchecks; newer base images ship curl (full or minimal) already,
 # and installing curl-minimal next to the full curl package conflicts
 RUN (command -v curl >/dev/null 2>&1 || microdnf install -y curl-minimal) \
  && microdnf install -y shadow-utils && microdnf clean all \
- && useradd --system --uid 10001 --home-dir /app articulorum
+ && useradd --system --uid 10001 --home-dir /app articulorium
 WORKDIR /app
 COPY --from=build /workspace/service /app/service
-RUN mkdir -p /app/data && chown -R articulorum /app
-USER articulorum
+RUN mkdir -p /app/data && chown -R articulorium /app
+USER articulorium
 ENV SPRING_PROFILES_ACTIVE=native
 EXPOSE 9000 8000
 ENTRYPOINT ["/app/service"]

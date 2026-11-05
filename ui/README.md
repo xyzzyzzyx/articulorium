@@ -1,12 +1,12 @@
-# Articulorum UI
+# Articulorium UI
 
-Angular 22 single page application for the Articulorum Linked Data Platform, at feature parity
+Angular 22 single page application for the Articulorium Linked Data Platform, at feature parity
 with the Fedora Commons HTML interface. The `service` module serves it; the gateway exposes it at
 `/ui/` (the bare gateway root redirects there).
 
 ## Features
 
-| Fedora Commons UI                         | Articulorum UI                                                        |
+| Fedora Commons UI                         | Articulorium UI                                                        |
 |-------------------------------------------|-----------------------------------------------------------------------|
 | Breadcrumb, Home and Search navigation    | Breadcrumb on every view; Browse, Communities, Topologies, Search, API (the gateway's Swagger UI for every service) and About |
 | Created / last modified (and by whom)     | Same, from the `fedora:` server-managed triples                       |

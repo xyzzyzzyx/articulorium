@@ -1,6 +1,6 @@
 ![Java CI with Maven](https://github.com/xyzzyzzyx/articulorium/workflows/maven_build/badge.svg)
 
-# Articulorum
+# Articulorium
 
 A W3C [Linked Data Platform 1.0](https://www.w3.org/TR/ldp/) server built as Spring Boot
 microservices on [Spring Cloud Consul](https://spring.io/projects/spring-cloud-consul) and
@@ -9,7 +9,7 @@ archival groups, Web Access Control), an [OCFL](https://ocfl.io/) storage layer 
 system or any S3 compatible object store (MinIO by default), PostgreSQL for resource metadata, and
 an Angular user interface at feature parity with the Fedora Commons web UI.
 
-On top of plain LDP, Articulorum offers digital library structures: communities, sub-communities
+On top of plain LDP, Articulorium offers digital library structures: communities, sub-communities
 and collections; PCDM *topologies* (Book, Newspaper, Journal, Postcards, ... and custom ones) that
 build and navigate the resources of a digital object; IIIF Presentation 3.0 export of those
 structures; and [COAR Notify](https://coar-notify.net/) inboxes for every container.
@@ -67,9 +67,9 @@ RDF syntax to RDF clients and a simple HTML view to browsers.
 | http://localhost:8000/topology/topologies | PCDM topologies                   |
 | http://localhost:8000/transform/iiif/communities | IIIF Collection of the community structure |
 | http://localhost:9001/               | LDP root directly on the platform      |
-| localhost:5432                       | PostgreSQL (`articulorum` / `articulorum`) |
+| localhost:5432                       | PostgreSQL (`articulorium` / `articulorium`) |
 | http://localhost:8500/            | Consul UI                              |
-| http://localhost:9101/            | MinIO console (`articulorum` / `articulorum-secret`) |
+| http://localhost:9101/            | MinIO console (`articulorium` / `articulorium-secret`) |
 | http://localhost:8983/            | Solr admin                             |
 | http://localhost:7001/            | QLever SPARQL endpoint (updates need `QLEVER_ACCESS_TOKEN`) |
 
@@ -83,8 +83,8 @@ accepts Consul tokens as identities (see [Access control](#access-control-webac)
 mvn -pl platform -am package -DskipTests
 java -jar platform/target/platform-1.0.0-SNAPSHOT.jar \
   --spring.cloud.consul.enabled=false --spring.cloud.bus.enabled=false \
-  --articulorum.storage.type=filesystem \
-  --spring.datasource.url=jdbc:h2:file:./data/db/articulorum   # or a PostgreSQL URL
+  --articulorium.storage.type=filesystem \
+  --spring.datasource.url=jdbc:h2:file:./data/db/articulorium   # or a PostgreSQL URL
 ```
 
 ## Using the LDP API
@@ -170,7 +170,7 @@ in Fedora 6: it and everything later created inside it are stored in **one OCFL 
 versioned as a unit.
 
 * The group is typed `fedora:ArchivalGroup` (header and body) and has a first version from the
-  start; members link to it with `Link: <group>; rel="https://articulorum.org/ns/repository#archivalGroup"`.
+  start; members link to it with `Link: <group>; rel="https://articulorium.org/ns/repository#archivalGroup"`.
 * Inside the object every member keeps its files in its own directory (`members/<name>/…`).
   Every file write inside the group is a version of the group; `POST <group>/fcr:versions`
   snapshots the descriptions of the group and every member.
@@ -182,11 +182,11 @@ versioned as a unit.
 ## Access control (WebAC)
 
 Every request to the platform is checked against [Web Access Control](https://solidproject.org/TR/wac)
-authorizations (`articulorum.webac.enabled`, default `true`).
+authorizations (`articulorium.webac.enabled`, default `true`).
 
 * **Effective ACL**: the resource's own ACL (`<r>/fcr:acl`, Turtle or any RDF syntax), else the
   nearest ancestor's (only its `acl:default` authorizations apply), else the root ACL configured
-  with `articulorum.webac.root-acl` ([default](platform/src/main/resources/webac/root-acl.ttl):
+  with `articulorium.webac.root-acl` ([default](platform/src/main/resources/webac/root-acl.ttl):
   everyone may do everything, so a fresh repository works without credentials).
 * **Modes**: GET/HEAD need `acl:Read`, POST `acl:Append`, PUT/PATCH/DELETE `acl:Write` (which
   implies Append), anything on `fcr:acl` `acl:Control`. Authorizations name agents
@@ -200,12 +200,12 @@ authorizations (`articulorum.webac.enabled`, default `true`).
 * The UI shows your access on every resource, hides actions you may not take, and edits ACLs on
   the **Permissions** page of any resource.
 
-**Agents.** With `articulorum.webac.consul.enabled=true` the platform accepts **Consul ACL tokens**
+**Agents.** With `articulorium.webac.consul.enabled=true` the platform accepts **Consul ACL tokens**
 (`Authorization: Bearer <secret id>` or `X-Consul-Token`) and validates them with Consul
 (`/v1/acl/token/self`, cached for `cache-ttl`). The token's description (or accessor ID) becomes the
 agent `info:consul/agent/<description>`; its roles and policies become the groups
 `info:consul/role/<name>` and `info:consul/policy/<name>`. Alternatively
-`articulorum.webac.trusted-agent-header` names a header set by a trusted authenticating proxy, and
+`articulorium.webac.trusted-agent-header` names a header set by a trusted authenticating proxy, and
 a principal authenticated by the servlet container is used as is.
 
 `docker-compose.acl.yml` sets this up: Consul runs with ACLs, the platform accepts tokens and uses
@@ -214,19 +214,19 @@ a principal authenticated by the servlet container is used as is.
 the token's `SecretID` into the UI's **Sign in** dialog:
 
 ```bash
-export CONSUL_HTTP_TOKEN=articulorum-consul-management     # CONSUL_MANAGEMENT_TOKEN
-docker compose exec -e CONSUL_HTTP_TOKEN consul consul acl policy create -name articulorum-read \
+export CONSUL_HTTP_TOKEN=articulorium-consul-management     # CONSUL_MANAGEMENT_TOKEN
+docker compose exec -e CONSUL_HTTP_TOKEN consul consul acl policy create -name articulorium-read \
   -rules 'key_prefix "" { policy = "read" }'
-docker compose exec -e CONSUL_HTTP_TOKEN consul consul acl role create -name editors -policy-name articulorum-read
+docker compose exec -e CONSUL_HTTP_TOKEN consul consul acl role create -name editors -policy-name articulorium-read
 docker compose exec -e CONSUL_HTTP_TOKEN consul consul acl token create -description "Jane Doe" -role-name editors
 ```
 
 ## Communities, sub-communities and collections
 
-The platform creates `/communities` (`articulorum.ldp.communities-path`, typed
+The platform creates `/communities` (`articulorium.ldp.communities-path`, typed
 `art:CommunityRoot`) on start-up. Below it, communities are containers typed `art:Community`
 (a community inside a community is a sub-community) and collections containers typed
-`art:Collection` and `pcdm:Collection` (`art:` is `https://articulorum.org/ns/repository#`).
+`art:Collection` and `pcdm:Collection` (`art:` is `https://articulorium.org/ns/repository#`).
 Everything is plain LDP, so it can be created with any LDP client; the UI's **Communities** page
 navigates the structure, creates communities, sub-communities and collections, and builds items
 in collections from topologies.
@@ -281,20 +281,20 @@ Hibernate adds new tables and columns on start-up (`ddl-auto: update`).
 
 Content and versions are stored as [OCFL](https://ocfl.io/) objects through
 [ocfl-java](https://github.com/OCFL/ocfl-java): one object per resource
-(`info:articulorum/<path>`) holding its bytes (`content`), a snapshot of its description
+(`info:articulorium/<path>`) holding its bytes (`content`), a snapshot of its description
 (`description.nt`) and of a file's technical metadata (`technical.nt`), with every write an
 immutable OCFL version. An archival group's object holds the group and all its members, each in its
 own `members/<name>/` directory. Writes that are rolled back in
-the database are rolled back in OCFL too. Set `articulorum.storage.type`
-(env `ARTICULORUM_STORAGE_TYPE`) to choose where the storage root lives:
+the database are rolled back in OCFL too. Set `articulorium.storage.type`
+(env `ARTICULORIUM_STORAGE_TYPE`) to choose where the storage root lives:
 
-| Value             | Settings (`articulorum.storage.…`)                                                     |
+| Value             | Settings (`articulorium.storage.…`)                                                     |
 |-------------------|------------------------------------------------------------------------------------------|
 | `s3` *(default)*  | `s3.endpoint`, `s3.region`, `s3.bucket`, `s3.access-key`, `s3.secret-key`, `s3.path-style`, `s3.create-bucket`, `s3.key-prefix` (default `ocfl`) |
 | `filesystem`      | `filesystem.root`                                                                        |
 
 `ocfl.work-directory` sets where versions are staged, `ocfl.database-lock` coordinates several
-platform instances through the database. Limits: `articulorum.storage.max-upload-size` (raw
+platform instances through the database. Limits: `articulorium.storage.max-upload-size` (raw
 bodies) and `spring.servlet.multipart.*` (multipart uploads). With empty S3 keys the AWS default
 credentials chain is used.
 
@@ -304,8 +304,8 @@ The transform service runs every active `Transformer` bean for each change and p
 merged document for the index. The built-in `field-mapping` transformer maps RDF property paths
 to typed fields ([field-mappings.yml](transform/src/main/resources/transform/field-mappings.yml),
 replacing the retired Apache Marmotta LDPath engine). Add a transformation by contributing a
-Spring bean that implements `com.articulorum.transform.spi.Transformer` and listing its name in
-`articulorum.transform.transformers`; `POST /transformers/<name>/preview?iri=…` tries one on a
+Spring bean that implements `com.articulorium.transform.spi.Transformer` and listing its name in
+`articulorium.transform.transformers`; `POST /transformers/<name>/preview?iri=…` tries one on a
 posted RDF document. The transform service also serves the [IIIF](#iiif) exports.
 
 ## Operations
@@ -338,7 +338,7 @@ Protocol and authenticating with QLever's access token (`QLEVER_ACCESS_TOKEN`, s
 `Authorization: Bearer`). Compose runs the `adfreiburg/qlever` image with
 [triplestore/qlever/entrypoint.sh](triplestore/qlever/README.md), which builds an empty index on
 first start and persists updates. Any store implementing the same protocols works:
-`articulorum.triplestore.service-url`, `sparql-path`, `graph-store-path`, `access-token`.
+`articulorium.triplestore.service-url`, `sparql-path`, `graph-store-path`, `access-token`.
 
 ## Building and testing
 
@@ -367,7 +367,7 @@ Every service has a `native` profile (Spring AOT + GraalVM Native Build Tools).
 mvn -Pnative -pl platform -am package -DskipTests      # -> platform/target/platform
 
 # with Docker only
-docker build -f Dockerfile.native --build-arg MODULE=gateway -t articulorum/gateway:native .
+docker build -f Dockerfile.native --build-arg MODULE=gateway -t articulorium/gateway:native .
 
 # the whole stack: build the images one at a time (each needs ~10 GB), then start it
 docker compose -f docker-compose.yml -f docker-compose.native.yml build gateway

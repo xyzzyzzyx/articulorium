@@ -1,8 +1,8 @@
 {
-  "name": "articulorum-e2e",
+  "name": "articulorium-e2e",
   "version": "1.0.0",
   "private": true,
-  "description": "Cypress end-to-end tests of the Articulorum user interface against the running stack",
+  "description": "Cypress end-to-end tests of the Articulorium user interface against the running stack",
   "scripts": {
     "test": "cypress run",
     "open": "cypress open",

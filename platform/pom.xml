@@ -15,7 +15,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.articulorum</groupId>
+    <groupId>com.articulorium</groupId>
     <artifactId>parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
@@ -23,7 +23,7 @@
   <artifactId>platform</artifactId>
   <packaging>jar</packaging>
 
-  <name>Articulorum Linked Data Platform Module</name>
+  <name>Articulorium Linked Data Platform Module</name>
   <description>W3C LDP 1.0 server with an OCFL storage layer on S3 or the file system.</description>
 
   <dependencies>
@@ -123,14 +123,14 @@
       <artifactId>url-connection-client</artifactId>
     </dependency>
 
-    <!-- Articulorum -->
+    <!-- Articulorium -->
     <dependency>
-      <groupId>com.articulorum</groupId>
+      <groupId>com.articulorium</groupId>
       <artifactId>domain</artifactId>
     </dependency>
 
     <dependency>
-      <groupId>com.articulorum</groupId>
+      <groupId>com.articulorium</groupId>
       <artifactId>event</artifactId>
     </dependency>
 

@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 #
-# JVM image for one Articulorum service.
+# JVM image for one Articulorium service.
 #
-#   docker build --build-arg MODULE=platform -t articulorum/platform .
+#   docker build --build-arg MODULE=platform -t articulorium/platform .
 #
 # The build context is the repository root because every service depends on the shared domain
 # and event modules. Maven's local repository is kept in a BuildKit cache mount, so building
@@ -22,16 +22,16 @@ RUN --mount=type=cache,target=/root/.m2 \
 
 FROM eclipse-temurin:25-jre
 ARG MODULE
-LABEL org.opencontainers.image.title="articulorum-${MODULE}" \
+LABEL org.opencontainers.image.title="articulorium-${MODULE}" \
       org.opencontainers.image.source="https://github.com/xyzzyzzyx/articulorium"
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl \
  && rm -rf /var/lib/apt/lists/* \
- && useradd --system --uid 10001 --home-dir /app articulorum
+ && useradd --system --uid 10001 --home-dir /app articulorium
 WORKDIR /app
 COPY --from=build /workspace/app.jar /app/app.jar
-RUN mkdir -p /app/data && chown -R articulorum /app
-USER articulorum
+RUN mkdir -p /app/data && chown -R articulorium /app
+USER articulorium
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
 # 9000: service API, 8000: actuator (health)
 EXPOSE 9000 8000

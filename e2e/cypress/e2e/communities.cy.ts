@@ -62,6 +62,6 @@ describe('Communities', () => {
   it('is stored as plain LDP resources', () => {
     cy.request({ url: `${PLATFORM}communities`, headers: { Accept: 'application/n-triples' } })
       .its('body')
-      .should('contain', 'https://articulorum.org/ns/repository#CommunityRoot');
+      .should('contain', 'https://articulorium.org/ns/repository#CommunityRoot');
   });
 });

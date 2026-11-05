@@ -21,7 +21,7 @@ export interface UiConfig {
 /** Settings used when `api/config` cannot be loaded (for example `ng serve` without a backend). */
 export const FALLBACK_CONFIG: Required<UiConfig> = {
   platformUrl: '../platform/',
-  title: 'Articulorum',
+  title: 'Articulorium',
   apiDocsUrl: '../swagger-ui.html',
   topologyUrl: '../topology/',
   transformUrl: '../transform/',

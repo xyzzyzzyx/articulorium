@@ -1,4 +1,4 @@
-# Articulorum end-to-end tests
+# Articulorium end-to-end tests
 
 [Cypress](https://www.cypress.io/) tests that drive the user interface in a real browser against
 the running docker compose stack, through the gateway, exactly as a user would.

@@ -1,4 +1,4 @@
-# Articulorum gateway: public entry point routing to Consul-registered services.
+# Articulorium gateway: public entry point routing to Consul-registered services.
 #
 #   /, /ui            redirect to the user interface (/ui/)
 #   /ui/**            service (Angular UI and its API)
@@ -62,7 +62,7 @@ spring:
         health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
         health-check-interval: 15s
         instance-id: ${spring.application.name}:${random.value}
-        service-name: articulorum-${spring.application.name}
+        service-name: articulorium-${spring.application.name}
         prefer-ip-address: true
 
     gateway:
@@ -86,39 +86,39 @@ spring:
             - RemoveRequestHeader=X-Forwarded-Proto
             - RemoveRequestHeader=X-Forwarded-Prefix
           routes:
-            - id: articulorum-platform
-              uri: lb://articulorum-platform
+            - id: articulorium-platform
+              uri: lb://articulorium-platform
               predicates:
                 - Path=/platform,/platform/**
               filters:
                 - StripPrefix=1
-            - id: articulorum-transform
-              uri: lb://articulorum-transform
+            - id: articulorium-transform
+              uri: lb://articulorium-transform
               predicates:
                 - Path=/transform,/transform/**
               filters:
                 - StripPrefix=1
-            - id: articulorum-topology
-              uri: lb://articulorum-topology
+            - id: articulorium-topology
+              uri: lb://articulorium-topology
               predicates:
                 - Path=/topology,/topology/**
               filters:
                 - StripPrefix=1
             # /ui is redirected here (relative to the gateway's address): the service's own
             # context-root redirect would point browsers at the service's internal address
-            - id: articulorum-ui-slash
+            - id: articulorium-ui-slash
               uri: no://op
               predicates:
                 - Path=/ui
               filters:
                 - RedirectTo=302, /ui/
             # the service runs under the /ui context path itself: forward the path unchanged
-            - id: articulorum-service
-              uri: lb://articulorum-service
+            - id: articulorium-service
+              uri: lb://articulorium-service
               predicates:
                 - Path=/ui/**
             # the bare root opens the user interface
-            - id: articulorum-root
+            - id: articulorium-root
               uri: no://op
               predicates:
                 - Path=/

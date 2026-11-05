@@ -14,8 +14,8 @@ The gateway serves the service under `/transform/`.
 
 The built-in `field-mapping` transformer maps RDF property paths to typed fields
 ([field-mappings.yml](src/main/resources/transform/field-mappings.yml)). Add one by contributing a
-Spring bean implementing `com.articulorum.transform.spi.Transformer` and listing its name in
-`articulorum.transform.transformers`. `POST /transformers/<name>/preview?iri=…` runs one on a posted
+Spring bean implementing `com.articulorium.transform.spi.Transformer` and listing its name in
+`articulorium.transform.transformers`. `POST /transformers/<name>/preview?iri=…` runs one on a posted
 RDF document without publishing anything.
 
 ## IIIF
@@ -48,9 +48,9 @@ Documents carry `Access-Control-Allow-Origin: *` for viewers on other origins. T
 is read with `X-Forwarded-*` headers describing the caller's public platform URL, so every IRI in
 the export is the public one.
 
-| Setting (`articulorum.iiif.*`) | Default                        | Meaning                                       |
+| Setting (`articulorium.iiif.*`) | Default                        | Meaning                                       |
 |--------------------------------|--------------------------------|-----------------------------------------------|
-| `platform-url`                 | `http://articulorum-platform/` | where the service reads the platform          |
+| `platform-url`                 | `http://articulorium-platform/` | where the service reads the platform          |
 | `load-balanced`                | `true`                         | resolve the host as a Consul service name     |
 | `platform-public-url`          | `../platform/`                 | the platform as clients see it, relative to this service's public base |
 | `ui-public-url`                | `../ui/`                       | the user interface as clients see it          |

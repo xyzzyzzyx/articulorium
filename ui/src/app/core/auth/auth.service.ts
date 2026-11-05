@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 
 /** Key under which the token is kept for the browser tab's session. */
-export const TOKEN_KEY = 'articulorum.token';
+export const TOKEN_KEY = 'articulorium.token';
 
 /**
  * The credentials the user interface presents: a Consul ACL token entered by the user, sent as

@@ -48,10 +48,10 @@ export const BINARY = {
   filename: 'http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#filename',
 } as const;
 
-/** Fedora's archival group class and Articulorum's link relation from members to their group. */
+/** Fedora's archival group class and Articulorium's link relation from members to their group. */
 export const ARCHIVAL_GROUP = {
   type: 'http://fedora.info/definitions/v4/repository#ArchivalGroup',
-  rel: 'https://articulorum.org/ns/repository#archivalGroup',
+  rel: 'https://articulorium.org/ns/repository#archivalGroup',
 } as const;
 
 /** Web Access Control terms. */
@@ -72,14 +72,14 @@ export const PCDM = {
   use: 'http://pcdm.org/use#',
 } as const;
 
-/** Articulorum repository terms (community structure and topology links). */
+/** Articulorium repository terms (community structure and topology links). */
 export const ART = {
-  ns: 'https://articulorum.org/ns/repository#',
-  community: 'https://articulorum.org/ns/repository#Community',
-  collection: 'https://articulorum.org/ns/repository#Collection',
-  communityRoot: 'https://articulorum.org/ns/repository#CommunityRoot',
-  topology: 'https://articulorum.org/ns/repository#topology',
-  topologyNode: 'https://articulorum.org/ns/repository#topologyNode',
+  ns: 'https://articulorium.org/ns/repository#',
+  community: 'https://articulorium.org/ns/repository#Community',
+  collection: 'https://articulorium.org/ns/repository#Collection',
+  communityRoot: 'https://articulorium.org/ns/repository#CommunityRoot',
+  topology: 'https://articulorium.org/ns/repository#topology',
+  topologyNode: 'https://articulorium.org/ns/repository#topologyNode',
 } as const;
 
 /** Dublin Core terms used by the forms. */
@@ -114,7 +114,7 @@ export const TITLE_PROPERTIES: readonly string[] = [
 /** Default namespace prefixes (prefix to namespace IRI). */
 export const DEFAULT_PREFIXES: Readonly<Record<string, string>> = {
   acl: 'http://www.w3.org/ns/auth/acl#',
-  art: 'https://articulorum.org/ns/repository#',
+  art: 'https://articulorium.org/ns/repository#',
   as: 'https://www.w3.org/ns/activitystreams#',
   bibo: 'http://purl.org/ontology/bibo/',
   dc: 'http://purl.org/dc/elements/1.1/',

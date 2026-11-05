@@ -10,7 +10,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.articulorum</groupId>
+    <groupId>com.articulorium</groupId>
     <artifactId>parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
@@ -18,7 +18,7 @@
   <artifactId>agent</artifactId>
   <packaging>jar</packaging>
 
-  <name>Articulorum Agent Module</name>
+  <name>Articulorium Agent Module</name>
   <description>Agent library.</description>
 
   <dependencies>

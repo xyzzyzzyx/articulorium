@@ -36,7 +36,7 @@ describe('Navigation', () => {
     cy.location('pathname').should('eq', '/ui/search');
     cy.get('h1').should('have.text', 'Search');
     cy.get('.ui-nav').contains('a', 'About').click();
-    cy.get('h1').should('have.text', 'About Articulorum');
+    cy.get('h1').should('have.text', 'About Articulorium');
     // the API link opens the gateway's Swagger UI, which lists every service's OpenAPI description
     cy.get('.ui-nav')
       .contains('a', 'API')

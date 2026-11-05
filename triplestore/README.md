@@ -9,7 +9,7 @@ is no longer maintained). Graphs are written with the SPARQL 1.1 Graph Store HTT
 (`PUT`/`DELETE <endpoint>?graph=<iri>`) and every request carries QLever's access token as
 `Authorization: Bearer`. docker compose runs QLever as described in [qlever/README.md](qlever/README.md).
 
-| Setting (`articulorum.triplestore.*`) | Default              | Meaning                                   |
+| Setting (`articulorium.triplestore.*`) | Default              | Meaning                                   |
 |---------------------------------------|----------------------|-------------------------------------------|
 | `service-url`                         | `http://qlever:7001` | the store                                 |
 | `sparql-path`                         | (root)               | SPARQL query/update endpoint below it     |

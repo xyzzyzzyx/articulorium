@@ -5,7 +5,7 @@
 # steps is written "a:p / b:q") and a type: string, uri, dateTime, integer, decimal or boolean.
 # The document identifier ("id") is always the resource IRI and is not configured here.
 #
-# Point articulorum.transform.field-mappings at another file (file:/config/fields.yml) to change it.
+# Point articulorium.transform.field-mappings at another file (file:/config/fields.yml) to change it.
 
 prefixes:
   fedora: "http://fedora.info/definitions/v4/repository#"

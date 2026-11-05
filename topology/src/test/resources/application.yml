@@ -1,5 +1,5 @@
 # Test configuration: no Consul, plain HTTP client towards a mocked platform.
-articulorum:
+articulorium:
   topology:
     platform-url: http://platform.test/
     load-balanced: false

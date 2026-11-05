@@ -1,11 +1,11 @@
-# Articulorum service: user interface host and UI support API.
+# Articulorium service: user interface host and UI support API.
 
-articulorum:
+articulorium:
   ui:
     # where browsers reach the LDP root: relative to the UI (served under /ui/ by the gateway,
     # the platform under /platform/) or absolute
     platform-url: ../platform/
-    title: Articulorum
+    title: Articulorium
     # the gateway's Swagger UI, which lists the OpenAPI description of every service
     api-docs-url: ../swagger-ui.html
     # topology service (PCDM structures) and transform service (IIIF exports) on the gateway
@@ -17,7 +17,7 @@ articulorum:
 logging:
   level:
     root: INFO
-    com.articulorum: INFO
+    com.articulorium: INFO
 
 management:
   endpoint:
@@ -42,7 +42,7 @@ management:
 
 info:
   application:
-    name: Articulorum service
+    name: Articulorium service
     description: User interface host and UI support API
 
 server:
@@ -86,7 +86,7 @@ spring:
         health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
         health-check-interval: 15s
         instance-id: ${spring.application.name}:${random.value}
-        service-name: articulorum-${spring.application.name}
+        service-name: articulorium-${spring.application.name}
         prefer-ip-address: true
 
   devtools:

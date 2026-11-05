@@ -1,5 +1,5 @@
 # Authorizations used when no resource on a request's path has its own access control list
-# (articulorum.webac.root-acl). <> is the root container.
+# (articulorium.webac.root-acl). <> is the root container.
 #
 # The default lets everyone do everything, so a fresh repository is usable without credentials.
 # For production, replace it, for example with read access for everyone and full access for a

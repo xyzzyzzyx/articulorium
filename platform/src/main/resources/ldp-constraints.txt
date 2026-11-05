@@ -1,4 +1,4 @@
-Articulorum Linked Data Platform - constraints on clients (W3C LDP 1.0, section 4.2.1.6)
+Articulorium Linked Data Platform - constraints on clients (W3C LDP 1.0, section 4.2.1.6)
 
 Interaction models
   * POST and PUT may request an interaction model with Link: <ldp:...>; rel="type".

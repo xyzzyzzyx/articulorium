@@ -1,4 +1,4 @@
-# QLever for Articulorum
+# QLever for Articulorium
 
 `docker compose` runs [QLever](https://github.com/ad-freiburg/qlever) (image
 `adfreiburg/qlever`) as the SPARQL store the `triplestore` service mirrors resources into.
@@ -9,11 +9,11 @@
   `qlever-data` volume.
 * Queries, SPARQL updates and the Graph Store HTTP Protocol are all served at the root:
   <http://localhost:7001/?query=SELECT%20*%20WHERE%20%7B%20GRAPH%20%3Fg%20%7B%20%3Fs%20%3Fp%20%3Fo%20%7D%20%7D%20LIMIT%2010>.
-* Changes need the access token (`QLEVER_ACCESS_TOKEN`, default `articulorum-qlever`), passed as
+* Changes need the access token (`QLEVER_ACCESS_TOKEN`, default `articulorium-qlever`), passed as
   `Authorization: Bearer <token>`. The triplestore service reads the same variable.
 
-The seed triple lives in the graph `urn:articulorum:system`, so the triplestore health check's graph
+The seed triple lives in the graph `urn:articulorium:system`, so the triplestore health check's graph
 count is one higher than the number of mirrored resources.
 
-To start over, remove the `articulorum_qlever-data` volume; the index is rebuilt on the next start
+To start over, remove the `articulorium_qlever-data` volume; the index is rebuilt on the next start
 and graphs are written again as resources change.

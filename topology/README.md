@@ -27,7 +27,7 @@ Built-in topologies ship as JSON in [`src/main/resources/topologies`](src/main/r
 | `audiovisual` | Recording object (thumbnail) → parts (preservation, access file, transcript) |
 
 Custom topologies are stored in the repository itself, one JSON document per topology at
-`/topologies/<id>` (`articulorum.topology.container`), and are validated on save (slug keys used
+`/topologies/<id>` (`articulorium.topology.container`), and are validated on save (slug keys used
 once, PCDM objects cannot contain collections, consistent counts, at most 8 levels and 100 nodes).
 Built-in topologies cannot be changed; duplicate one instead.
 
@@ -66,11 +66,11 @@ what may be created; refusals keep their status (401, 403, 404, 409).
 
 OpenAPI: `/v3/api-docs` (listed in the gateway's `/swagger-ui.html`).
 
-## Settings (`articulorum.topology.*`)
+## Settings (`articulorium.topology.*`)
 
 | Setting          | Default                          | Meaning                                         |
 |------------------|----------------------------------|-------------------------------------------------|
-| `platform-url`   | `http://articulorum-platform/`   | the platform's LDP root                         |
+| `platform-url`   | `http://articulorium-platform/`   | the platform's LDP root                         |
 | `load-balanced`  | `true`                           | resolve the host as a Consul service name       |
 | `container`      | `topologies`                     | container of custom topologies                  |
 | `max-children`   | `500`                            | largest number of children of one kind per build |
