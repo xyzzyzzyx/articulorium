@@ -1,14 +1,18 @@
 package com.articulorium.service.api;
 
 import com.articulorium.agent.Agent;
+import com.articulorium.agent.AgentRegistry;
 import com.articulorium.service.config.UiProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Configuration and agent information for the user interface.
@@ -20,7 +24,7 @@ public class UiApiController {
 
     private final UiProperties properties;
 
-    private final List<Agent> agents;
+    private final AgentRegistry agents;
 
     /**
      * Creates the controller.
@@ -28,9 +32,9 @@ public class UiApiController {
      * @param properties user interface settings
      * @param agents     the agents known to the service
      */
-    public UiApiController(final UiProperties properties, final List<Agent> agents) {
+    public UiApiController(final UiProperties properties, final AgentRegistry agents) {
         this.properties = properties;
-        this.agents = List.copyOf(agents);
+        this.agents = agents;
     }
 
     /**
@@ -52,7 +56,21 @@ public class UiApiController {
     @GetMapping("/agents")
     @Operation(operationId = "agents", summary = "List the known agents")
     public List<Agent> agents() {
-        return agents;
+        return agents.getAgents();
+    }
+
+    /**
+     * Returns one agent.
+     *
+     * @param name the name of the agent
+     * @return the agent
+     * @throws ResponseStatusException 404 when no agent has that name
+     */
+    @GetMapping("/agents/{name}")
+    @Operation(operationId = "agent", summary = "One known agent")
+    public Agent agent(@PathVariable final String name) {
+        return agents.find(name)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No such agent"));
     }
 
 }
