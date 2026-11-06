@@ -9,7 +9,8 @@ archival groups, Web Access Control), an [OCFL](https://ocfl.io/) storage layer 
 system or any S3 compatible object store (MinIO by default), PostgreSQL for resource metadata, and
 an Angular user interface at feature parity with the Fedora Commons web UI.
 
-On top of plain LDP, Articulorium offers digital library structures: communities, sub-communities
+On top of plain LDP, Articulorium offers academic profiles described with the VIVO ontology and
+digital library structures: communities, sub-communities
 and collections; PCDM *topologies* (Book, Newspaper, Journal, Postcards, ... and custom ones) that
 build and navigate the resources of a digital object; IIIF Presentation 3.0 export of those
 structures; [COAR Notify](https://coar-notify.net/) inboxes for every container; and an
@@ -63,7 +64,7 @@ docker compose up --build
 Then open <http://localhost:8000/> in a browser for the user interface: browse and search the
 repository, create containers and archival groups, upload files, edit properties with SPARQL
 Update, create and view versions, manage permissions, build community structures and PCDM
-topologies, read and send notifications and open IIIF manifests.
+topologies, create and edit academic profiles (VIVO), read and send notifications and open IIIF manifests.
 <http://localhost:8000/platform/> is the LDP root itself, serving Turtle (default) or any other
 RDF syntax to RDF clients and a simple HTML view to browsers.
 
@@ -327,6 +328,34 @@ The platform creates `/communities` (`articulorium.ldp.communities-path`, typed
 Everything is plain LDP, so it can be created with any LDP client; the UI's **Communities** page
 navigates the structure, creates communities, sub-communities and collections, and builds items
 in collections from topologies.
+
+## Academic profiles (VIVO)
+
+The platform creates `/profiles` (`articulorium.ldp.profiles-path`, typed `art:ProfileRoot`) on
+start-up. Each academic profile is one basic container below it, described with the
+[VIVO ontology](https://wiki.lyrasis.org/display/VIVODOC/VIVO+Ontology) (`vivo:` and `obo:` are
+registered prefixes): the resource itself is the `foaf:Person` (optionally `vivo:FacultyMember`,
+`vivo:NonFacultyAcademic`, `vivo:EmeritusProfessor`, `vivo:Librarian`, `vivo:Student` or
+`vivo:NonAcademic`), and every individual VIVO relates it to is a hash IRI of the profile:
+
+| Part                | Modelled as                                                                     |
+|---------------------|---------------------------------------------------------------------------------|
+| Name, title, email, telephone, websites | `obo:ARG_2000028` → `<#vcard>` (`vcard:Individual`) with `vcard:Name` (`vcard:givenName`, `vivo:middleName`, `vcard:familyName`), `vcard:Title`, `vcard:Email`, `vcard:Telephone`, ranked `vcard:URL`s; `rdfs:label` is "Family, Given" |
+| Overview, ORCID iD, keywords | `vivo:overview`, `vivo:orcidId <https://orcid.org/…>`, `vivo:freetextKeyword` |
+| Research areas      | `vivo:hasResearchArea` → `skos:Concept`s with an `rdfs:label`                   |
+| Positions           | `vivo:relatedBy` → `vivo:FacultyPosition` (or another `vivo:Position`) relating the person and a `foaf:Organization`, with a `vivo:DateTimeInterval` of year-precision `vivo:DateTimeValue`s |
+| Education           | `obo:RO_0000056` → `vivo:EducationalProcess` (`vivo:majorField`, the organization as participant, end year) whose output is a `vivo:AwardedDegree` |
+| Publications        | `vivo:relatedBy` → ranked `vivo:Authorship` relating the person and a `bibo:Document` (`bibo:AcademicArticle`, `bibo:Book`, ...) with `bibo:doi`, a publication year and a `vivo:hasPublicationVenue` |
+
+The UI's **Profiles** page lists them; a profile page shows one and its editor creates and edits
+them with validation (required names, email and telephone formats, ORCID check digit, web
+addresses, four-digit years with end not before start, DOIs). A profile is saved as a whole: a
+`POST` in the profile container, then `PUT` with `If-Match`, so a profile changed by someone else
+after it was opened is never overwritten (412). The editor owns the parts in the table and
+regenerates them on save; any other statement (other properties of the person, relationships to
+resources elsewhere, related individuals of other kinds) is kept as it is. Being plain LDP, profiles
+are versioned, access controlled, indexed (`rdfs:label`) and mirrored into the SPARQL store like
+any other resource.
 
 ## Topologies (PCDM structures)
 

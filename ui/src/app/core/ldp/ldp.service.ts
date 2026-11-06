@@ -185,6 +185,24 @@ export class LdpService {
   }
 
   /**
+   * Replaces the client-managed triples of an RDF source (`PUT` with Turtle). The interaction
+   * model and server-managed triples are kept by the platform.
+   *
+   * @param path - the resource path
+   * @param turtle - the new description; `<>` is the resource and `<#x>` its hash IRIs
+   * @param etag - the entity tag the replacement is based on, sent as `If-Match`; a resource
+   *   changed since then is refused (412)
+   * @returns completes when stored
+   */
+  replace(path: string, turtle: string, etag?: string): Observable<void> {
+    let headers = new HttpHeaders().set('Content-Type', 'text/turtle');
+    if (etag) {
+      headers = headers.set('If-Match', etag);
+    }
+    return this.http.put(this.url(path), turtle, { headers, responseType: 'text' }).pipe(map(() => undefined));
+  }
+
+  /**
    * Deletes a resource (containers recursively).
    *
    * @param path - the resource path

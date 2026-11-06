@@ -32,4 +32,10 @@ public class LdpProperties {
      */
     private String communitiesPath = "communities";
 
+    /**
+     * Path of the container holding the academic profiles (VIVO), created on start-up (typed
+     * {@code art:ProfileRoot}). Empty to create none.
+     */
+    private String profilesPath = "profiles";
+
 }

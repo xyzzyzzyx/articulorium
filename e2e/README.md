@@ -47,6 +47,7 @@ open` for the interactive runner. `CYPRESS_BASE_URL` points the tests elsewhere.
 | `authentication.cy.ts` | signing in with Keycloak (authorization code flow with PKCE), the agent recorded as creator, the session surviving a reload, signing out, rejected foreign tokens, the issuer on the gateway |
 | `permissions.cy.ts` | effective access, granting and revoking on the Permissions page, enforcement of ACLs |
 | `communities.cy.ts` | communities, sub-communities and collections; building a book from a topology, adding pages and metadata |
+| `profiles.cy.ts`    | academic profiles (VIVO): validation feedback, creating with positions, education and publications, the stored VIVO RDF, shown the same after a reload, editing, deleting, refusing to overwrite a concurrent change |
 | `topologies.cy.ts`  | built-in topologies, duplicating, editing and deleting a custom one, building from the topology aside |
 | `notifications.cy.ts` | COAR Notify inbox listing and details, sending with recorded delivery failures, invalid notifications |
 | `iiif.cy.ts`        | IIIF Manifest of a book (image uploaded through the topology aside) and Collection of the communities |

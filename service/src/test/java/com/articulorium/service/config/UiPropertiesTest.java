@@ -21,6 +21,14 @@ class UiPropertiesTest {
         assertThat(properties.topologyUrl()).isEqualTo("../topology/");
         assertThat(properties.transformUrl()).isEqualTo("../transform/");
         assertThat(properties.communitiesPath()).isEqualTo("communities");
+        assertThat(properties.profilesPath()).isEqualTo("profiles");
+    }
+
+    @Test
+    void keepsAConfiguredProfileContainer() {
+        final UiProperties properties =
+            new UiProperties(null, null, null, null, null, null, " people ", null);
+        assertThat(properties.profilesPath()).isEqualTo("people");
     }
 
     @Test

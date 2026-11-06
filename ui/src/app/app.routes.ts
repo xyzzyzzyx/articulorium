@@ -60,6 +60,26 @@ export const routes: Routes = [
     loadComponent: () => import('./communities/communities-page.component').then((m) => m.CommunitiesPageComponent),
   },
   {
+    path: 'profiles',
+    title: 'route.profiles',
+    loadComponent: () => import('./profiles/profile-list-page.component').then((m) => m.ProfileListPageComponent),
+  },
+  {
+    path: 'profiles/new',
+    title: 'route.newProfile',
+    loadComponent: () => import('./profiles/profile-editor-page.component').then((m) => m.ProfileEditorPageComponent),
+  },
+  {
+    path: 'profiles/:id',
+    title: 'route.profile',
+    loadComponent: () => import('./profiles/profile-page.component').then((m) => m.ProfilePageComponent),
+  },
+  {
+    path: 'profiles/:id/edit',
+    title: 'route.editProfile',
+    loadComponent: () => import('./profiles/profile-editor-page.component').then((m) => m.ProfileEditorPageComponent),
+  },
+  {
     path: 'topologies',
     title: 'route.topologies',
     loadComponent: () => import('./topology/topology-list-page.component').then((m) => m.TopologyListPageComponent),

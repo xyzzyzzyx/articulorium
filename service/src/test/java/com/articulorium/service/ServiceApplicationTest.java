@@ -86,6 +86,7 @@ class ServiceApplicationTest {
             .andExpect(jsonPath("$.topologyUrl").value("../topology/"))
             .andExpect(jsonPath("$.transformUrl").value("../transform/"))
             .andExpect(jsonPath("$.communitiesPath").value("communities"))
+            .andExpect(jsonPath("$.profilesPath").value("profiles"))
             .andExpect(jsonPath("$.auth.provider").value("oidc"))
             .andExpect(jsonPath("$.auth.oidc.authority").value("../auth/realms/articulorium"))
             .andExpect(jsonPath("$.auth.oidc.clientId").value("articulorium-ui"))

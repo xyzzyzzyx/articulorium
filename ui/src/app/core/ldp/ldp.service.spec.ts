@@ -118,6 +118,16 @@ describe('LdpService', () => {
     await patching;
   });
 
+  it('replaces RDF sources with Turtle and If-Match', async () => {
+    const replacing = firstValueFrom(service.replace('profiles/marie-curie', '<> a <http://xmlns.com/foaf/0.1/Person> .', '"7"'));
+    const request = http.expectOne({ method: 'PUT', url: `${TEST_BASE}profiles/marie-curie` });
+    expect(request.request.headers.get('Content-Type')).toBe('text/turtle');
+    expect(request.request.headers.get('If-Match')).toBe('"7"');
+    expect(request.request.body).toBe('<> a <http://xmlns.com/foaf/0.1/Person> .');
+    request.flush('', { status: 204, statusText: 'No Content' });
+    await replacing;
+  });
+
   it('replaces binaries, deletes, versions and checks fixity', async () => {
     const replacing = firstValueFrom(service.replaceBinary('a.txt', new Blob(['x']), 'text/plain'));
     http.expectOne({ method: 'PUT', url: `${TEST_BASE}a.txt` }).flush('', { status: 204, statusText: 'No Content' });

@@ -43,6 +43,9 @@ pcdmuse: http://pcdm.org/use#
 pcdmrights: http://pcdm.org/rights#
 schema: http://schema.org/
 bibo: http://purl.org/ontology/bibo/
+# VIVO ontology (academic profiles) and the OBO Relation Ontology terms VIVO uses
+vivo: http://vivoweb.org/ontology/core#
+obo: http://purl.obolibrary.org/obo/
 
 # --- Articulorium ---------------------------------------------------------------------------------
 # repository structure (communities, collections) and topology links

@@ -13,6 +13,8 @@ articulorium:
     transform-url: ../transform/
     # container of the community / sub-community / collection structure on the platform
     communities-path: communities
+    # container of the academic profiles (VIVO) on the platform
+    profiles-path: profiles
     # how users sign in: "oidc" (OpenID Connect authorization code flow with PKCE, the Keycloak
     # realm of docker compose by default), "token" (paste a token: Consul ACL tokens, see
     # docker-compose.acl.yml) or "none"

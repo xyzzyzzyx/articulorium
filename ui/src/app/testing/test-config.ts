@@ -34,6 +34,7 @@ export function provideTestConfig(auth: AuthConfig = TEST_AUTH): Provider {
       topologyBase: () => TEST_TOPOLOGY,
       transformBase: () => TEST_TRANSFORM,
       communitiesPath: () => 'communities',
+      profilesPath: () => 'profiles',
       auth: () => auth,
       load: () => Promise.resolve(),
     } satisfies Partial<ConfigService>,
