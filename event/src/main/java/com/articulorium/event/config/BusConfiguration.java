@@ -1,51 +1,29 @@
 package com.articulorium.event.config;
 
 import com.articulorium.event.ResourceEvent;
-import com.articulorium.event.handler.DocumentEventHandler;
-import com.articulorium.event.handler.ResourceEventHandler;
-import com.articulorium.event.listener.DocumentEventListener;
-import com.articulorium.event.listener.ResourceEventListener;
+import com.articulorium.event.integration.EventIntegrationConfiguration;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.cloud.bus.jackson.RemoteApplicationEventScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.ImportRuntimeHints;
 
 import tools.jackson.databind.MapperFeature;
 
 /**
- * Registers the Articulorium event types with Spring Cloud Bus and the listeners that dispatch
- * received events to {@link ResourceEventHandler} and {@link DocumentEventHandler} beans.
+ * Registers the Articulorium event types with Spring Cloud Bus and imports the Spring
+ * Integration flows ({@link EventIntegrationConfiguration}) that dispatch received events to
+ * {@link com.articulorium.event.handler.ResourceEventHandler} and
+ * {@link com.articulorium.event.handler.DocumentEventHandler} beans.
  */
 @Configuration(proxyBeanMethods = false)
+@Import(EventIntegrationConfiguration.class)
 @ImportRuntimeHints(EventRuntimeHints.class)
 // registers ResourceEvent and DocumentEvent (same package) as bus payload types
 @RemoteApplicationEventScan(basePackageClasses = ResourceEvent.class)
 public class BusConfiguration {
-
-    /**
-     * Listener dispatching resource events.
-     *
-     * @param handlers the resource event handlers
-     * @return the listener
-     */
-    @Bean
-    public ResourceEventListener resourceEventListener(final ObjectProvider<ResourceEventHandler> handlers) {
-        return new ResourceEventListener(handlers);
-    }
-
-    /**
-     * Listener dispatching document events.
-     *
-     * @param handlers the document event handlers
-     * @return the listener
-     */
-    @Bean
-    public DocumentEventListener documentEventListener(final ObjectProvider<DocumentEventHandler> handlers) {
-        return new DocumentEventListener(handlers);
-    }
 
     /**
      * Lets Jackson 3 populate the final fields of

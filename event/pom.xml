@@ -4,8 +4,9 @@
 
   The platform publishes ResourceEvents when LDP resources change; transform consumes them and
   publishes DocumentEvents; index and triplestore consume those events to keep Solr and the
-  SPARQL store in sync. The module also contributes the Kafka health indicator every bus
-  participant reports through Spring Boot Actuator.
+  SPARQL store in sync. Received events are dispatched to the services' handlers through Spring
+  Integration message flows (com.articulorium.event.integration). The module also contributes
+  the Kafka health indicator every bus participant reports through Spring Boot Actuator.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -23,7 +24,7 @@
   <packaging>jar</packaging>
 
   <name>Articulorium Event Module</name>
-  <description>Spring Cloud Bus events and listener infrastructure.</description>
+  <description>Spring Cloud Bus events and their Spring Integration dispatch flows.</description>
 
   <dependencies>
 
@@ -58,6 +59,18 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
+    </dependency>
+
+    <!-- Spring Integration (Enterprise Integration Patterns) dispatches received bus events -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-integration</artifactId>
+    </dependency>
+
+    <!-- ApplicationEventListeningMessageProducer: the bus delivers events as application events -->
+    <dependency>
+      <groupId>org.springframework.integration</groupId>
+      <artifactId>spring-integration-event</artifactId>
     </dependency>
 
     <dependency>

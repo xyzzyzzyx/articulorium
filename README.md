@@ -21,7 +21,7 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 | Module        | Role                                                                                   |
 |---------------|----------------------------------------------------------------------------------------|
 | `domain`      | LDP resource model, vocabularies, IRI and N-Triples helpers (no framework dependencies) |
-| `event`       | Spring Cloud Bus events (`ResourceEvent`, `DocumentEvent`) and listener plumbing        |
+| `event`       | Spring Cloud Bus events (`ResourceEvent`, `DocumentEvent`) and the Spring Integration flows that dispatch them ([Event dispatch](#event-dispatch-spring-integration)) |
 | `activitystreams` | W3C Activity Streams 2.0 types, object model, JSON serialization and validation, plain Java + Jackson ([activitystreams/README.md](activitystreams/README.md)) |
 | `agent`       | Agent library: `Agent` and `AgentRegistry`, plain Java ([agent/README.md](agent/README.md)) |
 | `agent-spring-boot-starter` | Spring Boot auto-configuration for the agent library: `AgentRegistry` bean, `articulorium.agents.*` settings, `/actuator/info` ([README](agent-spring-boot-starter/README.md)) |
@@ -526,6 +526,34 @@ Translations live next to the code that uses them, one file per locale:
 
 No other module changes: the locale menu, negotiation, document direction and formatting follow
 the manifest.
+
+## Event dispatch (Spring Integration)
+
+Services that consume bus events (transform, index, triplestore) receive them through
+[Spring Integration](https://spring.io/projects/spring-integration) message flows defined once in
+the `event` module (`com.articulorium.event.integration`), built from Enterprise Integration
+Patterns:
+
+```
+bus / publishEvent ─> channel adapter ─> message filter ─> resourceEventChannel ─┬─> ResourceEventHandler beans (in order)
+                                                         └> documentEventChannel ─┴─> DocumentEventHandler beans (in order)
+                                                                    handler failures ─> eventHandlerErrorChannel (dead letters)
+```
+
+* An `ApplicationEventListeningMessageProducer` per event type turns each `ResourceEvent` /
+  `DocumentEvent` (Spring Cloud Bus delivers remote events as application events) into a message.
+* A filter drops incomplete events (no resource / document id, or no action) with a warning.
+* Each event type has a publish-subscribe channel (`EventChannels`). Every `ResourceEventHandler`
+  and `DocumentEventHandler` bean is subscribed in `Ordered` order; further components can
+  subscribe to the same channels by name.
+* A failing handler is logged and its event sent as an `ErrorMessage` to
+  `eventHandlerErrorChannel`; the other handlers still run and the failure never reaches the bus
+  consumer. The channel has no subscribers by default: subscribe to it to park or retry events.
+* Dispatch is synchronous on the bus consumer thread, as with plain application listeners.
+
+Channels and endpoints report Micrometer metrics (`spring.integration.*` under
+`/actuator/metrics`), and `/actuator/integrationgraph` on the management port of transform, index
+and triplestore shows the flows.
 
 ## Agents
 
