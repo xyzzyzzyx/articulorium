@@ -20,6 +20,7 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 |---------------|----------------------------------------------------------------------------------------|
 | `domain`      | LDP resource model, vocabularies, IRI and N-Triples helpers (no framework dependencies) |
 | `event`       | Spring Cloud Bus events (`ResourceEvent`, `DocumentEvent`) and listener plumbing        |
+| `activitystreams` | W3C Activity Streams 2.0 types, object model, JSON serialization and validation, plain Java + Jackson ([activitystreams/README.md](activitystreams/README.md)) |
 | `agent`       | Agent library: `Agent` and `AgentRegistry`, plain Java ([agent/README.md](agent/README.md)) |
 | `agent-spring-boot-starter` | Spring Boot auto-configuration for the agent library: `AgentRegistry` bean, `articulorium.agents.*` settings, `/actuator/info` ([README](agent-spring-boot-starter/README.md)) |
 | `ui`          | Angular single page application, packaged as static resources ([ui/README.md](ui/README.md)) |
@@ -152,7 +153,7 @@ curl -i -X DELETE $P/books
 | `GET <file>/fcr:fixity`               | Re-hash the stored bytes and validate the OCFL object      |
 | `GET /fcr:search?condition=…`         | Search on `fedora_id`, `created`, `modified`, `content_size`, `mime_type`, `rdf_type` with `=`, `<`, `<=`, `>`, `>=` and `*` wildcards; `max_results`, `offset`, `order_by`, `order`; hits the agent may not read are left out |
 | `GET/PUT/PATCH/DELETE <r>/fcr:acl`    | The resource's WebAC access control list (see [Access control](#access-control-webac)) |
-| `GET/POST <container>/fcr:inbox`      | The container's COAR Notify inbox; `GET <container>/fcr:inbox/<id>` one notification |
+| `GET/POST <container>/fcr:inbox`      | The container's COAR Notify inbox; `GET <container>/fcr:inbox/<id>` one notification (`application/ld+json`, or `application/activity+json` on request) |
 | `GET/POST <container>/fcr:outbox`     | Notifications sent on behalf of the container; POST sends one |
 | `GET /.well-known/webac?resource=<r>` | The requesting agent, its access modes on `<r>` and (with `acl:Control`) the effective authorizations |
 
@@ -261,14 +262,25 @@ exportable resource's export ("IIIF").
 
 Every container (community, collection, ...) has a [Linked Data Notifications](https://www.w3.org/TR/ldn/)
 inbox advertised with `Link: <container/fcr:inbox>; rel="http://www.w3.org/ns/ldp#inbox"`. POSTing
-a COAR Notify notification (`application/ld+json`; an Activity Streams activity such as `Offer` or
-`Announce` with a COAR Notify type such as `coar-notify:ReviewAction`, `origin`, `target` and
-`object`) stores it after validation (400 otherwise); GET lists the inbox (JSON summaries for
+a COAR Notify notification (`application/ld+json` or `application/activity+json`; an Activity
+Streams activity such as `Offer` or `Announce` with a COAR Notify type such as
+`coar-notify:ReviewAction`, `origin`, `target` and `object`) stores it after validation; GET lists
+the inbox (JSON summaries for
 `application/json`, an `ldp:contains` listing for RDF). `POST <container>/fcr:outbox` sends a
 notification on behalf of the container, filling in `id`, contexts and `origin`, and records
 whether the target inbox accepted it. The UI's **Notifications** page of a container shows both and
 sends notifications for the common patterns (request review or endorsement, announce review,
 endorsement, relationship or ingest, accept, reject, undo).
+
+Notifications are checked twice: against COAR Notify (contexts, `id`, activity type, `origin` and
+`target` services, `object`) and against [Activity Streams 2.0](https://www.w3.org/TR/activitystreams-core/)
+with the [activitystreams](activitystreams/README.md) library (IRIs, date-times, the ranges of
+vocabulary properties, nested objects). Problems are answered with 400 and one line per problem
+(`published must be an RFC 3339 date-time with a time zone offset`); malformed JSON, duplicate
+property names and non-object documents are 400 as well, other media types 415 with `Accept-Post`.
+As `application/activity+json` the Activity Streams context is implied (Activity Streams 2.0,
+section 2.1) and stated, first, in the stored notification; `application/ld+json` documents must
+state it.
 
 ## Database
 

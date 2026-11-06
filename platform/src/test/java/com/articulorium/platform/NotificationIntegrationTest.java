@@ -3,6 +3,7 @@ package com.articulorium.platform;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -30,6 +31,8 @@ class NotificationIntegrationTest {
     private static final String BASE = "http://localhost";
 
     private static final String JSON_LD = "application/ld+json";
+
+    private static final String ACTIVITY_JSON = "application/activity+json";
 
     @Autowired
     private MockMvc mvc;
@@ -97,6 +100,63 @@ class NotificationIntegrationTest {
         mvc.perform(post(file + "/fcr:inbox").contentType(JSON_LD).content(announceReview(BASE + file)))
             .andExpect(status().isMethodNotAllowed());
         mvc.perform(get(container + "/fcr:inbox/" + UUID.randomUUID())).andExpect(status().isNotFound());
+    }
+
+    /**
+     * Activity Streams documents are accepted as application/activity+json, whose Activity Streams
+     * context is implied and stated when stored, and served in either media type.
+     */
+    @Test
+    void inboxesSpeakActivityJson() throws Exception {
+        final String container = container();
+        final String notification = announceReview(BASE + container)
+            .replace("\"https://www.w3.org/ns/activitystreams\", ", "");
+        final String location = mvc.perform(post(container + "/fcr:inbox").contentType(ACTIVITY_JSON)
+                .content(notification))
+            .andExpect(status().isCreated())
+            .andReturn().getResponse().getHeader(HttpHeaders.LOCATION).substring(BASE.length());
+
+        mvc.perform(get(location))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, containsString(JSON_LD)))
+            .andExpect(jsonPath("$['@context'][0]").value("https://www.w3.org/ns/activitystreams"))
+            .andExpect(jsonPath("$['@context'][1]").value("https://coar-repositories.org/notify"));
+        mvc.perform(get(location).accept(ACTIVITY_JSON + ", " + JSON_LD + ";q=0.5"))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, containsString(ACTIVITY_JSON)))
+            .andExpect(header().string(HttpHeaders.VARY, containsString(HttpHeaders.ACCEPT)));
+        mvc.perform(get(location).accept(JSON_LD + ", " + ACTIVITY_JSON + ";q=0.5"))
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, containsString(JSON_LD)));
+
+        // as application/ld+json, the Activity Streams context must be stated
+        mvc.perform(post(container + "/fcr:inbox").contentType(JSON_LD).content(notification))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string(containsString("@context must include https://www.w3.org/ns/activitystreams")));
+        mvc.perform(options(container + "/fcr:inbox"))
+            .andExpect(header().string("Accept-Post", JSON_LD + ", " + ACTIVITY_JSON));
+    }
+
+    /** Malformed and invalid Activity Streams documents are rejected predictably. */
+    @Test
+    void malformedActivityStreamsAreRejected() throws Exception {
+        final String container = container();
+        final String notification = announceReview(BASE + container);
+        mvc.perform(post(container + "/fcr:inbox").contentType("text/plain").content(notification))
+            .andExpect(status().isUnsupportedMediaType())
+            .andExpect(header().string("Accept-Post", JSON_LD + ", " + ACTIVITY_JSON));
+        mvc.perform(post(container + "/fcr:inbox").contentType(JSON_LD)
+                .content(notification.replace("\"type\": [\"Announce\"", "\"id\": \"urn:x\", \"type\": [\"Announce\"")))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string(containsString("not valid JSON")));
+        mvc.perform(post(container + "/fcr:inbox").contentType(JSON_LD).content("[]"))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string(containsString("must be a JSON object")));
+        mvc.perform(post(container + "/fcr:inbox").contentType(JSON_LD)
+                .content(notification.replace("\"actor\": {", "\"published\": \"today\", \"actor\": {")))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string(containsString("published must be an RFC 3339 date-time")));
+        mvc.perform(get(container + "/fcr:inbox").accept(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.notifications.length()").value(0));
     }
 
     /** Sending fills in the origin and records failed deliveries. */

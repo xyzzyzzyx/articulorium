@@ -1,0 +1,10 @@
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "type": "Video",
+  "name": "Puppy Plays With Ball",
+  "duration": "PT2H",
+  "url": [
+    "http://example.org/video.mkv",
+    {"type": "Link", "href": "http://example.org/video.mp4", "mediaType": "video/mp4", "hreflang": "en", "rel": ["canonical", "preview"], "width": 640, "height": 480}
+  ]
+}

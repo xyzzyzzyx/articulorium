@@ -2,11 +2,16 @@ package com.articulorium.platform.notify;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.articulorium.activitystreams.ActivityStreams;
+import com.articulorium.activitystreams.ActivityStreamsException;
+import com.articulorium.activitystreams.ActivityStreamsJson;
+import com.articulorium.activitystreams.AsObject;
 import com.articulorium.domain.LdpResource;
 import com.articulorium.domain.rdf.Iris;
 import com.articulorium.domain.rdf.ResourcePaths;
@@ -28,8 +33,6 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import lombok.extern.slf4j.Slf4j;
-import tools.jackson.core.JacksonException;
-import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -42,18 +45,20 @@ import tools.jackson.databind.json.JsonMapper;
  * by POSTing them to {@code <container>/fcr:outbox}: the platform fills in a missing {@code id}
  * and {@code origin} (the container as a service with its inbox), delivers the notification to
  * {@code target.inbox} and records the outcome.</p>
+ *
+ * <p>Notifications are Activity Streams 2.0 documents, accepted as {@code application/ld+json}
+ * or {@code application/activity+json} (whose Activity Streams context is implied, and added
+ * when stored).</p>
  */
 @Slf4j
 @Service
 public class NotificationService implements ResourceDeletionListener {
 
-    private static final TypeReference<Map<String, Object>> JSON_OBJECT = new TypeReference<>() { };
-
     private final NotificationRepository notifications;
 
     private final LdpResourceRepository resources;
 
-    private final JsonMapper json;
+    private final ActivityStreamsJson json;
 
     private final RestClient client;
 
@@ -69,29 +74,33 @@ public class NotificationService implements ResourceDeletionListener {
             final JsonMapper json, final RestClient.Builder builder) {
         this.notifications = notifications;
         this.resources = resources;
-        this.json = json;
+        this.json = new ActivityStreamsJson(json);
         this.client = builder.build();
     }
 
     /**
      * Receives a notification into a container's inbox.
      *
-     * @param path    the container path
-     * @param content the notification (JSON-LD)
-     * @param agent   who posted it
+     * @param path      the container path
+     * @param content   the notification (JSON-LD)
+     * @param mediaType its media type: with {@code application/activity+json} the Activity
+     *                  Streams context is implied; may be {@code null}
+     * @param agent     who posted it
      * @return the stored notification
      * @throws BadRequestException when the notification is not valid COAR Notify
      */
     @Transactional
-    public NotificationEntity receive(final String path, final byte[] content, final String agent) {
+    public NotificationEntity receive(final String path, final byte[] content, final String mediaType,
+            final String agent) {
         final LdpResource container = container(path);
-        final Map<String, Object> notification = parse(content);
-        final List<String> errors = CoarNotify.validate(notification);
+        final boolean contextImplied = ActivityStreams.isActivityJson(mediaType);
+        final AsObject notification = parse(content);
+        final List<String> errors = CoarNotify.validate(notification, contextImplied);
         if (!errors.isEmpty()) {
             throw new BadRequestException("Not a valid COAR Notify notification: " + String.join("; ", errors), null);
         }
-        final NotificationEntity entity = toEntity(container.getPath(), notification,
-            NotificationEntity.Direction.INBOUND, agent);
+        final NotificationEntity entity = toEntity(container.getPath(),
+            contextImplied ? withAsContext(notification) : notification, NotificationEntity.Direction.INBOUND, agent);
         entity.setStatus(NotificationEntity.Status.RECEIVED);
         notifications.save(entity);
         log.info("Received {} notification {} in /{}", entity.getPattern(), entity.getNotificationId(),
@@ -102,25 +111,32 @@ public class NotificationService implements ResourceDeletionListener {
     /**
      * Sends a notification on behalf of a container.
      *
-     * @param path    the container path
-     * @param content the notification (JSON-LD); {@code id}, {@code @context} and {@code origin} are
-     *                filled in when missing
-     * @param base    the server base (to describe the container as the origin service)
-     * @param agent   who sends it
+     * @param path      the container path
+     * @param content   the notification (JSON-LD); {@code id}, {@code @context} and {@code origin} are
+     *                  filled in when missing
+     * @param mediaType its media type: with {@code application/activity+json} the Activity
+     *                  Streams context is implied; may be {@code null}
+     * @param base      the server base (to describe the container as the origin service)
+     * @param agent     who sends it
      * @return the recorded notification, with its delivery status
      * @throws BadRequestException when the notification is not valid COAR Notify
      */
     @Transactional
-    public NotificationEntity send(final String path, final byte[] content, final String base, final String agent) {
+    public NotificationEntity send(final String path, final byte[] content, final String mediaType,
+            final String base, final String agent) {
         final LdpResource container = container(path);
-        final Map<String, Object> notification = complete(parse(content), base, container);
+        final AsObject parsed = parse(content);
+        // a stated @context replaces the default one, so it gets the implied Activity Streams context
+        final boolean addContext = ActivityStreams.isActivityJson(mediaType) && parsed.has("@context");
+        final AsObject notification = AsObject.of(complete(
+            (addContext ? withAsContext(parsed) : parsed).properties(), base, container));
         final List<String> errors = CoarNotify.validate(notification);
         if (!errors.isEmpty()) {
             throw new BadRequestException("Not a valid COAR Notify notification: " + String.join("; ", errors), null);
         }
         final NotificationEntity entity = toEntity(container.getPath(), notification,
             NotificationEntity.Direction.OUTBOUND, agent);
-        final String inbox = (String) ((Map<?, ?>) notification.get("target")).get("inbox");
+        final String inbox = notification.target().getFirst().string("inbox").orElseThrow();
         try {
             client.post()
                 .uri(inbox)
@@ -228,39 +244,53 @@ public class NotificationService implements ResourceDeletionListener {
         return resource;
     }
 
-    private Map<String, Object> parse(final byte[] content) {
+    private AsObject parse(final byte[] content) {
         if (content.length > NotificationEntity.MAX_LENGTH) {
             throw new PayloadTooLargeException(NotificationEntity.MAX_LENGTH);
         }
         try {
-            final Map<String, Object> value = json.readValue(content, JSON_OBJECT);
-            if (value == null) {
-                throw new BadRequestException("The notification must be a JSON object", null);
-            }
-            return value;
-        } catch (JacksonException e) {
-            throw new BadRequestException("The notification is not valid JSON: " + e.getOriginalMessage(), e);
+            return json.read(content);
+        } catch (ActivityStreamsException e) {
+            throw new BadRequestException("The notification " + e.getMessage(), e);
         }
     }
 
-    private NotificationEntity toEntity(final String path, final Map<String, Object> notification,
+    /**
+     * Adds the (implied) Activity Streams context to a notification's {@code @context}, first.
+     *
+     * @param notification a notification received as {@code application/activity+json}
+     * @return the notification with the Activity Streams context stated
+     */
+    static AsObject withAsContext(final AsObject notification) {
+        final List<Object> contexts = notification.context();
+        if (contexts.contains(CoarNotify.AS_CONTEXT)) {
+            return notification;
+        }
+        final List<Object> stated = new ArrayList<>();
+        stated.add(CoarNotify.AS_CONTEXT);
+        stated.addAll(contexts);
+        return notification.toBuilder().property("@context", stated.size() == 1 ? stated.getFirst() : stated)
+            .build();
+    }
+
+    private NotificationEntity toEntity(final String path, final AsObject notification,
             final NotificationEntity.Direction direction, final String agent) {
         final NotificationEntity entity = new NotificationEntity();
         entity.setId(UUID.randomUUID());
         entity.setPath(path);
         entity.setDirection(direction);
-        entity.setNotificationId(truncate(CoarNotify.idOf(notification.get("id")), 2048));
-        final var types = CoarNotify.strings(notification.get("type"));
+        entity.setNotificationId(truncate(notification.id().orElse(null), 2048));
+        final List<String> types = notification.types();
         entity.setTypes(truncate(String.join(" ", types), 1024));
         entity.setPattern(truncate(CoarNotify.pattern(types), 128));
-        entity.setOrigin(truncate(CoarNotify.idOf(notification.get("origin")), 2048));
-        entity.setTarget(truncate(CoarNotify.idOf(notification.get("target")), 2048));
-        entity.setObject(truncate(CoarNotify.idOf(notification.get("object")), 2048));
-        entity.setActor(truncate(CoarNotify.idOf(notification.get("actor")), 2048));
+        entity.setOrigin(truncate(CoarNotify.idOf(notification, "origin"), 2048));
+        entity.setTarget(truncate(CoarNotify.idOf(notification, "target"), 2048));
+        entity.setObject(truncate(CoarNotify.idOf(notification, "object"), 2048));
+        entity.setActor(truncate(CoarNotify.idOf(notification, "actor"), 2048));
         entity.setAgent(truncate(agent, 256));
         try {
-            entity.setContent(new String(json.writeValueAsBytes(notification), StandardCharsets.UTF_8));
-        } catch (JacksonException e) {
+            entity.setContent(new String(json.write(notification), StandardCharsets.UTF_8));
+        } catch (IllegalStateException e) {
             throw new LdpException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to store the notification",
                 new HttpHeaders(), e);
         }

@@ -1,0 +1,7 @@
+{
+  "@context": ["https://www.w3.org/ns/activitystreams", {"Hashtag": "https://example.org/ns#Hashtag"}],
+  "type": "Note",
+  "content": "Hello #world",
+  "tag": [{"type": "Hashtag", "href": "https://example.org/tags/world", "name": "#world"}],
+  "attributedTo": "https://example.org/users/alice"
+}
