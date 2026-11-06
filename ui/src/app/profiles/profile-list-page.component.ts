@@ -53,6 +53,11 @@ interface Listing {
     TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: `
+    .ui-profile-filter {
+      width: min(100%, 360px);
+    }
+  `,
   template: `
     <header class="ui-page-header">
       <div>
@@ -73,7 +78,7 @@ interface Listing {
     }
     @if (listing.value(); as l) {
       @if (l.entries.length > 0) {
-        <mat-form-field class="ui-profile-filter">
+        <mat-form-field class="ui-profile-filter" floatLabel="always">
           <mat-label>{{ 'profiles.filter' | translate }}</mat-label>
           <mat-icon matPrefix aria-hidden="true">search</mat-icon>
           <input matInput name="filter" [ngModel]="filter()" (ngModelChange)="filter.set($event)" />

@@ -95,6 +95,9 @@ describe('profile pages', () => {
       expect(cards[0].textContent).toContain('Professor of Physics');
       expect(cards[1].textContent).toContain('Person');
       expect(element.querySelector('.ui-new-profile')?.getAttribute('href')).toBe('/profiles/new');
+      expect(element.querySelector('.ui-profile-filter .mdc-floating-label')?.classList).toContain(
+        'mdc-floating-label--float-above',
+      );
 
       const input = element.querySelector('.ui-profile-filter input') as HTMLInputElement;
       input.value = 'ada';
