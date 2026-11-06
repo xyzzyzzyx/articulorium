@@ -1,6 +1,7 @@
 package com.articulorium.service.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
@@ -36,6 +37,33 @@ class UiPropertiesTest {
         final UiProperties properties = new UiProperties(" http://localhost:9001/ ", "Library");
         assertThat(properties.platformUrl()).isEqualTo("http://localhost:9001/");
         assertThat(properties.title()).isEqualTo("Library");
+    }
+
+    @Test
+    void signsInWithOpenIdConnectByDefault() {
+        final UiProperties properties = new UiProperties(null, null);
+        assertThat(properties.auth().provider()).isEqualTo(UiProperties.Auth.OIDC);
+        assertThat(properties.auth().oidc().authority()).isEqualTo("../auth/realms/articulorium");
+        assertThat(properties.auth().oidc().clientId()).isEqualTo("articulorium-ui");
+        assertThat(properties.auth().oidc().scope()).isEqualTo("openid profile");
+    }
+
+    @Test
+    void keepsConfiguredSignIn() {
+        final UiProperties.Auth auth = new UiProperties.Auth(" Token ",
+            new UiProperties.Oidc("https://idp.example.org/realms/x", "library", "openid"));
+        assertThat(auth.provider()).isEqualTo("token");
+        assertThat(auth.oidc().authority()).isEqualTo("https://idp.example.org/realms/x");
+        assertThat(auth.oidc().clientId()).isEqualTo("library");
+        assertThat(auth.oidc().scope()).isEqualTo("openid");
+        assertThat(new UiProperties.Auth("none", null).provider()).isEqualTo("none");
+    }
+
+    @Test
+    void rejectsUnknownProviders() {
+        assertThatThrownBy(() -> new UiProperties.Auth("saml", null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("oidc, token or none");
     }
 
 }

@@ -1,6 +1,6 @@
 import { Provider, signal } from '@angular/core';
 
-import { ConfigService, UiConfig } from '../core/config.service';
+import { AuthConfig, ConfigService, UiConfig } from '../core/config.service';
 
 /** Platform base used by the tests. */
 export const TEST_BASE = 'http://host/platform/';
@@ -11,12 +11,19 @@ export const TEST_TOPOLOGY = 'http://host/topology/';
 /** Transform service base used by the tests. */
 export const TEST_TRANSFORM = 'http://host/transform/';
 
+/** Sign-in settings used by the tests unless they pass others: a pasted token. */
+export const TEST_AUTH: AuthConfig = {
+  provider: 'token',
+  oidc: { authority: 'http://host/auth/realms/test', clientId: 'test-ui', scope: 'openid' },
+};
+
 /**
  * Provides a {@link ConfigService} with fixed settings, so tests need no `api/config` request.
  *
+ * @param auth - the sign-in settings
  * @returns the provider
  */
-export function provideTestConfig(): Provider {
+export function provideTestConfig(auth: AuthConfig = TEST_AUTH): Provider {
   const config = signal<UiConfig>({ platformUrl: TEST_BASE, title: 'Test repository' });
   return {
     provide: ConfigService,
@@ -27,6 +34,7 @@ export function provideTestConfig(): Provider {
       topologyBase: () => TEST_TOPOLOGY,
       transformBase: () => TEST_TRANSFORM,
       communitiesPath: () => 'communities',
+      auth: () => auth,
       load: () => Promise.resolve(),
     } satisfies Partial<ConfigService>,
   };

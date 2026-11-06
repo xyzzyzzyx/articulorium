@@ -1,0 +1,136 @@
+{
+  "realm": "articulorium",
+  "displayName": "Articulorium",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "realm": [
+      {
+        "name": "editors",
+        "description": "Create, change and delete resources (webac/root-acl-oidc.ttl: <info:oidc/group/editors>)"
+      },
+      {
+        "name": "administrators",
+        "description": "Also change access control lists (webac/root-acl-oidc.ttl: <info:oidc/group/administrators>)"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "articulorium-ui",
+      "name": "Articulorium user interface",
+      "description": "Public client of the Angular user interface: authorization code flow with PKCE",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://localhost:8000/ui/*",
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:8000/ui/*##http://localhost:4200/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "articulorium-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "articulorium",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "curator",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Casey",
+      "lastName": "Curator",
+      "email": "curator@articulorium.example",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "curator",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "editors"
+      ]
+    },
+    {
+      "username": "administrator",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Alex",
+      "lastName": "Administrator",
+      "email": "administrator@articulorium.example",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "administrator",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "editors",
+        "administrators"
+      ]
+    },
+    {
+      "username": "reader",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Robin",
+      "lastName": "Reader",
+      "email": "reader@articulorium.example",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "reader",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

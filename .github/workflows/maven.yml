@@ -70,6 +70,13 @@ jobs:
           curl -fsS -H 'Accept: application/json' http://localhost:8000/platform/communities/fcr:inbox | grep -q '"notifications"'
           curl -fsS http://localhost:8000/transform/iiif/communities | grep -q '"Collection"'
           docker compose exec -T triplestore curl -fsS http://localhost:8000/actuator/health | grep -q '"qlever"' 
+      - name: Smoke test the identity provider (Keycloak on the gateway) and token validation
+        run: |
+          curl -fsS http://localhost:8000/auth/realms/articulorium/.well-known/openid-configuration \
+            | grep -q '"issuer":"http://localhost:8000/auth/realms/articulorium"'
+          # a JWT the realm did not sign is rejected
+          curl -s -o /dev/null -w '%{http_code}' -H 'Authorization: Bearer eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ4In0.c2ln' \
+            http://localhost:8000/platform/ | grep -q 401
       - name: End-to-end tests (Cypress, e2e compose service)
         run: docker compose --profile e2e run --rm e2e
       - name: End-to-end screenshots

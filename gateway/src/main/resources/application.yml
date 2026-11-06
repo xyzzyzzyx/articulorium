@@ -5,6 +5,7 @@
 #   /platform/**      platform (Linked Data Platform root)
 #   /transform/**     transform (transformer preview API, IIIF Presentation exports)
 #   /topology/**      topology (PCDM topologies and their instantiation)
+#   /auth/**          the OpenID Connect provider (Keycloak in docker compose; not in Consul)
 #   /swagger-ui.html  Swagger UI for the OpenAPI descriptions of every service above
 
 logging:
@@ -104,6 +105,14 @@ spring:
                 - Path=/topology,/topology/**
               filters:
                 - StripPrefix=1
+            # The identity provider shares the gateway's origin: browsers reach the login pages, the
+            # token endpoint and the issuer identifier (http://localhost:8000/auth/realms/...) at the
+            # same address as the user interface. Keycloak runs with http-relative-path /auth, so
+            # the path is forwarded unchanged. Point it elsewhere with ARTICULORIUM_GATEWAY_AUTH_URI.
+            - id: articulorium-auth
+              uri: ${articulorium.gateway.auth-uri:http://keycloak:8080}
+              predicates:
+                - Path=/auth,/auth/**
             # /ui is redirected here (relative to the gateway's address): the service's own
             # context-root redirect would point browsers at the service's internal address
             - id: articulorium-ui-slash

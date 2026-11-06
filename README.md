@@ -24,7 +24,7 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 | `agent-spring-boot-starter` | Spring Boot auto-configuration for the agent library: `AgentRegistry` bean, `articulorium.agents.*` settings, `/actuator/info` ([README](agent-spring-boot-starter/README.md)) |
 | `ui`          | Angular single page application, packaged as static resources ([ui/README.md](ui/README.md)) |
 | `platform`    | The LDP server: RDF sources, containers, files, versions, fixity, search, OCFL storage  |
-| `gateway`     | Spring Cloud Gateway; public entry point (`/ui/**`, `/platform/**`, `/transform/**`, `/topology/**`) and one Swagger UI for all services |
+| `gateway`     | Spring Cloud Gateway; public entry point (`/ui/**`, `/platform/**`, `/transform/**`, `/topology/**`, `/auth/**` for the identity provider) and one Swagger UI for all services |
 | `service`     | Serves the UI and its support API (settings, agents from `articulorium.agents.definitions`, media type detection with Apache Tika) |
 | `transform`   | Turns resources into search documents with pluggable transformers; exports PCDM structures as IIIF ([transform/README.md](transform/README.md)) |
 | `topology`    | PCDM topologies and building their resources in the platform ([topology/README.md](topology/README.md)) |
@@ -33,6 +33,7 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 
 ```
 browser ──> gateway ──> service (UI)
+               ├─────> keycloak (/auth: OpenID Connect login, tokens)
                ├─────> topology ───────────────(LDP)──┐
                ├─────> transform (IIIF) ───────(LDP)──┤
                └─────> platform <─────────────────────┘
@@ -65,6 +66,7 @@ RDF syntax to RDF clients and a simple HTML view to browsers.
 | http://localhost:8000/ui/            | User interface                         |
 | http://localhost:8000/platform/      | LDP root through the gateway           |
 | http://localhost:8000/swagger-ui.html | Swagger UI for the platform, transform, topology and service APIs (the UI's "API" link) |
+| http://localhost:8000/auth/          | Keycloak (realm `articulorium`; admin console `/auth/admin/`, `admin` / `admin`) |
 | http://localhost:8000/topology/topologies | PCDM topologies                   |
 | http://localhost:8000/transform/iiif/communities | IIIF Collection of the community structure |
 | http://localhost:9001/               | LDP root directly on the platform      |
@@ -77,6 +79,7 @@ RDF syntax to RDF clients and a simple HTML view to browsers.
 `docker compose --profile tools up` also starts a Kafka UI on port 9091.
 `docker compose -f docker-compose.yml -f docker-compose.acl.yml up` turns on Consul ACLs and
 accepts Consul tokens as identities (see [Access control](#access-control-webac)).
+**Sign in** in the user interface logs in with Keycloak (see [Authentication](#authentication)).
 
 ### Running the platform alone
 
@@ -180,6 +183,90 @@ versioned as a unit.
   its files; deleting the group purges the object.
 * Archival groups cannot be nested, and only containers can be archival groups (409 otherwise).
 
+## Authentication
+
+Users sign in with an **OpenID Connect** provider; [Keycloak](https://www.keycloak.org/) is the
+default and runs in the compose stack. Nothing outside configuration is specific to Keycloak:
+another OpenID Connect / OAuth 2.0 provider (Entra ID, Auth0, Okta, Dex, ...) replaces it by
+changing the settings below.
+
+**Login flow.** **Sign in** in the user interface redirects to the provider's login page
+(authorization code flow with PKCE, public client `articulorium-ui`), which redirects back to the
+page sign-in started from. The UI keeps the tokens in the tab's session storage, renews the access
+token with the refresh token before it expires, and sends it as `Authorization: Bearer <jwt>` to
+the platform, topology and transform services (the topology service passes it on to the
+platform). The platform validates the token itself (signature with the issuer's key set,
+`iss`, `exp`, `aud`) and maps it to a WebAC agent: `info:oidc/agent/<preferred_username>`, with
+the realm roles and groups as `acl:agentGroup`s `info:oidc/group/<name>`. **Sign out** ends the
+session at the provider too.
+
+**Docker Compose.** `keycloak` (development mode) imports
+[keycloak/articulorium-realm.json](keycloak/articulorium-realm.json) on a fresh start and is
+reached through the gateway at <http://localhost:8000/auth/>, so the UI, the API and the login
+pages share one origin and the issuer is `http://localhost:8000/auth/realms/articulorium` for
+browsers and tokens alike; the platform fetches the realm's keys from `keycloak:8080` instead.
+The realm defines the roles `editors` and `administrators`, an audience mapper (`aud:
+articulorium`) and three **demo users for local use only**:
+
+| User            | Password        | Realm roles                  |
+|-----------------|-----------------|------------------------------|
+| `curator`       | `curator`       | `editors`                    |
+| `administrator` | `administrator` | `editors`, `administrators`  |
+| `reader`        | `reader`        | (none)                       |
+
+The stack keeps the open default root ACL, so signing in only changes who is recorded as
+`fedora:createdBy`. For role based access set `ARTICULORIUM_WEBAC_ROOT_ACL:
+classpath:webac/root-acl-oidc.ttl` on the platform
+([root-acl-oidc.ttl](platform/src/main/resources/webac/root-acl-oidc.ttl): everyone reads,
+`editors` write, `administrators` also control ACLs).
+
+| Variable                      | Default                         | Where              |
+|-------------------------------|---------------------------------|--------------------|
+| `KEYCLOAK_PUBLIC_URL`         | `http://localhost:8000/auth`    | Keycloak's `KC_HOSTNAME` and the platform's issuer; change it together with the client's redirect URIs in the realm when the stack is reached at another address |
+| `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD` | `admin` / `admin` | Keycloak's bootstrap administrator |
+
+**Settings.** Platform (`articulorium.webac.oidc.*`, see
+[application.yml](platform/src/main/resources/application.yml)):
+
+| Property          | Default (Keycloak realm of the stack)                      | Meaning |
+|-------------------|------------------------------------------------------------|---------|
+| `enabled`         | `true`                                                     | accept JWT access tokens |
+| `issuer-uri`      | `${KEYCLOAK_PUBLIC_URL}/realms/articulorium`              | required `iss` |
+| `jwk-set-uri`     | `${KEYCLOAK_INTERNAL_URL}/realms/articulorium/protocol/openid-connect/certs` | key set; empty discovers it from `<issuer>/.well-known/openid-configuration` |
+| `audiences`       | `articulorium`                                             | accepted `aud` values (empty accepts any) |
+| `jws-algorithms`  | `RS256`                                                    | accepted signature algorithms |
+| `agent-claims`    | `preferred_username,sub`                                   | first present claim names the agent |
+| `group-claims`    | `realm_access.roles,groups`                                | claims (dotted paths) listing groups or roles |
+| `agent-prefix` / `group-prefix` | `info:oidc/agent/` / `info:oidc/group/`      | prefixes of the minted IRIs |
+| `clock-skew`      | `60s`                                                      | tolerated clock difference |
+
+User interface (service, `articulorium.ui.auth.*`): `provider` is `oidc` (default), `token` (paste
+a token: the Consul ACL tokens of `docker-compose.acl.yml`) or `none`; `oidc.authority` (default
+`../auth/realms/articulorium`, relative to the UI), `oidc.client-id` (`articulorium-ui`) and
+`oidc.scope` (`openid profile`). Register the UI with another provider as a public client with
+PKCE, redirect URI `<ui>/` (and `<ui>/*`), post-logout redirect URI `<ui>/*`, and make its access
+tokens carry the configured audience.
+
+**Provider abstraction.** The platform asks every `AgentAuthenticationProvider` bean in order;
+the first that recognises the request's credentials yields the agent, and invalid credentials end
+the request with 401:
+
+1. `OidcAuthenticationProvider`: JWT bearer tokens of the configured issuer (OpenID Connect and
+   OAuth 2.0 providers issuing JWT access tokens).
+2. `ConsulTokenAuthenticationProvider`: other bearer tokens and `X-Consul-Token`, when
+   `articulorium.webac.consul.enabled`.
+3. `TrustedHeaderAuthenticationProvider`: `articulorium.webac.trusted-agent-header`, set by an
+   authenticating reverse proxy. This is the way in for **SAML 2.0** (a service provider such as
+   Shibboleth or mod_auth_mellon in front of the platform) and other server-side login flows;
+   alternatively Keycloak brokers SAML (and social OAuth 2.0) identity providers into the
+   `articulorium` realm, and nothing in Articulorium changes.
+4. `ContainerPrincipalAuthenticationProvider`: a principal authenticated by the servlet container.
+
+Another provider is a Spring bean implementing `AgentAuthenticationProvider` with an `@Order`;
+it must only return agents and group IRIs. The user interface has the same seam
+(`AuthProvider` in `ui/src/app/core/auth`: `OidcAuthProvider`, `TokenAuthProvider`,
+`NoAuthProvider`).
+
 ## Access control (WebAC)
 
 Every request to the platform is checked against [Web Access Control](https://solidproject.org/TR/wac)
@@ -201,7 +288,8 @@ authorizations (`articulorium.webac.enabled`, default `true`).
 * The UI shows your access on every resource, hides actions you may not take, and edits ACLs on
   the **Permissions** page of any resource.
 
-**Agents.** With `articulorium.webac.consul.enabled=true` the platform accepts **Consul ACL tokens**
+**Agents.** Agents come from the [authentication providers](#authentication): OpenID Connect
+access tokens (Keycloak by default) and, with `articulorium.webac.consul.enabled=true`, **Consul ACL tokens**
 (`Authorization: Bearer <secret id>` or `X-Consul-Token`) and validates them with Consul
 (`/v1/acl/token/self`, cached for `cache-ttl`). The token's description (or accessor ID) becomes the
 agent `info:consul/agent/<description>`; its roles and policies become the groups
@@ -209,7 +297,8 @@ agent `info:consul/agent/<description>`; its roles and policies become the group
 `articulorium.webac.trusted-agent-header` names a header set by a trusted authenticating proxy, and
 a principal authenticated by the servlet container is used as is.
 
-`docker-compose.acl.yml` sets this up: Consul runs with ACLs, the platform accepts tokens and uses
+`docker-compose.acl.yml` sets this up: Consul runs with ACLs, the UI's **Sign in** asks for a
+token instead of redirecting to Keycloak, the platform accepts tokens and uses
 [root-acl-consul.ttl](platform/src/main/resources/webac/root-acl-consul.ttl) (everyone reads, role
 `editors` writes, role `administrators` also controls ACLs). Create a role and a token, then paste
 the token's `SecretID` into the UI's **Sign in** dialog:

@@ -12,6 +12,10 @@
 #   http://localhost:8000/platform/   LDP root through the gateway
 #   http://localhost:8000/swagger-ui.html
 #                                     Swagger UI for every service's OpenAPI description
+#   http://localhost:8000/auth/       Keycloak, the OpenID Connect provider ("Sign in" in the UI):
+#                                     realm "articulorium" with the users curator / curator,
+#                                     administrator / administrator and reader / reader; admin
+#                                     console http://localhost:8000/auth/admin/ (admin / admin)
 #   http://localhost:9001/            LDP root directly on the platform
 #   localhost:5432                    PostgreSQL (articulorium / articulorium), the platform database
 #   http://localhost:8500/            Consul UI
@@ -25,6 +29,7 @@
 #
 # Credentials can be overridden with environment variables or an .env file next to this file.
 # docker-compose.acl.yml turns on Consul ACLs and accepts Consul tokens as WebAC identities.
+# The demo users and passwords of keycloak/articulorium-realm.json are for local use only.
 
 name: articulorium
 
@@ -38,6 +43,13 @@ x-service: &service
     timeout: 5s
     retries: 30
     start_period: 40s
+
+# The OpenID Connect issuer as browsers see it (through the gateway) and as services reach it.
+# Tokens carry the public issuer; the platform fetches the realm's keys from the internal address.
+x-keycloak-env: &keycloak-env
+  KEYCLOAK_PUBLIC_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8000/auth}
+  KEYCLOAK_INTERNAL_URL: http://keycloak:8080/auth
+  KEYCLOAK_REALM: articulorium
 
 x-spring-env: &spring-env
   SPRING_CLOUD_CONSUL_HOST: consul
@@ -76,7 +88,11 @@ services:
       args:
         MODULE: platform
     environment:
-      <<: *spring-env
+      <<: [*spring-env, *keycloak-env]
+      # access tokens of the Keycloak realm identify WebAC agents (articulorium.webac.oidc.*); the
+      # open default root ACL still lets everyone write - for role based access set
+      # ARTICULORIUM_WEBAC_ROOT_ACL: classpath:webac/root-acl-oidc.ttl
+      ARTICULORIUM_WEBAC_OIDC_ENABLED: "true"
       # PostgreSQL is the platform's default database (see platform application.yml)
       POSTGRES_HOST: postgres
       POSTGRES_DB: ${POSTGRES_DB:-articulorium}
@@ -206,6 +222,38 @@ services:
   # ----------------------------------------------------------------------------------------------
   # Infrastructure
   # ----------------------------------------------------------------------------------------------
+
+  keycloak:
+    # OpenID Connect provider (the default identity provider, swappable: see README.md,
+    # "Authentication"). Development mode with an in-container database: the realm of
+    # keycloak/articulorium-realm.json is imported on every fresh start. Served under /auth and
+    # reached through the gateway, so the issuer is http://localhost:8000/auth/realms/articulorium
+    # for browsers and tokens alike while services fetch keys from keycloak:8080 (backchannel).
+    image: quay.io/keycloak/keycloak:26.6.3
+    command: ["start-dev", "--import-realm"]
+    restart: unless-stopped
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_HTTP_MANAGEMENT_RELATIVE_PATH: /
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8000/auth}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      # the gateway sets X-Forwarded-* (and removes any a client sends)
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    networks:
+      - cloud
+    healthcheck:
+      # no curl in the image: ask the management interface with bash
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
 
   postgres:
     # metadata of every LDP resource (the platform's JPA store) and the OCFL object lock table
@@ -386,6 +434,8 @@ services:
       - e2e-node-modules:/e2e/node_modules
     depends_on:
       gateway:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
       platform:
         condition: service_healthy

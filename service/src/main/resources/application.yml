@@ -13,6 +13,16 @@ articulorium:
     transform-url: ../transform/
     # container of the community / sub-community / collection structure on the platform
     communities-path: communities
+    # how users sign in: "oidc" (OpenID Connect authorization code flow with PKCE, the Keycloak
+    # realm of docker compose by default), "token" (paste a token: Consul ACL tokens, see
+    # docker-compose.acl.yml) or "none"
+    auth:
+      provider: oidc
+      oidc:
+        # the issuer as browsers reach it, relative to the UI (Keycloak on the gateway at /auth)
+        authority: ../auth/realms/articulorium
+        client-id: articulorium-ui
+        scope: openid profile
   # agents served by /api/agents (agent-spring-boot-starter); Agent beans are added too
   agents:
     definitions:

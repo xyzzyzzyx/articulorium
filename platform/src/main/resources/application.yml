@@ -21,6 +21,23 @@ articulorium:
     root-acl: classpath:webac/root-acl.ttl
     # header with an agent authenticated by a trusted reverse proxy (for example X-Forwarded-User)
     trusted-agent-header:
+    # OpenID Connect / OAuth 2.0 JWT access tokens (Authorization: Bearer <jwt>) from any issuer;
+    # the defaults match the Keycloak realm of docker compose (keycloak/articulorium-realm.json).
+    # The issuer is the public address browsers use, the key set the address this service uses.
+    oidc:
+      enabled: true
+      issuer-uri: ${KEYCLOAK_PUBLIC_URL:http://localhost:8000/auth}/realms/${KEYCLOAK_REALM:articulorium}
+      jwk-set-uri: ${KEYCLOAK_INTERNAL_URL:http://keycloak:8080/auth}/realms/${KEYCLOAK_REALM:articulorium}/protocol/openid-connect/certs
+      # tokens must be issued for the repository (the realm's "articulorium-audience" mapper)
+      audiences: articulorium
+      jws-algorithms: RS256
+      # agent <info:oidc/agent/{preferred_username}>; Keycloak realm roles and groups become
+      # <info:oidc/group/{name}> (see webac/root-acl-oidc.ttl)
+      agent-claims: preferred_username,sub
+      group-claims: realm_access.roles,groups
+      agent-prefix: "info:oidc/agent/"
+      group-prefix: "info:oidc/group/"
+      clock-skew: 60s
     consul:
       # accept Consul ACL tokens (Authorization: Bearer <token> or X-Consul-Token) as identities;
       # roles and policies of the token become acl:agentGroup IRIs

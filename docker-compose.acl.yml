@@ -6,8 +6,9 @@
 # accepts Consul ACL tokens (Authorization: Bearer <secret id>, as the UI's "Sign in" sends them)
 # and applies webac/root-acl-consul.ttl: everyone reads, the Consul role "editors" writes and the
 # role "administrators" also controls access control lists. Create roles and tokens with the
-# Consul CLI (see README.md, "Access control"). The Cypress tests expect anonymous write access
-# and therefore run against docker-compose.yml alone.
+# Consul CLI (see README.md, "Access control"). The user interface's "Sign in" asks for a token
+# instead of redirecting to Keycloak (the platform still accepts Keycloak access tokens). The
+# Cypress tests expect anonymous write access and therefore run against docker-compose.yml alone.
 #
 # The default ACL policy stays "allow" so that services register and read configuration without
 # tokens; with default_policy "deny", give every service a token through SPRING_CLOUD_CONSUL_TOKEN
@@ -54,3 +55,5 @@ services:
   service:
     environment:
       <<: *consul-token
+      # paste a Consul ACL token to sign in
+      ARTICULORIUM_UI_AUTH_PROVIDER: token
