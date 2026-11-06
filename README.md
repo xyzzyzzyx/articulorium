@@ -12,7 +12,9 @@ an Angular user interface at feature parity with the Fedora Commons web UI.
 On top of plain LDP, Articulorium offers digital library structures: communities, sub-communities
 and collections; PCDM *topologies* (Book, Newspaper, Journal, Postcards, ... and custom ones) that
 build and navigate the resources of a digital object; IIIF Presentation 3.0 export of those
-structures; and [COAR Notify](https://coar-notify.net/) inboxes for every container.
+structures; [COAR Notify](https://coar-notify.net/) inboxes for every container; and an
+[OAI-PMH 2.0](https://www.openarchives.org/OAI/openarchivesprotocol.html) data provider for
+harvesters.
 
 Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 
@@ -23,10 +25,11 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 | `agent`       | Agent model shared with the user interface                                              |
 | `ui`          | Angular single page application, packaged as static resources ([ui/README.md](ui/README.md)) |
 | `platform`    | The LDP server: RDF sources, containers, files, versions, fixity, search, OCFL storage  |
-| `gateway`     | Spring Cloud Gateway; public entry point (`/ui/**`, `/platform/**`, `/transform/**`, `/topology/**`) and one Swagger UI for all services |
+| `gateway`     | Spring Cloud Gateway; public entry point (`/ui/**`, `/platform/**`, `/transform/**`, `/topology/**`, `/oai`) and one Swagger UI for all services |
 | `service`     | Serves the UI and its support API (settings, agents, media type detection with Apache Tika) |
 | `transform`   | Turns resources into search documents with pluggable transformers; exports PCDM structures as IIIF ([transform/README.md](transform/README.md)) |
 | `topology`    | PCDM topologies and building their resources in the platform ([topology/README.md](topology/README.md)) |
+| `oai`         | OAI-PMH 2.0 data provider: records as Dublin Core, communities and collections as sets ([oai/README.md](oai/README.md)) |
 | `index`       | Keeps a Solr collection in sync                                                         |
 | `triplestore` | Mirrors every resource into a SPARQL 1.1 store ([QLever](https://github.com/ad-freiburg/qlever)), one named graph each |
 
@@ -34,6 +37,7 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 browser ──> gateway ──> service (UI)
                ├─────> topology ───────────────(LDP)──┐
                ├─────> transform (IIIF) ───────(LDP)──┤
+               ├─────> oai (OAI-PMH) ──────────(LDP)──┤
                └─────> platform <─────────────────────┘
                           │   └──(resource-bus)──> transform ──(document-bus)──> index ──> Solr
                           │   └──(resource-bus)──> triplestore ──> QLever
@@ -66,6 +70,7 @@ RDF syntax to RDF clients and a simple HTML view to browsers.
 | http://localhost:8000/swagger-ui.html | Swagger UI for the platform, transform, topology and service APIs (the UI's "API" link) |
 | http://localhost:8000/topology/topologies | PCDM topologies                   |
 | http://localhost:8000/transform/iiif/communities | IIIF Collection of the community structure |
+| http://localhost:8000/oai?verb=Identify | OAI-PMH base URL (`http://localhost:8000/oai`) |
 | http://localhost:9001/               | LDP root directly on the platform      |
 | localhost:5432                       | PostgreSQL (`articulorium` / `articulorium`) |
 | http://localhost:8500/            | Consul UI                              |
@@ -269,6 +274,21 @@ whether the target inbox accepted it. The UI's **Notifications** page of a conta
 sends notifications for the common patterns (request review or endorsement, announce review,
 endorsement, relationship or ingest, accept, reject, undo).
 
+## OAI-PMH
+
+The oai service ([oai/README.md](oai/README.md)) is an OAI-PMH 2.0 data provider at
+`http://localhost:8000/oai`: all six verbs, unqualified Dublin Core (`oai_dc`) mapped from each
+record's RDF (configurable per element), communities and collections as hierarchical sets
+(`arts:paintings`), `from`/`until` harvesting at day or second granularity and stateless
+resumption tokens. Records are the PCDM objects of the repository (a book, not its pages),
+identified as `oai:articulorium.org:<path>` and linked to their UI page and LDP resource. The
+harvester's credentials are passed to the platform, so Web Access Control decides what each
+harvester sees. Deleted records are not reported (`deletedRecord=no`).
+
+```bash
+curl 'http://localhost:8000/oai?verb=ListRecords&metadataPrefix=oai_dc&from=2026-01-01'
+```
+
 ## Database
 
 PostgreSQL is the default (`POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`,
@@ -319,6 +339,7 @@ dependency:
 | platform      | `db` and `database` (connection, root container), `ocfl` (storage root), `minio` (bucket, S3 storage only), `kafka` |
 | transform     | `kafka`                                                         |
 | topology      | (none beyond the common ones)                                   |
+| oai           | (none beyond the common ones); metric `oai.requests` by verb and outcome |
 | index         | `solr` (ping, document count), `kafka`                          |
 | triplestore   | `qlever` (`/ping`, graph count), `kafka`                        |
 | all           | `consul`, `diskSpace`, `ping`                                   |
@@ -326,9 +347,9 @@ dependency:
 Disable one with `management.health.<name>.enabled=false`.
 
 OpenAPI descriptions: platform `/.well-known/openapi` (Swagger UI `/.well-known/swagger-ui.html`,
-outside the LDP namespace), transform `/v3/api-docs`, topology `/v3/api-docs`, service
-`/api/docs`; the gateway's `/swagger-ui.html` lists all four and is what the UI's **API** link
-opens.
+outside the LDP namespace), transform `/v3/api-docs`, topology `/v3/api-docs`, oai `/v3/api-docs`,
+service `/api/docs`; the gateway's `/swagger-ui.html` lists all five and is what the UI's **API**
+link opens.
 
 ### SPARQL store (QLever)
 
@@ -376,12 +397,13 @@ docker compose -f docker-compose.yml -f docker-compose.native.yml build transfor
 docker compose -f docker-compose.yml -f docker-compose.native.yml build index
 docker compose -f docker-compose.yml -f docker-compose.native.yml build triplestore
 docker compose -f docker-compose.yml -f docker-compose.native.yml build topology
+docker compose -f docker-compose.yml -f docker-compose.native.yml build oai
 docker compose -f docker-compose.yml -f docker-compose.native.yml build service
 docker compose -f docker-compose.yml -f docker-compose.native.yml up
 ```
 
-The gateway, index, triplestore and topology are plain Spring Cloud services (the topology service
-and the transform service's IIIF export embed Jena like the platform). The platform also embeds
+The gateway, index, triplestore, topology and oai are plain Spring Cloud services (the topology and
+oai services and the transform service's IIIF export embed Jena like the platform). The platform also embeds
 Apache Jena, which ships no official native metadata: `PlatformRuntimeHints` registers what Jena
 loads reflectively, but if a native platform reports missing metadata at run time, record it once
 with the tracing agent and commit the output:

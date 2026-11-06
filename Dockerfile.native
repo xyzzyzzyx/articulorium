@@ -4,7 +4,7 @@
 #
 #   docker build -f Dockerfile.native --build-arg MODULE=gateway -t articulorium/gateway:native .
 #
-# Supported modules: gateway, platform, transform, index, triplestore, topology and service.
+# Supported modules: gateway, platform, transform, index, triplestore, topology, oai and service.
 # Native compilation is memory hungry: each build uses up to NATIVE_MAX_HEAP (default 8g) plus
 # overhead, so build the images one at a time (see docker-compose.native.yml).
 

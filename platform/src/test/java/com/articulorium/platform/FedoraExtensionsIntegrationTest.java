@@ -159,6 +159,50 @@ class FedoraExtensionsIntegrationTest {
         mvc.perform(get("/fcr:search").param("order_by", "colour")).andExpect(status().isBadRequest());
     }
 
+    /**
+     * The search contract the OAI-PMH service pages with: modification times are ISO-8601 instants
+     * that {@code modified=} matches exactly, {@code fedora_id<=} bounds by path, and results
+     * ordered by modification time are complete across pages.
+     */
+    @Test
+    void searchSupportsPagingByModificationTime() throws Exception {
+        final String parent = container();
+        final String path = parent.substring(1);
+        for (final String name : java.util.List.of("c", "a", "b")) {
+            create(parent, name, MediaType.parseMediaType(TURTLE), "<> <http://purl.org/dc/terms/title> \"x\" .");
+        }
+        final String json = mvc.perform(get("/fcr:search")
+                .param("condition", "fedora_id=" + path + "/*")
+                .param("order_by", "modified")
+                .param("max_results", "10"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        final java.util.List<String> ids = com.jayway.jsonpath.JsonPath.read(json, "$.items[*].fedora_id");
+        final java.util.List<String> modified = com.jayway.jsonpath.JsonPath.read(json, "$.items[*].modified");
+        assertThat(ids).hasSize(3);
+        assertThat(modified).allSatisfy(value -> assertThat(value).matches("\\d{4}-\\d\\d-\\d\\dT[\\d:.]+Z"));
+
+        mvc.perform(get("/fcr:search")
+                .param("condition", "fedora_id=" + path + "/*")
+                .param("condition", "modified=" + modified.get(1)))
+            .andExpect(jsonPath("$.items[*].fedora_id", hasItem(ids.get(1))));
+        mvc.perform(get("/fcr:search")
+                .param("condition", "fedora_id=info:fedora/" + path + "/*")
+                .param("condition", "fedora_id<=info:fedora/" + path + "/b"))
+            .andExpect(jsonPath("$.pagination.totalResults").value(2));
+        // one result per page, ordered by modification time then path: every resource exactly once
+        final java.util.List<String> paged = new java.util.ArrayList<>();
+        for (int offset = 0; offset < 3; offset++) {
+            paged.add(com.jayway.jsonpath.JsonPath.read(mvc.perform(get("/fcr:search")
+                    .param("condition", "fedora_id=" + path + "/*")
+                    .param("order_by", "modified")
+                    .param("max_results", "1")
+                    .param("offset", Integer.toString(offset)))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8), "$.items[0].fedora_id"));
+        }
+        assertThat(paged).isEqualTo(ids);
+    }
+
     /** The OpenAPI description documents LDP and the extensions; Swagger UI is served. */
     @Test
     void publishesTheOpenApiDescription() throws Exception {

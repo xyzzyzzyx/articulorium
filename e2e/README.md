@@ -49,6 +49,7 @@ open` for the interactive runner. `CYPRESS_BASE_URL` points the tests elsewhere.
 | `topologies.cy.ts`  | built-in topologies, duplicating, editing and deleting a custom one, building from the topology aside |
 | `notifications.cy.ts` | COAR Notify inbox listing and details, sending with recorded delivery failures, invalid notifications |
 | `iiif.cy.ts`        | IIIF Manifest of a book (image uploaded through the topology aside) and Collection of the communities |
+| `oai.cy.ts`         | OAI-PMH through the gateway: Identify, a book built in a collection harvested as Dublin Core with its community and collection as sets (pages excluded), resumption tokens, protocol errors |
 
 Each test creates its own uniquely named resources through the LDP API, so the suite runs
 against a repository that already holds data, and fails when the application logs a console

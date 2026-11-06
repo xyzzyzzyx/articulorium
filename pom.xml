@@ -47,6 +47,7 @@
     <module>index</module>
     <module>triplestore</module>
     <module>topology</module>
+    <module>oai</module>
     <module>service</module>
     <module>gateway</module>
   </modules>

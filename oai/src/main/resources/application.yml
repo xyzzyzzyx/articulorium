@@ -1,0 +1,86 @@
+# Articulorium OAI-PMH service: an OAI-PMH 2.0 data provider for the repository's metadata.
+# The gateway serves it under /oai (the base URL harvesters use: http://localhost:8000/oai).
+
+articulorium:
+  oai:
+    # LDP root of the platform; with load-balanced the host is the Consul service name
+    platform-url: http://articulorium-platform/
+    load-balanced: true
+    # where harvesters reach the platform and the UI, relative to this service's public base
+    # (the gateway serves it under /oai/) or absolute; records link to resources and pages there
+    platform-public-url: ../platform/
+    ui-public-url: ../ui/
+    # Identify
+    repository-name: Articulorium
+    # namespace of item identifiers, oai:<repository-identifier>:<path>; keep it stable
+    repository-identifier: articulorium.org
+    admin-emails:
+      - admin@example.org
+    # records, identifiers or sets per response (at most the platform's max-search-results)
+    page-size: 100
+    # resources exposed as records, and whether records inside records (book pages) are too
+    record-type: http://pcdm.org/models#Object
+    include-nested: false
+    # communities and collections below this container are the sets
+    communities-path: communities
+    max-sets: 10000
+    # Dublin Core element -> RDF properties (defaults in OaiProperties); for example
+    # dublin-core:
+    #   rights: [http://purl.org/dc/terms/rights, http://purl.org/dc/terms/license]
+
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+  info:
+    env:
+      enabled: true
+  server:
+    port: 8000
+
+info:
+  application:
+    name: ${spring.application.name}
+    description: OAI-PMH 2.0 data provider
+
+server:
+  port: 9000
+  # honour X-Forwarded-* set by the gateway (base URL, record links, OpenAPI servers)
+  forward-headers-strategy: framework
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+spring:
+  application:
+    name: oai
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorium-${spring.application.name}
+        prefer-ip-address: true
