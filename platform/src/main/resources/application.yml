@@ -13,6 +13,8 @@ articulorium:
     max-search-results: 1000
     # container of the community / sub-community / collection structure (created on start-up)
     communities-path: communities
+    # container of the academic profiles described with the VIVO ontology (created on start-up)
+    profiles-path: profiles
   webac:
     # enforce Web Access Control (acl:Read/Write/Append/Control) on every LDP request
     enabled: true

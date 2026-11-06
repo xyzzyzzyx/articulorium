@@ -91,11 +91,17 @@ Cypress.Commands.add('chooseOption', (select: string, option: string) => {
 });
 
 Cypress.Commands.add('notified', (text: string | RegExp) => {
-  return cy.get('mat-snack-bar-container').should('be.visible').and('contain.text', typeof text === 'string' ? text : '').then(($el) => {
-    if (text instanceof RegExp) {
-      expect($el.text()).to.match(text);
-    }
-  });
+  // retried until it holds: an earlier snack bar may still be showing when this is called
+  return cy
+    .get('mat-snack-bar-container')
+    .should('be.visible')
+    .and(($el) => {
+      if (text instanceof RegExp) {
+        expect($el.text()).to.match(text);
+      } else {
+        expect($el.text()).to.contain(text);
+      }
+    });
 });
 
 /** `console.error` calls of the application during the current test. */

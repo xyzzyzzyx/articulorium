@@ -23,6 +23,7 @@ with the Fedora Commons HTML interface. The `service` module serves it; the gate
 | WebAC (ACL)                               | Your access modes on every resource (`WAC-Allow`), actions hidden when not allowed; **Permissions** page: effective rules and where they come from, grant (everyone, authenticated agents, an agent or a group; modes; inheritance) and revoke, remove the ACL to inherit again |
 | —                                         | **Sign in** with the OpenID Connect provider (Keycloak by default: authorization code flow with PKCE, tokens renewed and kept in session storage) or, with `auth.provider: token`, a pasted Consul ACL token; either is sent as `Authorization: Bearer` to the repository's services only |
 | —                                         | **Communities**: navigate communities, sub-communities, collections and items; create them; build items from topologies |
+| —                                         | **Profiles**: list, view, create, edit and delete academic profiles described with the VIVO ontology (identity, contact, ORCID iD, overview, research areas and keywords, positions, education, publications), with field-level validation |
 | —                                         | **Topologies**: list built-in and custom topologies, view them, duplicate, edit (levels, PCDM types, metadata fields, files, child counts), delete |
 | —                                         | **Topology aside** on resource pages: node, parent, ordered members, add children, edit the node's metadata fields, upload files per PCDM use; build a topology in any container |
 | —                                         | **Notifications** (COAR Notify): received notifications with their JSON-LD, sent notifications with delivery status, send a notification |
@@ -59,7 +60,8 @@ placeholder or a plural form.
 
 * Settings come from `api/config` (the service): `platformUrl` (default `../platform/`, the gateway
   route relative to `/ui/`), `title`, `apiDocsUrl` (`../swagger-ui.html`), `topologyUrl`
-  (`../topology/`), `transformUrl` (`../transform/`) and `communitiesPath` (`communities`).
+  (`../topology/`), `transformUrl` (`../transform/`), `communitiesPath` (`communities`) and
+  `profilesPath` (`profiles`).
 * Resources are read as N-Triples (`src/app/core/rdf/ntriples.ts`), which needs no prefix or
   JSON-LD context processing. An RDF request for a binary is redirected by the platform to its
   description, which is what the view shows; a `HEAD` on the binary supplies its `Allow` header.
@@ -72,9 +74,10 @@ placeholder or a plural form.
 
 Code layout: `core/` (configuration, `i18n/` (locale, translations, formatting pipes), the
 `LdpService` HTTP client, RDF parsing and helpers,
-`auth/` (the `AuthProvider` abstraction: OpenID Connect, pasted token, none; and the interceptor), `webac/`, `topology/`, `notify/`), `shared/` (term rendering,
+`auth/` (the `AuthProvider` abstraction: OpenID Connect, pasted token, none; and the interceptor), `webac/`, `topology/`, `notify/`,
+`profile/` (the VIVO mapping and validation of academic profiles)), `shared/` (term rendering,
 property table, breadcrumb, dialogs), and one folder per view (`browse/`, `history/`, `search/`,
-`permissions/`, `communities/`, `topology/`, `notifications/`, `about/`).
+`permissions/`, `communities/`, `profiles/`, `topology/`, `notifications/`, `about/`).
 
 ## Development
 

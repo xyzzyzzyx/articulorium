@@ -16,6 +16,8 @@ export interface UiConfig {
   readonly transformUrl?: string;
   /** Path (below the LDP root) of the community structure. */
   readonly communitiesPath?: string;
+  /** Path (below the LDP root) of the academic profiles. */
+  readonly profilesPath?: string;
   /** How users sign in. */
   readonly auth?: AuthConfig;
 }
@@ -43,6 +45,7 @@ export const FALLBACK_CONFIG: Required<UiConfig> = {
   topologyUrl: '../topology/',
   transformUrl: '../transform/',
   communitiesPath: 'communities',
+  profilesPath: 'profiles',
   auth: {
     provider: 'oidc',
     oidc: { authority: '../auth/realms/articulorium', clientId: 'articulorium-ui', scope: 'openid profile' },
@@ -118,6 +121,15 @@ export class ConfigService {
    */
   communitiesPath(): string {
     return (this.state().communitiesPath || FALLBACK_CONFIG.communitiesPath).replace(/^\/+|\/+$/g, '');
+  }
+
+  /**
+   * The path of the academic profiles (VIVO) below the LDP root.
+   *
+   * @returns for example `profiles`
+   */
+  profilesPath(): string {
+    return (this.state().profilesPath || FALLBACK_CONFIG.profilesPath).replace(/^\/+|\/+$/g, '');
   }
 
   /**

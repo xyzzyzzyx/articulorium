@@ -28,18 +28,19 @@ describe('ConfigService', () => {
     expect(service.platformBase()).toBe('http://x/ldp/');
   });
 
-  it('resolves the API documentation, topology and transform services and the community path', async () => {
+  it('resolves the API documentation, topology and transform services and the community and profile paths', async () => {
     const service = TestBed.inject(ConfigService);
     const loaded = service.load();
     TestBed.inject(HttpTestingController)
       .expectOne('api/config')
-      .flush({ platformUrl: '../platform/', title: 'Repo', apiDocsUrl: '../swagger-ui.html', communitiesPath: '/orgs/' });
+      .flush({ platformUrl: '../platform/', title: 'Repo', apiDocsUrl: '../swagger-ui.html', communitiesPath: '/orgs/', profilesPath: 'people/' });
     await loaded;
 
     expect(service.apiDocs()).toBe(new URL('../swagger-ui.html', document.baseURI).toString());
     expect(service.topologyBase()).toBe(new URL('../topology/', document.baseURI).toString());
     expect(service.transformBase()).toBe(new URL('../transform/', document.baseURI).toString());
     expect(service.communitiesPath()).toBe('orgs');
+    expect(service.profilesPath()).toBe('people');
   });
 
   it('keeps the defaults when the settings are unavailable', async () => {

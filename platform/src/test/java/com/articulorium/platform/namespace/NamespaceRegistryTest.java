@@ -43,6 +43,17 @@ class NamespaceRegistryTest {
     }
 
     @Test
+    void bundledDocumentDeclaresTheVivoOntology() throws Exception {
+        try (InputStream in = new ClassPathResource("namespaces.yml").getInputStream()) {
+            assertThat(NamespaceRegistry.readYaml(in)).contains(
+                new NamespaceRegistry.Definition("vivo", "http://vivoweb.org/ontology/core#", null),
+                new NamespaceRegistry.Definition("obo", "http://purl.obolibrary.org/obo/", null),
+                new NamespaceRegistry.Definition("bibo", "http://purl.org/ontology/bibo/", null),
+                new NamespaceRegistry.Definition("vcard", "http://www.w3.org/2006/vcard/ns#", null));
+        }
+    }
+
+    @Test
     void readsAPrefixMap() throws Exception {
         final String yaml = "# comment\nex: http://example.org/ns#\nschema: http://schema.org/\n";
         final List<NamespaceRegistry.Definition> definitions =

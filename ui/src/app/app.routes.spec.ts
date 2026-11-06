@@ -1,6 +1,6 @@
 import { UrlSegment } from '@angular/router';
 
-import { viewMatcher } from './app.routes';
+import { routes, viewMatcher } from './app.routes';
 
 const segments = (...paths: string[]): UrlSegment[] => paths.map((path) => new UrlSegment(path, {}));
 
@@ -22,5 +22,14 @@ describe('viewMatcher', () => {
 
   it('ignores other views', () => {
     expect(viewMatcher('browse')(segments('search'), {} as never, {} as never)).toBeNull();
+  });
+});
+
+describe('routes', () => {
+  it('creates profiles before showing one, and edits them below their name', () => {
+    const paths = routes.map((route) => route.path);
+    expect(paths.indexOf('profiles/new')).toBeLessThan(paths.indexOf('profiles/:id'));
+    expect(paths).toContain('profiles');
+    expect(paths).toContain('profiles/:id/edit');
   });
 });

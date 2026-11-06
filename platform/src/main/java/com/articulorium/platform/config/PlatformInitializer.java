@@ -41,9 +41,12 @@ import lombok.extern.slf4j.Slf4j;
  *   <li>Creates the container of the community structure
  *       ({@link LdpProperties#getCommunitiesPath()}, typed {@code art:CommunityRoot}) when it does
  *       not exist.</li>
+ *   <li>Creates the container of the academic profiles
+ *       ({@link LdpProperties#getProfilesPath()}, typed {@code art:ProfileRoot}) when it does not
+ *       exist.</li>
  * </ol>
  *
- * <p>Both steps are idempotent and tolerate concurrent start-up of several instances.</p>
+ * <p>Every step is idempotent and tolerate concurrent start-up of several instances.</p>
  */
 @Slf4j
 @Component
@@ -101,14 +104,33 @@ public class PlatformInitializer implements ApplicationRunner {
         seedNamespaces();
         createRoot();
         createCommunityRoot();
+        createProfileRoot();
     }
 
     /**
      * Creates the container of the community structure when it is configured and missing.
      */
     void createCommunityRoot() {
-        final String path = ResourcePaths.normalize(properties.getCommunitiesPath() == null
-            ? "" : properties.getCommunitiesPath());
+        createTopLevelContainer(properties.getCommunitiesPath(), Articulorium.COMMUNITY_ROOT, "Communities");
+    }
+
+    /**
+     * Creates the container of the academic profiles when it is configured and missing.
+     */
+    void createProfileRoot() {
+        createTopLevelContainer(properties.getProfilesPath(), Articulorium.PROFILE_ROOT, "Profiles");
+    }
+
+    /**
+     * Creates a typed, titled basic container directly below the root when it is configured and
+     * missing. Paths with several segments are ignored: their parents may not exist.
+     *
+     * @param configuredPath the configured path, may be {@code null} or empty to create none
+     * @param type           the {@code rdf:type} of the container
+     * @param title          its {@code dcterms:title}
+     */
+    void createTopLevelContainer(final String configuredPath, final String type, final String title) {
+        final String path = ResourcePaths.normalize(configuredPath == null ? "" : configuredPath);
         if (path.isEmpty() || path.contains("/") || resourceRepository.existsByPath(path)) {
             return;
         }
@@ -118,17 +140,17 @@ public class PlatformInitializer implements ApplicationRunner {
                     .createdBy(SYSTEM_AGENT);
                 final String subject = container.getRelativeIri();
                 container.setTriples(List.of(
-                    Triple.iri(subject, Rdf.TYPE, Articulorium.COMMUNITY_ROOT),
-                    Triple.literal(subject, DCTERMS_TITLE, "Communities")));
+                    Triple.iri(subject, Rdf.TYPE, type),
+                    Triple.literal(subject, DCTERMS_TITLE, title)));
                 resourceRepository.save(container);
                 resourceRepository.findByPath("").ifPresent(root -> {
                     root.touch(SYSTEM_AGENT);
                     resourceRepository.save(root);
                 });
             });
-            log.info("Created the community container /{}", path);
+            log.info("Created the {} container /{}", title, path);
         } catch (DataIntegrityViolationException e) {
-            log.debug("Community container was created concurrently");
+            log.debug("{} container was created concurrently", title);
         }
     }
 

@@ -20,11 +20,12 @@ import org.springframework.boot.context.properties.bind.ConstructorBinding;
  * @param transformUrl    URL of the transform service, which serves IIIF exports
  *                        ({@code /transform/} on the gateway)
  * @param communitiesPath path (below the LDP root) of the community structure
+ * @param profilesPath    path (below the LDP root) of the academic profiles (VIVO)
  * @param auth            how users sign in
  */
 @ConfigurationProperties(prefix = "articulorium.ui")
 public record UiProperties(String platformUrl, String title, String apiDocsUrl, String topologyUrl,
-        String transformUrl, String communitiesPath, Auth auth) {
+        String transformUrl, String communitiesPath, String profilesPath, Auth auth) {
 
     /** Platform URL used when none is configured: the gateway route, relative to {@code /ui/}. */
     public static final String DEFAULT_PLATFORM_URL = "../platform/";
@@ -44,6 +45,9 @@ public record UiProperties(String platformUrl, String title, String apiDocsUrl, 
     /** Community structure used when none is configured (the platform's default). */
     public static final String DEFAULT_COMMUNITIES_PATH = "communities";
 
+    /** Container of the academic profiles used when none is configured (the platform's default). */
+    public static final String DEFAULT_PROFILES_PATH = "profiles";
+
     /**
      * Creates the settings, applying defaults to missing values.
      *
@@ -53,6 +57,7 @@ public record UiProperties(String platformUrl, String title, String apiDocsUrl, 
      * @param topologyUrl     URL of the topology service, may be {@code null}
      * @param transformUrl    URL of the transform service, may be {@code null}
      * @param communitiesPath path of the community structure, may be {@code null}
+     * @param profilesPath    path of the academic profiles, may be {@code null}
      * @param auth            sign-in settings, may be {@code null}
      */
     @ConstructorBinding
@@ -63,11 +68,12 @@ public record UiProperties(String platformUrl, String title, String apiDocsUrl, 
         topologyUrl = valueOr(topologyUrl, DEFAULT_TOPOLOGY_URL);
         transformUrl = valueOr(transformUrl, DEFAULT_TRANSFORM_URL);
         communitiesPath = valueOr(communitiesPath, DEFAULT_COMMUNITIES_PATH);
+        profilesPath = valueOr(profilesPath, DEFAULT_PROFILES_PATH);
         auth = auth == null ? new Auth(null, null) : auth;
     }
 
     /**
-     * Creates the settings with the default sign-in.
+     * Creates the settings with the default sign-in and profile container.
      *
      * @param platformUrl     URL of the platform root, may be {@code null}
      * @param title           title shown in the user interface, may be {@code null}
@@ -78,7 +84,8 @@ public record UiProperties(String platformUrl, String title, String apiDocsUrl, 
      */
     public UiProperties(final String platformUrl, final String title, final String apiDocsUrl,
             final String topologyUrl, final String transformUrl, final String communitiesPath) {
-        this(platformUrl, title, apiDocsUrl, topologyUrl, transformUrl, communitiesPath, null);
+        this(platformUrl, title, apiDocsUrl, topologyUrl, transformUrl, communitiesPath, null,
+            null);
     }
 
     /**
