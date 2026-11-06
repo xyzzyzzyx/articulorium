@@ -38,6 +38,7 @@
     <!-- shared libraries -->
     <module>domain</module>
     <module>event</module>
+    <module>activitystreams</module>
     <module>agent</module>
     <!-- Angular single page application, packaged as a jar of static resources -->
     <module>ui</module>
@@ -149,6 +150,12 @@
       <dependency>
         <groupId>com.articulorium</groupId>
         <artifactId>event</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.articulorium</groupId>
+        <artifactId>activitystreams</artifactId>
         <version>${project.version}</version>
       </dependency>
 

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 
+import com.articulorium.activitystreams.AsObject;
 import com.articulorium.domain.InteractionModel;
 import com.articulorium.domain.LdpResource;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,19 @@ class NotificationServiceTest {
         assertThat(completed).containsEntry("id", "urn:uuid:1").containsEntry("origin", origin)
             .containsEntry("@context", "x");
         assertThat(NotificationService.inboxIri("http://h/", "")).isEqualTo("http://h/fcr:inbox");
+    }
+
+    @Test
+    void statesTheImpliedActivityStreamsContextFirst() {
+        final AsObject notify = AsObject.of(Map.of("@context", CoarNotify.NOTIFY_CONTEXT));
+        assertThat(NotificationService.withAsContext(notify).context())
+            .containsExactly(CoarNotify.AS_CONTEXT, CoarNotify.NOTIFY_CONTEXT);
+
+        final AsObject none = AsObject.of(Map.of("type", "Announce"));
+        assertThat(NotificationService.withAsContext(none).context()).containsExactly(CoarNotify.AS_CONTEXT);
+
+        final AsObject stated = AsObject.of(Map.of("@context", List.of(CoarNotify.NOTIFY_CONTEXT, CoarNotify.AS_CONTEXT)));
+        assertThat(NotificationService.withAsContext(stated)).isSameAs(stated);
     }
 
 }
