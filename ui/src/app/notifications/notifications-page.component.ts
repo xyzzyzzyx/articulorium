@@ -1,4 +1,4 @@
-import { DatePipe, JsonPipe } from '@angular/common';
+import { JsonPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
@@ -12,10 +12,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { ConfigService } from '../core/config.service';
+import { LocalizedDatePipe } from '../core/i18n/format.pipes';
+import { I18nService } from '../core/i18n/i18n.service';
 import { normalizePath, platformUrl, routeTo } from '../core/ldp/paths';
-import { errorMessage } from '../core/ldp/problem';
 import { NotificationService } from '../core/notify/notification.service';
 import { NOTIFY_PATTERNS, NotificationSummary, buildNotification } from '../core/notify/notify';
 import { BreadcrumbComponent } from '../shared/breadcrumb.component';
@@ -30,9 +32,9 @@ import { Notifier } from '../shared/notifier.service';
   selector: 'ui-notifications-page',
   imports: [
     BreadcrumbComponent,
-    DatePipe,
     FormsModule,
     JsonPipe,
+    LocalizedDatePipe,
     MatButtonModule,
     MatCardModule,
     MatExpansionModule,
@@ -42,107 +44,108 @@ import { Notifier } from '../shared/notifier.service';
     MatProgressBarModule,
     MatSelectModule,
     RouterLink,
+    TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <ui-breadcrumb [path]="resourcePath()" suffix="Notifications" />
+    <ui-breadcrumb [path]="resourcePath()" [suffix]="'resource.notifications' | translate" />
     <header class="ui-page-header">
-      <h1>Notifications</h1>
-      <a mat-button [routerLink]="resourceRoute()">Back to resource</a>
+      <h1>{{ 'resource.notifications' | translate }}</h1>
+      <a mat-button [routerLink]="resourceRoute()">{{ 'common.backToResource' | translate }}</a>
     </header>
     <p>
-      Inbox (Linked Data Notifications, COAR Notify):
+      {{ 'notify.inbox' | translate }}
       <a class="ui-inbox-url" [href]="inboxUrl()" target="_blank" rel="noopener">{{ inboxUrl() }}</a>
     </p>
     @if (inbox.isLoading()) {
-      <mat-progress-bar mode="indeterminate" />
+      <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
     }
     @if (inbox.error(); as error) {
-      <p class="ui-error-text">{{ message(error) }}</p>
+      <p class="ui-error-text" role="alert">{{ message(error) }}</p>
     }
 
-    <h2>Received <span class="ui-badge">{{ inbox.value()?.notifications?.length ?? 0 }}</span></h2>
+    <h2>{{ 'notify.received' | translate }} <span class="ui-badge">{{ inbox.value()?.notifications?.length ?? 0 }}</span></h2>
     <mat-accordion class="ui-inbox">
       @for (item of inbox.value()?.notifications ?? []; track item.id) {
         <mat-expansion-panel (opened)="open(item)">
           <mat-expansion-panel-header>
             <mat-panel-title>{{ item.pattern || item.types.join(' ') }}</mat-panel-title>
-            <mat-panel-description>{{ item.origin }} · {{ item.received | date: 'medium' }}</mat-panel-description>
+            <mat-panel-description>{{ item.origin }} · {{ item.received | l10nDate: 'medium' }}</mat-panel-description>
           </mat-expansion-panel-header>
           <dl class="ui-facts">
-            <dt>Object</dt><dd>{{ item.object }}</dd>
-            <dt>Actor</dt><dd>{{ item.actor ?? '—' }}</dd>
-            <dt>Identifier</dt><dd>{{ item.notificationId }}</dd>
+            <dt>{{ 'notify.object' | translate }}</dt><dd>{{ item.object }}</dd>
+            <dt>{{ 'notify.actor' | translate }}</dt><dd>{{ item.actor ?? ('common.noValue' | translate) }}</dd>
+            <dt>{{ 'notify.identifier' | translate }}</dt><dd>{{ item.notificationId }}</dd>
           </dl>
           @if (details()[item.id]; as json) {
             <pre class="ui-json">{{ json | json }}</pre>
           }
         </mat-expansion-panel>
       } @empty {
-        <p class="ui-muted">No notifications received.</p>
+        <p class="ui-muted">{{ 'notify.noneReceived' | translate }}</p>
       }
     </mat-accordion>
 
-    <h2>Sent <span class="ui-badge">{{ outbox.value()?.notifications?.length ?? 0 }}</span></h2>
+    <h2>{{ 'notify.sent' | translate }} <span class="ui-badge">{{ outbox.value()?.notifications?.length ?? 0 }}</span></h2>
     <ul class="ui-tree ui-outbox">
       @for (item of outbox.value()?.notifications ?? []; track item.id) {
         <li>
-          <strong>{{ item.pattern }}</strong> to {{ item.target }} ·
-          <span [class.ui-error-text]="item.status === 'FAILED'">{{ item.status }}</span>
+          <strong>{{ item.pattern }}</strong> {{ 'notify.to' | translate: { target: item.target } }} ·
+          <span [class.ui-error-text]="item.status === 'FAILED'">{{ 'notify.status.' + item.status | translate }}</span>
           @if (item.statusDetail) {
             <span class="ui-muted"> ({{ item.statusDetail }})</span>
           }
         </li>
       } @empty {
-        <li class="ui-muted">No notifications sent.</li>
+        <li class="ui-muted">{{ 'notify.noneSent' | translate }}</li>
       }
     </ul>
 
     <mat-card appearance="outlined">
-      <mat-card-header><mat-card-title>Send a notification</mat-card-title></mat-card-header>
+      <mat-card-header><mat-card-title>{{ 'notify.send' | translate }}</mat-card-title></mat-card-header>
       <mat-card-content>
         <form class="ui-form ui-send-notification" (ngSubmit)="send()">
           <mat-form-field>
-            <mat-label>Pattern</mat-label>
+            <mat-label>{{ 'notify.pattern' | translate }}</mat-label>
             <mat-select name="pattern" [(ngModel)]="pattern">
               @for (p of patterns; track p.id) {
-                <mat-option [value]="p.id">{{ p.label }}</mat-option>
+                <mat-option [value]="p.id">{{ 'notify.patterns.' + p.id | translate }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
           <div class="ui-inline-fields">
             <mat-form-field>
-              <mat-label>Target service</mat-label>
+              <mat-label>{{ 'notify.targetService' | translate }}</mat-label>
               <input matInput name="targetId" required [(ngModel)]="targetId" placeholder="https://review.example.org/" />
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Target inbox</mat-label>
+              <mat-label>{{ 'notify.targetInbox' | translate }}</mat-label>
               <input matInput name="targetInbox" required [(ngModel)]="targetInbox" placeholder="https://review.example.org/inbox" />
             </mat-form-field>
           </div>
           <div class="ui-inline-fields">
             <mat-form-field>
-              <mat-label>Object</mat-label>
-              <input matInput name="objectId" [(ngModel)]="objectId" placeholder="(this resource)" />
+              <mat-label>{{ 'notify.object' | translate }}</mat-label>
+              <input matInput name="objectId" [(ngModel)]="objectId" [placeholder]="'notify.thisResource' | translate" />
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Cite as (DOI, handle...)</mat-label>
+              <mat-label>{{ 'notify.citeAs' | translate }}</mat-label>
               <input matInput name="citeAs" [(ngModel)]="citeAs" />
             </mat-form-field>
           </div>
           <mat-form-field>
-            <mat-label>In reply to (Accept, Reject, Undo)</mat-label>
+            <mat-label>{{ 'notify.inReplyTo' | translate }}</mat-label>
             <input matInput name="inReplyTo" [(ngModel)]="inReplyTo" />
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Summary</mat-label>
+            <mat-label>{{ 'notify.summary' | translate }}</mat-label>
             <input matInput name="summary" [(ngModel)]="summary" />
           </mat-form-field>
           @if (busy()) {
-            <mat-progress-bar mode="indeterminate" />
+            <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
           }
           <button mat-flat-button color="primary" type="submit" [disabled]="busy() || !targetId.trim() || !targetInbox.trim()">
-            <mat-icon>send</mat-icon> Send
+            <mat-icon aria-hidden="true" class="ui-directional-icon">send</mat-icon> {{ 'notify.sendButton' | translate }}
           </button>
         </form>
       </mat-card-content>
@@ -155,6 +158,8 @@ export class NotificationsPageComponent {
   private readonly config = inject(ConfigService);
 
   private readonly notifier = inject(Notifier);
+
+  private readonly i18n = inject(I18nService);
 
   /** Path of the container (bound from the route). */
   readonly path = input('');
@@ -203,7 +208,7 @@ export class NotificationsPageComponent {
    * @returns the message
    */
   protected message(error: unknown): string {
-    return errorMessage(error);
+    return this.notifier.message(error);
   }
 
   /**
@@ -217,7 +222,7 @@ export class NotificationsPageComponent {
     }
     this.notifications.read(item.uri).subscribe({
       next: (json) => this.details.update((details) => ({ ...details, [item.id]: json })),
-      error: (error: unknown) => this.notifier.error('Load notification', error),
+      error: (error: unknown) => this.notifier.error(this.i18n.t('notify.load'), error),
     });
   }
 
@@ -239,15 +244,15 @@ export class NotificationsPageComponent {
     this.notifications.send(this.resourcePath(), notification).subscribe({
       next: () => {
         this.busy.set(false);
-        this.notifier.success('Notification sent');
+        this.notifier.success(this.i18n.t('notify.sentMessage'));
         this.outbox.reload();
       },
       error: (error: unknown) => {
         this.busy.set(false);
         if (error instanceof HttpErrorResponse && error.status === 502) {
-          this.notifier.error('Delivery', 'the target inbox did not accept the notification');
+          this.notifier.error(this.i18n.t('notify.delivery'), this.i18n.t('notify.notAccepted'));
         } else {
-          this.notifier.error('Send notification', error);
+          this.notifier.error(this.i18n.t('notify.send'), error);
         }
         this.outbox.reload();
       },

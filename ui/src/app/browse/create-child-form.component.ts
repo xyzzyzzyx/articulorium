@@ -6,11 +6,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
+import { TranslatePipe } from '@ngx-translate/core';
 
+import { I18nService } from '../core/i18n/i18n.service';
 import { LdpService } from '../core/ldp/ldp.service';
 import { ChildKind } from '../core/ldp/models';
 import { Notifier } from '../shared/notifier.service';
-import { childTemplate, isTemplate } from './child-templates';
+import { TemplateTitles, childTemplate, isTemplate } from './child-templates';
 
 /**
  * "Create New Child Resource": a basic, direct or indirect container described in Turtle, or a
@@ -20,49 +22,68 @@ import { childTemplate, isTemplate } from './child-templates';
  */
 @Component({
   selector: 'ui-create-child-form',
-  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, MatProgressBarModule, MatSelectModule],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatProgressBarModule,
+    MatSelectModule,
+    TranslatePipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form (ngSubmit)="submit()" #form="ngForm" class="ui-form">
       <mat-form-field>
-        <mat-label>Type</mat-label>
+        <mat-label>{{ 'child.type' | translate }}</mat-label>
         <mat-select name="kind" [ngModel]="kind()" (ngModelChange)="changeKind($event)">
-          <mat-option value="basic">Basic container</mat-option>
-          <mat-option value="direct">Direct container</mat-option>
-          <mat-option value="indirect">Indirect container</mat-option>
-          <mat-option value="binary">Binary</mat-option>
+          <mat-option value="basic">{{ 'child.kind.basic' | translate }}</mat-option>
+          <mat-option value="direct">{{ 'child.kind.direct' | translate }}</mat-option>
+          <mat-option value="indirect">{{ 'child.kind.indirect' | translate }}</mat-option>
+          <mat-option value="binary">{{ 'child.kind.binary' | translate }}</mat-option>
         </mat-select>
       </mat-form-field>
       <mat-form-field>
-        <mat-label>Identifier</mat-label>
-        <input matInput name="slug" [(ngModel)]="slug" placeholder="(auto-generated identifier)" pattern="[^\\/\\?#]*" />
-        <mat-hint>Leave empty to let the platform choose</mat-hint>
+        <mat-label>{{ 'child.identifier' | translate }}</mat-label>
+        <input
+          matInput
+          name="slug"
+          [(ngModel)]="slug"
+          [placeholder]="'child.identifierPlaceholder' | translate"
+          pattern="[^\\/\\?#]*"
+          #slugModel="ngModel"
+        />
+        <mat-hint>{{ 'child.identifierHint' | translate }}</mat-hint>
+        @if (slugModel.errors?.['pattern']) {
+          <mat-error>{{ 'child.identifierInvalid' | translate }}</mat-error>
+        }
       </mat-form-field>
       @if (kind() === 'binary') {
         <div class="ui-file">
-          <input type="file" name="file" (change)="pickFile($event)" required aria-label="File" />
+          <input type="file" name="file" (change)="pickFile($event)" required [attr.aria-label]="'child.file' | translate" />
         </div>
         <mat-form-field>
-          <mat-label>MIME type</mat-label>
+          <mat-label>{{ 'binary.mimeType' | translate }}</mat-label>
           <input matInput name="mimeType" [(ngModel)]="mimeType" placeholder="application/octet-stream" />
         </mat-form-field>
       } @else {
         <mat-form-field class="ui-code">
-          <mat-label>RDF (Turtle)</mat-label>
+          <mat-label>{{ 'child.turtle' | translate }}</mat-label>
           <textarea matInput name="turtle" rows="9" [(ngModel)]="turtle"></textarea>
         </mat-form-field>
         @if (allowArchivalGroup()) {
           <mat-checkbox name="archivalGroup" [(ngModel)]="archivalGroup" class="ui-archival-group">
-            Archival group
+            {{ 'resource.archivalGroup' | translate }}
           </mat-checkbox>
-          <p class="ui-hint">Stores the container and everything created inside it as one OCFL object, versioned as a unit.</p>
+          <p class="ui-hint">{{ 'child.archivalGroupHint' | translate }}</p>
         }
       }
       @if (busy()) {
-        <mat-progress-bar mode="indeterminate" />
+        <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
       }
       <button mat-flat-button color="primary" type="submit" [disabled]="busy() || form.invalid || (kind() === 'binary' && !file())">
-        Add
+        {{ 'common.add' | translate }}
       </button>
     </form>
   `,
@@ -71,6 +92,8 @@ export class CreateChildFormComponent implements OnInit {
   private readonly ldp = inject(LdpService);
 
   private readonly notifier = inject(Notifier);
+
+  private readonly i18n = inject(I18nService);
 
   /** Path of the parent container. */
   readonly parentPath = input.required<string>();
@@ -100,7 +123,16 @@ export class CreateChildFormComponent implements OnInit {
 
   /** Starts with the basic container template. */
   ngOnInit(): void {
-    this.turtle = childTemplate(this.kind(), this.parentIri());
+    this.turtle = childTemplate(this.kind(), this.parentIri(), this.titles());
+  }
+
+  /** The titles the templates propose, in the interface language. */
+  private titles(): TemplateTitles {
+    return {
+      untitled: this.i18n.t('child.title.untitled'),
+      members: this.i18n.t('child.title.members'),
+      proxies: this.i18n.t('child.title.proxies'),
+    };
   }
 
   /**
@@ -109,8 +141,8 @@ export class CreateChildFormComponent implements OnInit {
    * @param kind - the new kind
    */
   protected changeKind(kind: ChildKind): void {
-    if (isTemplate(this.turtle, this.parentIri())) {
-      this.turtle = childTemplate(kind, this.parentIri());
+    if (isTemplate(this.turtle, this.parentIri(), this.titles())) {
+      this.turtle = childTemplate(kind, this.parentIri(), this.titles());
     }
     this.kind.set(kind);
   }
@@ -153,14 +185,14 @@ export class CreateChildFormComponent implements OnInit {
       .subscribe({
         next: (location) => {
           this.busy.set(false);
-          this.notifier.success('Resource created');
+          this.notifier.success(this.i18n.t('child.created'));
           this.slug = '';
           this.archivalGroup = false;
           this.created.emit(location);
         },
         error: (error: unknown) => {
           this.busy.set(false);
-          this.notifier.error('Create', error);
+          this.notifier.error(this.i18n.t('common.create'), error);
         },
       });
   }

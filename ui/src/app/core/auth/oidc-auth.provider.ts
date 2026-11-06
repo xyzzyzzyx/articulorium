@@ -13,6 +13,11 @@ export interface OidcSettings {
   readonly scope: string;
   /** The user interface's base URI: where the provider redirects back to after signing in or out. */
   readonly baseUri: string;
+  /**
+   * The user interface's locale, sent as `ui_locales` so the provider's login page uses the same
+   * language (Keycloak does when the realm enables the locale; other providers may ignore it).
+   */
+  readonly uiLocales?: () => string | undefined;
 }
 
 /** The part of oidc-client-ts' `UserManager` the provider uses (replaced in tests). */
@@ -137,7 +142,11 @@ export class OidcAuthProvider implements AuthProvider {
   signIn(): Promise<void> {
     this.failure.set(undefined);
     const { pathname, search, hash } = window.location;
-    return this.client.signinRedirect({ state: `${pathname}${search}${hash}` });
+    const locale = this.settings.uiLocales?.();
+    return this.client.signinRedirect({
+      state: `${pathname}${search}${hash}`,
+      ...(locale ? { ui_locales: locale } : {}),
+    });
   }
 
   /**

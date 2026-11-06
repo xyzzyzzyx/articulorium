@@ -7,8 +7,11 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.articulorium.transform.config.TransformProperties;
 import com.articulorium.transform.spi.TransformationContext;
@@ -37,6 +40,24 @@ public class FieldMappingTransformer implements Transformer {
 
     /** Name of this transformer. */
     public static final String NAME = "field-mapping";
+
+    /** Document field listing the languages of the resource's language-tagged texts. */
+    public static final String LANGUAGES_FIELD = "languages";
+
+    /**
+     * Languages with a {@code *_txt_<suffix>} dynamic field (and analyzer) in Solr's
+     * {@code _default} configset, by ISO 639-1 code; Chinese and Korean use the CJK bigram one.
+     */
+    static final Map<String, String> SOLR_LANGUAGES = Map.ofEntries(
+        Map.entry("ar", "ar"), Map.entry("bg", "bg"), Map.entry("ca", "ca"), Map.entry("cs", "cz"),
+        Map.entry("da", "da"), Map.entry("de", "de"), Map.entry("el", "el"), Map.entry("en", "en"),
+        Map.entry("es", "es"), Map.entry("et", "et"), Map.entry("eu", "eu"), Map.entry("fa", "fa"),
+        Map.entry("fi", "fi"), Map.entry("fr", "fr"), Map.entry("ga", "ga"), Map.entry("gl", "gl"),
+        Map.entry("hi", "hi"), Map.entry("hu", "hu"), Map.entry("hy", "hy"), Map.entry("id", "id"),
+        Map.entry("it", "it"), Map.entry("ja", "ja"), Map.entry("ko", "cjk"), Map.entry("lv", "lv"),
+        Map.entry("nl", "nl"), Map.entry("nb", "no"), Map.entry("nn", "no"), Map.entry("no", "no"),
+        Map.entry("pt", "pt"), Map.entry("ro", "ro"), Map.entry("ru", "ru"), Map.entry("sv", "sv"),
+        Map.entry("th", "th"), Map.entry("tr", "tr"), Map.entry("zh", "cjk"));
 
     private final FieldMappings mappings;
 
@@ -82,17 +103,31 @@ public class FieldMappingTransformer implements Transformer {
     @Override
     public Map<String, Collection<?>> transform(final TransformationContext context) {
         final Map<String, Collection<?>> document = new LinkedHashMap<>();
+        final Map<String, Set<Object>> byLanguage = new LinkedHashMap<>();
+        final Set<String> languages = new TreeSet<>();
         final Resource subject = context.subject();
         for (final FieldMapping field : mappings.fields()) {
             final Set<Object> values = new LinkedHashSet<>();
             for (final List<String> path : field.paths()) {
                 for (final RDFNode node : follow(context.model(), subject, path)) {
                     field.type().convert(node).ifPresent(values::add);
+                    if (field.type() == FieldType.STRING) {
+                        language(node).ifPresent(language -> {
+                            languages.add(language);
+                            solrSuffix(language).ifPresent(suffix -> byLanguage
+                                .computeIfAbsent(field.name() + "_txt_" + suffix, key -> new LinkedHashSet<>())
+                                .add(node.asLiteral().getLexicalForm()));
+                        });
+                    }
                 }
             }
             if (!values.isEmpty()) {
                 document.put(field.name(), new ArrayList<>(values));
             }
+        }
+        byLanguage.forEach((name, values) -> document.put(name, new ArrayList<>(values)));
+        if (!languages.isEmpty()) {
+            document.put(LANGUAGES_FIELD, new ArrayList<>(languages));
         }
         return document;
     }
@@ -105,6 +140,32 @@ public class FieldMappingTransformer implements Transformer {
      * @param path    the predicate IRIs to follow, in order
      * @return the nodes reached, without duplicates, in encounter order
      */
+    /**
+     * The language of a language-tagged literal.
+     *
+     * @param node the node
+     * @return the BCP 47 tag, empty for other nodes
+     */
+    static Optional<String> language(final RDFNode node) {
+        if (node == null || !node.isLiteral()) {
+            return Optional.empty();
+        }
+        final String language = node.asLiteral().getLanguage();
+        return language == null || language.isEmpty() ? Optional.empty()
+            : Optional.of(Locale.forLanguageTag(language).toLanguageTag());
+    }
+
+    /**
+     * The Solr {@code _default} dynamic field suffix of a language.
+     *
+     * @param tag a BCP 47 tag
+     * @return for example {@code de} for {@code de-AT}, empty for languages without an analyzer
+     *     (their texts are still in the language-neutral field)
+     */
+    static Optional<String> solrSuffix(final String tag) {
+        return Optional.ofNullable(SOLR_LANGUAGES.get(Locale.forLanguageTag(tag).getLanguage()));
+    }
+
     static Collection<RDFNode> follow(final Model model, final Resource subject, final List<String> path) {
         Collection<RDFNode> current = List.of(subject);
         for (final String predicate : path) {

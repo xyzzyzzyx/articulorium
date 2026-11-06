@@ -3,6 +3,7 @@ package com.articulorium.platform.web;
 import java.nio.charset.StandardCharsets;
 
 import com.articulorium.domain.vocabulary.Ldp;
+import com.articulorium.i18n.Messages;
 import com.articulorium.platform.ldp.LinkHeader;
 import com.articulorium.platform.ldp.exception.LdpException;
 import com.articulorium.platform.storage.BinaryNotFoundException;
@@ -26,10 +27,26 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>Every error response carries the {@code constrainedBy} link so clients can discover why a
  * request was refused (LDP 4.2.1.6).</p>
+ *
+ * <p>Messages with a code ({@link LdpException#getMessageCode()} and the handler's own) are
+ * written in the request's locale; the others (protocol diagnostics naming headers, triples or
+ * syntax) only exist in the default locale. {@code Content-Language} tells clients which one they
+ * got, so the user interface can show its own translated summary of the status instead.</p>
  */
 @Slf4j
 @RestControllerAdvice
 public class LdpExceptionHandler {
+
+    private final Messages messages;
+
+    /**
+     * Creates the handler.
+     *
+     * @param messages the texts in the request's locale
+     */
+    public LdpExceptionHandler(final Messages messages) {
+        this.messages = messages;
+    }
 
     /**
      * Handles errors raised by the LDP service.
@@ -43,7 +60,12 @@ public class LdpExceptionHandler {
         if (exception.getStatus().is5xxServerError()) {
             log.error("{} {} failed", request.getMethod(), request.getRequestURI(), exception);
         }
-        return error(exception.getStatus(), exception.getMessage(), exception.getHeaders(), request);
+        if (exception.getMessageCode() != null) {
+            return localized(exception.getStatus(), exception.getMessageCode(), exception.getMessageArguments(),
+                exception.getHeaders(), request);
+        }
+        return error(exception.getStatus(), exception.getMessage(), defaultLanguage(), exception.getHeaders(),
+            request);
     }
 
     /**
@@ -56,7 +78,7 @@ public class LdpExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<String> handleMaxUploadSize(final MaxUploadSizeExceededException exception,
             final HttpServletRequest request) {
-        return error(HttpStatus.PAYLOAD_TOO_LARGE, "Upload exceeds the configured limit", new HttpHeaders(), request);
+        return localized(HttpStatus.PAYLOAD_TOO_LARGE, "error.upload-too-large", null, new HttpHeaders(), request);
     }
 
     /**
@@ -69,8 +91,7 @@ public class LdpExceptionHandler {
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<String> handleOptimisticLock(final ObjectOptimisticLockingFailureException exception,
             final HttpServletRequest request) {
-        return error(HttpStatus.CONFLICT, "The resource was modified concurrently; retry the request",
-            new HttpHeaders(), request);
+        return localized(HttpStatus.CONFLICT, "error.concurrent-modification", null, new HttpHeaders(), request);
     }
 
     /**
@@ -85,7 +106,7 @@ public class LdpExceptionHandler {
             final HttpServletRequest request) {
         log.warn("Integrity violation for {} {}: {}", request.getMethod(), request.getRequestURI(),
             exception.getMostSpecificCause().getMessage());
-        return error(HttpStatus.CONFLICT, "A resource already exists at this location", new HttpHeaders(), request);
+        return localized(HttpStatus.CONFLICT, "error.already-exists", null, new HttpHeaders(), request);
     }
 
     /**
@@ -98,7 +119,8 @@ public class LdpExceptionHandler {
     @ExceptionHandler(InvalidMediaTypeException.class)
     public ResponseEntity<String> handleInvalidMediaType(final InvalidMediaTypeException exception,
             final HttpServletRequest request) {
-        return error(HttpStatus.BAD_REQUEST, "Invalid media type: " + exception.getMessage(), new HttpHeaders(), request);
+        return localized(HttpStatus.BAD_REQUEST, "error.invalid-media-type", new Object[] { exception.getMessage() },
+            new HttpHeaders(), request);
     }
 
     /**
@@ -112,14 +134,24 @@ public class LdpExceptionHandler {
     public ResponseEntity<String> handleMissingBinary(final BinaryNotFoundException exception,
             final HttpServletRequest request) {
         log.error("Binary content missing for {}", request.getRequestURI(), exception);
-        return error(HttpStatus.INTERNAL_SERVER_ERROR, "The binary content of this resource is missing",
-            new HttpHeaders(), request);
+        return localized(HttpStatus.INTERNAL_SERVER_ERROR, "error.binary-missing", null, new HttpHeaders(), request);
     }
 
-    private static ResponseEntity<String> error(final HttpStatus status, final String message,
+    private ResponseEntity<String> localized(final HttpStatus status, final String code, final Object[] arguments,
+            final HttpHeaders extraHeaders, final HttpServletRequest request) {
+        return error(status, messages.get(code, arguments == null ? new Object[0] : arguments),
+            messages.descriptor().tag(), extraHeaders, request);
+    }
+
+    private String defaultLanguage() {
+        return messages.defaultLocale().tag();
+    }
+
+    private static ResponseEntity<String> error(final HttpStatus status, final String message, final String language,
             final HttpHeaders extraHeaders, final HttpServletRequest request) {
         final HttpHeaders headers = new HttpHeaders();
         headers.addAll(extraHeaders);
+        headers.set(HttpHeaders.CONTENT_LANGUAGE, language);
         headers.add(HttpHeaders.LINK, LinkHeader.format(RequestTargets.base(request) + ConstraintsController.PATH,
             Ldp.CONSTRAINED_BY));
         headers.setContentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8));

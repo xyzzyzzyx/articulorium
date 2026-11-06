@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { TranslatePipe } from '@ngx-translate/core';
 
-/** Content of a confirmation dialog. */
+/** Content of a confirmation dialog, already translated. */
 export interface ConfirmData {
   readonly title: string;
   readonly message: string;
@@ -14,13 +15,13 @@ export interface ConfirmData {
  */
 @Component({
   selector: 'ui-confirm-dialog',
-  imports: [MatButtonModule, MatDialogModule],
+  imports: [MatButtonModule, MatDialogModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 mat-dialog-title>{{ data.title }}</h2>
     <mat-dialog-content>{{ data.message }}</mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button [mat-dialog-close]="false">Cancel</button>
+      <button mat-button [mat-dialog-close]="false">{{ 'common.cancel' | translate }}</button>
       <button mat-flat-button color="warn" [mat-dialog-close]="true" cdkFocusInitial>{{ data.confirm }}</button>
     </mat-dialog-actions>
   `,

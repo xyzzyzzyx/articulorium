@@ -163,6 +163,8 @@ public class LdpController {
         final Model model = service.render(target, base, preference);
         if (AcceptPreferences.prefersHtml(request.getHeader(HttpHeaders.ACCEPT))) {
             headers.setContentType(new MediaType(MediaType.TEXT_HTML, StandardCharsets.UTF_8));
+            headers.set(HttpHeaders.CONTENT_LANGUAGE, htmlView.language());
+            headers.add(HttpHeaders.VARY, HttpHeaders.ACCEPT_LANGUAGE);
             return ResponseEntity.ok().headers(headers).body(htmlView.render(target, model, base));
         }
         return ResponseEntity.ok().headers(headers).body(model);

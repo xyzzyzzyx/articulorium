@@ -62,6 +62,8 @@ public class IiifController {
         final String path = pathOf(request);
         return ResponseEntity.ok()
             .header(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+            // Articulorium's own labels follow Accept-Language
+            .header(HttpHeaders.VARY, HttpHeaders.ACCEPT_LANGUAGE)
             .contentType(MediaType.parseMediaType(IiifPresentationService.MEDIA_TYPE))
             .body(presentation.export(path, context));
     }

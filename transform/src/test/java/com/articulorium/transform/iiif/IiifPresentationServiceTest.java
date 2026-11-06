@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,6 +31,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 /**
  * Tests {@link IiifPresentationService} against a mocked platform holding a two-page book in a
@@ -109,6 +111,34 @@ class IiifPresentationServiceTest {
             .addProperty(model.createProperty(Premis.HAS_MIME_TYPE), mime)
             .addProperty(model.createProperty(Premis.FILENAME), name);
         return model;
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void keepsLanguagesAndWritesOwnLabelsInTheRequestLocale() {
+        final Model book = ModelFactory.createDefaultModel();
+        resource(book, "c/book", Pcdm.OBJECT)
+            .addProperty(book.createProperty(DC + "title"), "Moby Dick", "en")
+            .addProperty(book.createProperty(DC + "title"), "Moby Dick oder Der Wal", "de")
+            .addProperty(book.createProperty(DC + "subject"), "Wale", "de")
+            .addProperty(book.createProperty(DC + "rights"), "Gemeinfrei", "de");
+        serve("c/book", book);
+        LocaleContextHolder.setLocale(Locale.GERMAN);
+        try {
+            final Map<String, Object> manifest = service.export("c/book", context);
+            assertThat(manifest.get("label")).isEqualTo(Map.of("en", List.of("Moby Dick"),
+                "de", List.of("Moby Dick oder Der Wal")));
+            assertThat((Map<String, Object>) manifest.get("requiredStatement"))
+                .containsEntry("label", Map.of("de", List.of("Rechte")))
+                .containsEntry("value", Map.of("de", List.of("Gemeinfrei")));
+            assertThat((List<Map<String, Object>>) manifest.get("metadata"))
+                .anySatisfy(entry -> assertThat(entry).containsEntry("value", Map.of("de", List.of("Wale"))));
+            assertThat((List<Map<String, Object>>) manifest.get("homepage")).singleElement()
+                .satisfies(homepage -> assertThat(homepage).containsEntry("label",
+                    Map.of("de", List.of("In Articulorium ansehen"))));
+        } finally {
+            LocaleContextHolder.resetLocaleContext();
+        }
     }
 
     @Test

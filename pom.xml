@@ -41,6 +41,7 @@
     <module>activitystreams</module>
     <module>agent</module>
     <module>agent-spring-boot-starter</module>
+    <module>i18n-spring-boot-starter</module>
     <!-- Angular single page application, packaged as a jar of static resources -->
     <module>ui</module>
     <!-- services -->
@@ -178,6 +179,12 @@
       <dependency>
         <groupId>com.articulorium</groupId>
         <artifactId>agent-spring-boot-starter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.articulorium</groupId>
+        <artifactId>i18n-spring-boot-starter</artifactId>
         <version>${project.version}</version>
       </dependency>
 

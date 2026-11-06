@@ -1,4 +1,5 @@
 import { Graph, compact, lastSegment, prefixPreamble, subject } from './graph';
+import { iri, literal } from './term';
 import { parseNTriples } from './ntriples';
 
 const DOC = `
@@ -60,5 +61,22 @@ describe('IRI helpers', () => {
     expect(preamble).toContain('PREFIX ldp: <http://www.w3.org/ns/ldp#>');
     expect(preamble).toContain('PREFIX foaf: <http://xmlns.com/foaf/0.1/>');
     expect(preamble).not.toContain('pcdm');
+  });
+});
+
+describe('Graph texts in the reader language', () => {
+  const s = iri('http://x/s');
+  const title = 'http://purl.org/dc/terms/title';
+  const graph = new Graph([
+    { subject: s, predicate: iri(title), object: literal('Moby Dick') },
+    { subject: s, predicate: iri(title), object: literal('Moby Dick oder Der Wal', undefined, 'de') },
+    { subject: s, predicate: iri(title), object: literal('Moby Dick (édition)', undefined, 'fr-CA') },
+  ]);
+
+  it('prefers the locale, then its language, then untagged values', () => {
+    expect(graph.title(s, 'de-AT')).toBe('Moby Dick oder Der Wal');
+    expect(graph.title(s, 'fr')).toBe('Moby Dick (édition)');
+    expect(graph.title(s, 'ja')).toBe('Moby Dick');
+    expect(graph.title(s)).toBe('Moby Dick');
   });
 });

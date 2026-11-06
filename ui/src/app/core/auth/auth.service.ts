@@ -54,6 +54,8 @@ export class AuthService {
               clientId: auth.oidc.clientId,
               scope: auth.oidc.scope,
               baseUri: document.baseURI,
+              // the locale the page was rendered in (I18nService keeps <html lang> current)
+              uiLocales: () => document.documentElement.lang || undefined,
             },
             this.oidcClients,
           )

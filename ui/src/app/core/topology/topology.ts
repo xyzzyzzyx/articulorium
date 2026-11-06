@@ -1,3 +1,6 @@
+import { english } from '../i18n/english';
+import { Translate } from '../ldp/problem';
+
 /** A metadata field of a topology node. */
 export interface MetadataField {
   readonly predicate: string;
@@ -122,13 +125,14 @@ export function flatten(node: TopologyNode, depth = 0): { node: TopologyNode; de
  * Describes how many children a rule allows.
  *
  * @param rule - the rule
+ * @param t - looks up texts (English by default)
  * @returns for example `1 – ∞` or `exactly 1`
  */
-export function cardinality(rule: ChildRule): string {
+export function cardinality(rule: ChildRule, t: Translate = english): string {
   if (rule.max === rule.min) {
-    return `exactly ${rule.min}`;
+    return t('topology.cardinality.exactly', { min: rule.min });
   }
-  return `${rule.min} – ${rule.max < 0 ? '∞' : rule.max}`;
+  return t('topology.cardinality.range', { min: rule.min, max: rule.max < 0 ? '∞' : rule.max });
 }
 
 /**
@@ -137,15 +141,21 @@ export function cardinality(rule: ChildRule): string {
  * @param key - the key
  * @param label - the label
  * @param pcdmType - Collection or Object
+ * @param titleLabel - the label of its title field
  * @returns the node
  */
-export function emptyNode(key: string, label: string, pcdmType: TopologyNode['pcdmType'] = 'Object'): TopologyNode {
+export function emptyNode(
+  key: string,
+  label: string,
+  pcdmType: TopologyNode['pcdmType'] = 'Object',
+  titleLabel = 'Title',
+): TopologyNode {
   return {
     key,
     label,
     pcdmType,
     types: [],
-    metadata: [{ predicate: 'http://purl.org/dc/terms/title', label: 'Title', required: true, repeatable: false }],
+    metadata: [{ predicate: 'http://purl.org/dc/terms/title', label: titleLabel, required: true, repeatable: false }],
     files: [],
     children: [],
   };
@@ -155,34 +165,35 @@ export function emptyNode(key: string, label: string, pcdmType: TopologyNode['pc
  * Checks a topology before it is sent (the service validates again).
  *
  * @param topology - the topology
+ * @param t - looks up texts (English by default)
  * @returns the problems found
  */
-export function validateTopology(topology: Topology): string[] {
+export function validateTopology(topology: Topology, t: Translate = english): string[] {
   const errors: string[] = [];
   const slug = /^[a-z0-9][a-z0-9_-]{0,63}$/;
   if (!slug.test(topology.id)) {
-    errors.push('The identifier must be a lower-case slug (a-z, 0-9, - and _).');
+    errors.push(t('topology.validation.id'));
   }
   if (!topology.name.trim()) {
-    errors.push('The name is required.');
+    errors.push(t('topology.validation.name'));
   }
   const keys = new Set<string>();
   for (const { node } of flatten(topology.root)) {
     if (!slug.test(node.key)) {
-      errors.push(`Node key "${node.key}" must be a lower-case slug.`);
+      errors.push(t('topology.validation.key', { key: node.key }));
     } else if (keys.has(node.key)) {
-      errors.push(`Node key "${node.key}" is used twice.`);
+      errors.push(t('topology.validation.keyTwice', { key: node.key }));
     }
     keys.add(node.key);
     if (!node.label.trim()) {
-      errors.push(`Node "${node.key}" needs a label.`);
+      errors.push(t('topology.validation.label', { key: node.key }));
     }
     for (const rule of node.children) {
       if (node.pcdmType === 'Object' && rule.node.pcdmType === 'Collection') {
-        errors.push(`A PCDM object (${node.key}) cannot contain a collection (${rule.node.key}).`);
+        errors.push(t('topology.validation.objectContainsCollection', { parent: node.key, child: rule.node.key }));
       }
       if (rule.max >= 0 && rule.max < rule.min) {
-        errors.push(`The maximum of ${rule.node.key} must be unlimited (-1) or at least the minimum.`);
+        errors.push(t('topology.validation.maximum', { key: rule.node.key }));
       }
     }
   }

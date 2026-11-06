@@ -28,7 +28,7 @@ import { Term } from '../core/rdf/term';
         <span class="ui-term-bnode">_:{{ t.value }}</span>
       }
       @default {
-        <span class="ui-term-literal">{{ t.value }}</span>
+        <span class="ui-term-literal" [attr.lang]="t.language || null">{{ t.value }}</span>
         @if (annotation(); as note) {
           <span class="ui-term-annotation">{{ note }}</span>
         }
@@ -39,7 +39,7 @@ import { Term } from '../core/rdf/term';
     :host { overflow-wrap: anywhere; }
     .ui-term-literal { white-space: pre-wrap; }
     .ui-term-bnode, .ui-term-annotation { color: var(--ui-muted, #666); font-size: 0.85em; }
-    .ui-term-annotation { margin-left: 0.4em; }
+    .ui-term-annotation { margin-inline-start: 0.4em; }
   `,
 })
 export class TermComponent {

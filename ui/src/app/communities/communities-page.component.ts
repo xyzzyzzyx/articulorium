@@ -8,13 +8,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 
 import { ConfigService } from '../core/config.service';
+import { I18nService } from '../core/i18n/i18n.service';
 import { LdpService } from '../core/ldp/ldp.service';
 import { ResourceView } from '../core/ldp/models';
 import { normalizePath, pathOf, routeTo, segmentsOf } from '../core/ldp/paths';
-import { errorMessage } from '../core/ldp/problem';
 import { DCTERMS, LDP } from '../core/rdf/vocabulary';
 import { allows } from '../core/webac/webac';
 import { Notifier } from '../shared/notifier.service';
@@ -64,45 +65,54 @@ interface Node {
     MatProgressBarModule,
     RouterLink,
     TopologyPanelComponent,
+    TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <nav class="ui-breadcrumb ui-communities-breadcrumb" aria-label="Breadcrumb">
-      <a [routerLink]="['/communities']"><mat-icon inline>corporate_fare</mat-icon> Communities</a>
+    <nav class="ui-breadcrumb ui-communities-breadcrumb" [attr.aria-label]="'breadcrumb.label' | translate">
+      <a [routerLink]="['/communities']"><mat-icon inline aria-hidden="true">corporate_fare</mat-icon> {{ 'nav.communities' | translate }}</a>
       @for (crumb of crumbs(); track crumb.route.join('/')) {
         / <a [routerLink]="crumb.route">{{ crumb.name }}</a>
       }
     </nav>
     @if (node.isLoading()) {
-      <mat-progress-bar mode="indeterminate" />
+      <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
     }
     @if (loadError(); as message) {
-      <p class="ui-error-text">{{ message }}</p>
+      <p class="ui-error-text" role="alert">{{ message }}</p>
     }
     @if (node.value(); as n) {
       <header class="ui-page-header">
         <div>
           <h1>{{ heading(n) }}</h1>
-          @if (n.view.graph.value(n.view.subject, descriptionPredicate); as description) {
+          @if (n.view.graph.text(n.view.subject, descriptionPredicate, i18n.locale()); as description) {
             <p class="ui-muted">{{ description }}</p>
           }
           <span class="ui-pill ui-structure-kind">{{ kindLabel(n.kind) }}</span>
         </div>
         <div class="ui-row">
-          <a mat-stroked-button [routerLink]="browseRoute(n.view.path)"><mat-icon>folder_open</mat-icon> Open</a>
-          <a mat-stroked-button [routerLink]="routeTo('permissions', n.view.path)"><mat-icon>admin_panel_settings</mat-icon> Permissions</a>
-          <a mat-stroked-button [routerLink]="routeTo('inbox', n.view.path)"><mat-icon>inbox</mat-icon> Notifications</a>
-          <a mat-stroked-button [href]="iiif(n.view.path)" target="_blank" rel="noopener"><mat-icon>photo_library</mat-icon> IIIF</a>
+          <a mat-stroked-button [routerLink]="browseRoute(n.view.path)">
+            <mat-icon aria-hidden="true">folder_open</mat-icon> {{ 'communities.open' | translate }}
+          </a>
+          <a mat-stroked-button [routerLink]="routeTo('permissions', n.view.path)">
+            <mat-icon aria-hidden="true">admin_panel_settings</mat-icon> {{ 'resource.permissions' | translate }}
+          </a>
+          <a mat-stroked-button [routerLink]="routeTo('inbox', n.view.path)">
+            <mat-icon aria-hidden="true">inbox</mat-icon> {{ 'resource.notifications' | translate }}
+          </a>
+          <a mat-stroked-button [href]="iiif(n.view.path)" target="_blank" rel="noopener">
+            <mat-icon aria-hidden="true">photo_library</mat-icon> {{ 'resource.iiif' | translate }}
+          </a>
         </div>
       </header>
 
       @if (n.kind === 'root' || n.kind === 'community') {
-        <h2>{{ n.kind === 'root' ? 'Communities' : 'Sub-communities' }}</h2>
+        <h2>{{ (n.kind === 'root' ? 'nav.communities' : 'communities.subCommunities') | translate }}</h2>
         <div class="ui-card-grid ui-communities-list">
           @for (entry of n.communities; track entry.path) {
             <mat-card appearance="outlined" class="ui-structure-card">
               <mat-card-header>
-                <mat-icon mat-card-avatar>groups</mat-icon>
+                <mat-icon mat-card-avatar aria-hidden="true">groups</mat-icon>
                 <mat-card-title><a [routerLink]="entry.route">{{ entry.title }}</a></mat-card-title>
               </mat-card-header>
               @if (entry.description) {
@@ -110,17 +120,17 @@ interface Node {
               }
             </mat-card>
           } @empty {
-            <p class="ui-muted">None yet.</p>
+            <p class="ui-muted">{{ 'communities.noneYet' | translate }}</p>
           }
         </div>
       }
       @if (n.kind === 'community') {
-        <h2>Collections</h2>
+        <h2>{{ 'communities.collections' | translate }}</h2>
         <div class="ui-card-grid ui-collections-list">
           @for (entry of n.collections; track entry.path) {
             <mat-card appearance="outlined" class="ui-structure-card">
               <mat-card-header>
-                <mat-icon mat-card-avatar>collections_bookmark</mat-icon>
+                <mat-icon mat-card-avatar aria-hidden="true">collections_bookmark</mat-icon>
                 <mat-card-title><a [routerLink]="entry.route">{{ entry.title }}</a></mat-card-title>
               </mat-card-header>
               @if (entry.description) {
@@ -128,17 +138,17 @@ interface Node {
               }
             </mat-card>
           } @empty {
-            <p class="ui-muted">None yet.</p>
+            <p class="ui-muted">{{ 'communities.noneYet' | translate }}</p>
           }
         </div>
       }
       @if (n.kind === 'collection') {
-        <h2>Items</h2>
+        <h2>{{ 'communities.items' | translate }}</h2>
         <ul class="ui-tree ui-items-list">
           @for (entry of n.items; track entry.path) {
-            <li><mat-icon inline>description</mat-icon> <a [routerLink]="entry.route">{{ entry.title }}</a></li>
+            <li><mat-icon inline aria-hidden="true">description</mat-icon> <a [routerLink]="entry.route">{{ entry.title }}</a></li>
           } @empty {
-            <li class="ui-muted">None yet.</li>
+            <li class="ui-muted">{{ 'communities.noneYet' | translate }}</li>
           }
         </ul>
       }
@@ -148,44 +158,48 @@ interface Node {
           @if (n.kind === 'root' || n.kind === 'community') {
             <mat-card appearance="outlined">
               <mat-card-header>
-                <mat-card-title>{{ n.kind === 'root' ? 'New community' : 'New sub-community' }}</mat-card-title>
+                <mat-card-title>{{ (n.kind === 'root' ? 'communities.newCommunity' : 'communities.newSubCommunity') | translate }}</mat-card-title>
               </mat-card-header>
               <mat-card-content>
                 <form class="ui-form ui-new-community" (ngSubmit)="create(n, 'community')">
                   <mat-form-field>
-                    <mat-label>Name</mat-label>
+                    <mat-label>{{ 'communities.name' | translate }}</mat-label>
                     <input matInput name="communityTitle" required [(ngModel)]="communityTitle" />
                   </mat-form-field>
                   <mat-form-field>
-                    <mat-label>Description</mat-label>
+                    <mat-label>{{ 'communities.description' | translate }}</mat-label>
                     <textarea matInput name="communityDescription" rows="2" [(ngModel)]="communityDescription"></textarea>
                   </mat-form-field>
-                  <button mat-flat-button color="primary" type="submit" [disabled]="busy() || !communityTitle.trim()">Create</button>
+                  <button mat-flat-button color="primary" type="submit" [disabled]="busy() || !communityTitle.trim()">
+                    {{ 'common.create' | translate }}
+                  </button>
                 </form>
               </mat-card-content>
             </mat-card>
           }
           @if (n.kind === 'community') {
             <mat-card appearance="outlined">
-              <mat-card-header><mat-card-title>New collection</mat-card-title></mat-card-header>
+              <mat-card-header><mat-card-title>{{ 'communities.newCollection' | translate }}</mat-card-title></mat-card-header>
               <mat-card-content>
                 <form class="ui-form ui-new-collection" (ngSubmit)="create(n, 'collection')">
                   <mat-form-field>
-                    <mat-label>Name</mat-label>
+                    <mat-label>{{ 'communities.name' | translate }}</mat-label>
                     <input matInput name="collectionTitle" required [(ngModel)]="collectionTitle" />
                   </mat-form-field>
                   <mat-form-field>
-                    <mat-label>Description</mat-label>
+                    <mat-label>{{ 'communities.description' | translate }}</mat-label>
                     <textarea matInput name="collectionDescription" rows="2" [(ngModel)]="collectionDescription"></textarea>
                   </mat-form-field>
-                  <button mat-flat-button color="primary" type="submit" [disabled]="busy() || !collectionTitle.trim()">Create</button>
+                  <button mat-flat-button color="primary" type="submit" [disabled]="busy() || !collectionTitle.trim()">
+                    {{ 'common.create' | translate }}
+                  </button>
                 </form>
               </mat-card-content>
             </mat-card>
           }
           @if (n.kind === 'collection') {
             <mat-card appearance="outlined">
-              <mat-card-header><mat-card-title>New item from a topology</mat-card-title></mat-card-header>
+              <mat-card-header><mat-card-title>{{ 'communities.newItem' | translate }}</mat-card-title></mat-card-header>
               <mat-card-content>
                 <ui-topology-panel [view]="n.view" [expanded]="true" />
               </mat-card-content>
@@ -202,6 +216,8 @@ export class CommunitiesPageComponent {
   private readonly config = inject(ConfigService);
 
   private readonly notifier = inject(Notifier);
+
+  protected readonly i18n = inject(I18nService);
 
   /** Path below the community container (bound from the route). */
   readonly path = input('');
@@ -249,7 +265,9 @@ export class CommunitiesPageComponent {
                 ).pipe(map((entries) => entries.filter((entry): entry is Entry => entry !== undefined)));
           return entries$.pipe(
             map((entries): Node => {
-              const sorted = [...entries].sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true }));
+              const sorted = [...entries].sort((a, b) =>
+                a.title.localeCompare(b.title, this.i18n.locale(), { numeric: true }),
+              );
               const kind: StructureKind =
                 view.path === this.config.communitiesPath() ? 'root' : structureKind(view.graph, view.subject);
               return {
@@ -267,7 +285,7 @@ export class CommunitiesPageComponent {
 
   protected readonly loadError = computed(() => {
     const error = this.node.error();
-    return error ? errorMessage(error) : undefined;
+    return error ? this.notifier.message(error) : undefined;
   });
 
   /**
@@ -277,7 +295,7 @@ export class CommunitiesPageComponent {
    * @returns its title
    */
   protected heading(node: Node): string {
-    return node.kind === 'root' ? 'Communities' : node.view.graph.title(node.view.subject);
+    return node.kind === 'root' ? this.i18n.t('nav.communities') : node.view.graph.title(node.view.subject, this.i18n.locale());
   }
 
   /**
@@ -287,9 +305,7 @@ export class CommunitiesPageComponent {
    * @returns the label
    */
   protected kindLabel(kind: StructureKind): string {
-    return { root: 'All communities', community: 'Community', collection: 'Collection', item: 'Item', other: 'Container' }[
-      kind
-    ];
+    return this.i18n.t(`communities.kind.${kind}`);
   }
 
   /**
@@ -337,7 +353,15 @@ export class CommunitiesPageComponent {
       .subscribe({
         next: () => {
           this.busy.set(false);
-          this.notifier.success(`${kind === 'community' ? (node.kind === 'root' ? 'Community' : 'Sub-community') : 'Collection'} created`);
+          this.notifier.success(
+            this.i18n.t(
+              kind === 'collection'
+                ? 'communities.collectionCreated'
+                : node.kind === 'root'
+                  ? 'communities.communityCreated'
+                  : 'communities.subCommunityCreated',
+            ),
+          );
           if (kind === 'community') {
             this.communityTitle = '';
             this.communityDescription = '';
@@ -349,7 +373,7 @@ export class CommunitiesPageComponent {
         },
         error: (error: unknown) => {
           this.busy.set(false);
-          this.notifier.error('Create', error);
+          this.notifier.error(this.i18n.t('common.create'), error);
         },
       });
   }
@@ -361,8 +385,8 @@ export class CommunitiesPageComponent {
         const below = path.substring(this.config.communitiesPath().length + 1);
         return {
           path,
-          title: view.graph.title(view.subject),
-          description: view.graph.value(view.subject, DCTERMS.description),
+          title: view.graph.title(view.subject, this.i18n.locale()),
+          description: view.graph.text(view.subject, DCTERMS.description, this.i18n.locale()),
           kind,
           route: kind === 'community' || kind === 'collection' ? ['/', 'communities', ...segmentsOf(below)] : routeTo('browse', path),
         };

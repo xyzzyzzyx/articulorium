@@ -7,9 +7,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
-import { errorMessage } from '../core/ldp/problem';
+import { I18nService } from '../core/i18n/i18n.service';
 import { Topology, emptyNode, validateTopology } from '../core/topology/topology';
 import { TopologyService } from '../core/topology/topology.service';
 import { Notifier } from '../shared/notifier.service';
@@ -40,61 +41,65 @@ interface EditableTopology {
     MatProgressBarModule,
     NodeEditorComponent,
     RouterLink,
+    TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <nav class="ui-breadcrumb" aria-label="Breadcrumb">
-      <a [routerLink]="['/topologies']">Topologies</a> / <span>{{ isNew() ? 'New topology' : draft()?.name }}</span>
+    <nav class="ui-breadcrumb" [attr.aria-label]="'breadcrumb.label' | translate">
+      <a [routerLink]="['/topologies']">{{ 'nav.topologies' | translate }}</a> /
+      <span aria-current="page">{{ isNew() ? ('topology.new' | translate) : draft()?.name }}</span>
     </nav>
     @if (source.isLoading()) {
-      <mat-progress-bar mode="indeterminate" />
+      <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
     }
     @if (source.error(); as error) {
-      <p class="ui-error-text">{{ message(error) }}</p>
+      <p class="ui-error-text" role="alert">{{ message(error) }}</p>
     }
     @if (draft(); as t) {
       <form class="ui-form ui-topology-editor" (ngSubmit)="save(t)">
         <header class="ui-page-header">
-          <h1>{{ isNew() ? 'New topology' : t.name }}</h1>
+          <h1>{{ isNew() ? ('topology.new' | translate) : t.name }}</h1>
           <div class="ui-row">
             @if (t.builtIn) {
-              <span class="ui-pill">Built-in (read-only)</span>
+              <span class="ui-pill">{{ 'topology.readOnly' | translate }}</span>
               <a mat-stroked-button [routerLink]="['/topologies', 'new']" [queryParams]="{ from: t.id }">
-                <mat-icon>content_copy</mat-icon> Duplicate
+                <mat-icon aria-hidden="true">content_copy</mat-icon> {{ 'topology.duplicate' | translate }}
               </a>
             } @else {
-              <button mat-flat-button color="primary" type="submit" [disabled]="busy()">Save</button>
+              <button mat-flat-button color="primary" type="submit" [disabled]="busy()">{{ 'common.save' | translate }}</button>
               @if (!isNew()) {
-                <button mat-button type="button" color="warn" (click)="remove(t)" [disabled]="busy()">Delete</button>
+                <button mat-button type="button" color="warn" (click)="remove(t)" [disabled]="busy()">
+                  {{ 'common.delete' | translate }}
+                </button>
               }
             }
           </div>
         </header>
         <div class="ui-inline-fields">
           <mat-form-field>
-            <mat-label>Identifier</mat-label>
+            <mat-label>{{ 'child.identifier' | translate }}</mat-label>
             <input matInput name="id" [(ngModel)]="t.id" required [readonly]="!isNew()" />
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Name</mat-label>
+            <mat-label>{{ 'communities.name' | translate }}</mat-label>
             <input matInput name="name" [(ngModel)]="t.name" required [readonly]="t.builtIn" />
           </mat-form-field>
         </div>
         <mat-form-field>
-          <mat-label>Description</mat-label>
+          <mat-label>{{ 'communities.description' | translate }}</mat-label>
           <textarea matInput name="description" rows="2" [(ngModel)]="t.description" [readonly]="t.builtIn"></textarea>
         </mat-form-field>
         @if (errors().length > 0) {
-          <ul class="ui-error-text ui-topology-errors">
+          <ul class="ui-error-text ui-topology-errors" role="alert">
             @for (error of errors(); track error) {
               <li>{{ error }}</li>
             }
           </ul>
         }
         @if (busy()) {
-          <mat-progress-bar mode="indeterminate" />
+          <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
         }
-        <h2>Structure</h2>
+        <h2>{{ 'topology.structure' | translate }}</h2>
         <ui-node-editor [node]="t.root" [readonly]="t.builtIn" />
       </form>
     }
@@ -106,6 +111,8 @@ export class TopologyEditorPageComponent {
   private readonly notifier = inject(Notifier);
 
   private readonly router = inject(Router);
+
+  private readonly i18n = inject(I18nService);
 
   /** The topology identifier, or `new` (bound from the route). */
   readonly id = input('new');
@@ -135,8 +142,24 @@ export class TopologyEditorPageComponent {
       if (this.isNew()) {
         this.draft.set(
           source
-            ? { ...clone(source), id: `${source.id}-copy`, name: `${source.name} (copy)`, builtIn: false }
-            : { id: '', name: '', description: '', builtIn: false, root: emptyNode('object', 'Object') as EditableNode },
+            ? {
+                ...clone(source),
+                id: `${source.id}-copy`,
+                name: this.i18n.t('topology.copyName', { name: source.name }),
+                builtIn: false,
+              }
+            : {
+                id: '',
+                name: '',
+                description: '',
+                builtIn: false,
+                root: emptyNode(
+                  'object',
+                  this.i18n.t('topology.objectLabel'),
+                  'Object',
+                  this.i18n.t('topology.titleLabel'),
+                ) as EditableNode,
+              },
         );
       } else if (source) {
         this.draft.set(clone(source));
@@ -152,7 +175,7 @@ export class TopologyEditorPageComponent {
    * @returns the message
    */
   protected message(error: unknown): string {
-    return errorMessage(error);
+    return this.notifier.message(error);
   }
 
   /**
@@ -162,7 +185,7 @@ export class TopologyEditorPageComponent {
    */
   protected save(topology: EditableTopology): void {
     const value = topology as unknown as Topology;
-    const errors = validateTopology(value);
+    const errors = validateTopology(value, (key, params) => this.i18n.t(key, params));
     this.errors.set(errors);
     if (errors.length > 0) {
       return;
@@ -171,14 +194,14 @@ export class TopologyEditorPageComponent {
     this.service.save(value, !this.isNew()).subscribe({
       next: (saved) => {
         this.busy.set(false);
-        this.notifier.success('Topology saved');
+        this.notifier.success(this.i18n.t('topology.saved'));
         if (this.isNew()) {
           void this.router.navigate(['/topologies', saved.id]);
         }
       },
       error: (error: unknown) => {
         this.busy.set(false);
-        this.notifier.error('Save topology', error);
+        this.notifier.error(this.i18n.t('topology.save'), error);
       },
     });
   }
@@ -193,12 +216,12 @@ export class TopologyEditorPageComponent {
     this.service.delete(topology.id).subscribe({
       next: () => {
         this.busy.set(false);
-        this.notifier.success('Topology deleted');
+        this.notifier.success(this.i18n.t('topology.deleted'));
         void this.router.navigate(['/topologies']);
       },
       error: (error: unknown) => {
         this.busy.set(false);
-        this.notifier.error('Delete topology', error);
+        this.notifier.error(this.i18n.t('topology.delete'), error);
       },
     });
   }

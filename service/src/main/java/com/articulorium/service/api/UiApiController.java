@@ -2,6 +2,7 @@ package com.articulorium.service.api;
 
 import com.articulorium.agent.Agent;
 import com.articulorium.agent.AgentRegistry;
+import com.articulorium.i18n.Messages;
 import com.articulorium.service.config.UiProperties;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,15 +27,20 @@ public class UiApiController {
 
     private final AgentRegistry agents;
 
+    private final Messages messages;
+
     /**
      * Creates the controller.
      *
      * @param properties user interface settings
      * @param agents     the agents known to the service
+     * @param messages   error messages in the request's locale
      */
-    public UiApiController(final UiProperties properties, final AgentRegistry agents) {
+    public UiApiController(final UiProperties properties, final AgentRegistry agents,
+            final Messages messages) {
         this.properties = properties;
         this.agents = agents;
+        this.messages = messages;
     }
 
     /**
@@ -70,7 +76,8 @@ public class UiApiController {
     @Operation(operationId = "agent", summary = "One known agent")
     public Agent agent(@PathVariable final String name) {
         return agents.find(name)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No such agent"));
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                messages.get("agent.not-found", name)));
     }
 
 }

@@ -10,6 +10,7 @@
     "typedoc": "typedoc",
     "clean": "rimraf dist",
     "lint": "ng lint --fix",
+    "i18n:check": "node --test scripts/check-i18n.test.mjs && node scripts/check-i18n.mjs",
     "format": "prettier --write \"src/**/*.ts\"",
     "analyze": "source-map-explorer dist/ui/browser/*.js",
     "preanalyze": "npm run clean && ng build --source-map",

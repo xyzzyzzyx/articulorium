@@ -21,62 +21,62 @@ export function viewMatcher(view: string, ...params: string[]): UrlMatcher {
   };
 }
 
-/** The application's routes. */
+/** The application's routes. Titles are translation keys (see `LocalizedTitleStrategy`). */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'browse' },
   {
     matcher: viewMatcher('browse'),
-    title: 'Browse',
+    title: 'route.browse',
     loadComponent: () => import('./browse/resource-page.component').then((m) => m.ResourcePageComponent),
   },
   {
     matcher: viewMatcher('versions'),
-    title: 'Versions',
+    title: 'route.versions',
     loadComponent: () => import('./history/versions-page.component').then((m) => m.VersionsPageComponent),
   },
   {
     matcher: viewMatcher('memento', 'version'),
-    title: 'Version',
+    title: 'route.version',
     loadComponent: () => import('./history/memento-page.component').then((m) => m.MementoPageComponent),
   },
   {
     matcher: viewMatcher('fixity'),
-    title: 'Fixity',
+    title: 'route.fixity',
     loadComponent: () => import('./history/fixity-page.component').then((m) => m.FixityPageComponent),
   },
   {
     matcher: viewMatcher('permissions'),
-    title: 'Permissions',
+    title: 'route.permissions',
     loadComponent: () => import('./permissions/permissions-page.component').then((m) => m.PermissionsPageComponent),
   },
   {
     matcher: viewMatcher('inbox'),
-    title: 'Notifications',
+    title: 'route.notifications',
     loadComponent: () => import('./notifications/notifications-page.component').then((m) => m.NotificationsPageComponent),
   },
   {
     matcher: viewMatcher('communities'),
-    title: 'Communities',
+    title: 'route.communities',
     loadComponent: () => import('./communities/communities-page.component').then((m) => m.CommunitiesPageComponent),
   },
   {
     path: 'topologies',
-    title: 'Topologies',
+    title: 'route.topologies',
     loadComponent: () => import('./topology/topology-list-page.component').then((m) => m.TopologyListPageComponent),
   },
   {
     path: 'topologies/:id',
-    title: 'Topology',
+    title: 'route.topology',
     loadComponent: () => import('./topology/topology-editor-page.component').then((m) => m.TopologyEditorPageComponent),
   },
   {
     path: 'search',
-    title: 'Search',
+    title: 'route.search',
     loadComponent: () => import('./search/search-page.component').then((m) => m.SearchPageComponent),
   },
   {
     path: 'about',
-    title: 'About',
+    title: 'route.about',
     loadComponent: () => import('./about/about.component').then((m) => m.AboutComponent),
   },
   { path: '**', redirectTo: 'browse' },

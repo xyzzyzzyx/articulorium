@@ -6,6 +6,7 @@ import { provideRouter } from '@angular/router';
 import { ART, LDP, RDF } from '../core/rdf/vocabulary';
 import { TEST_BASE, provideTestConfig } from '../testing/test-config';
 import { CommunitiesPageComponent } from './communities-page.component';
+import { provideTestI18n } from '../testing/test-i18n';
 
 const T = 'http://purl.org/dc/terms/title';
 
@@ -16,7 +17,7 @@ describe('CommunitiesPageComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [CommunitiesPageComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), provideTestConfig()],
+      providers: [...provideTestI18n(), provideHttpClient(), provideHttpClientTesting(), provideRouter([]), provideTestConfig()],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(CommunitiesPageComponent);

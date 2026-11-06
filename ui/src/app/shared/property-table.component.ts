@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { Graph, compact } from '../core/rdf/graph';
 import { SubjectTerm } from '../core/rdf/term';
@@ -10,11 +11,11 @@ import { TermComponent } from './term.component';
  */
 @Component({
   selector: 'ui-property-table',
-  imports: [MatTooltipModule, TermComponent],
+  imports: [MatTooltipModule, TermComponent, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (groups().length === 0) {
-      <p class="ui-empty">No properties.</p>
+      <p class="ui-empty">{{ 'properties.empty' | translate }}</p>
     } @else {
       <table class="ui-properties">
         <tbody>
@@ -40,7 +41,7 @@ import { TermComponent } from './term.component';
   `,
   styles: `
     .ui-properties { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
+    th, td { text-align: start; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid rgba(0, 0, 0, 0.08); }
     th { width: 30%; font-weight: 500; overflow-wrap: anywhere; }
     ul { list-style: none; margin: 0; padding: 0; }
     li + li { margin-top: 4px; }

@@ -25,6 +25,7 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 | `activitystreams` | W3C Activity Streams 2.0 types, object model, JSON serialization and validation, plain Java + Jackson ([activitystreams/README.md](activitystreams/README.md)) |
 | `agent`       | Agent library: `Agent` and `AgentRegistry`, plain Java ([agent/README.md](agent/README.md)) |
 | `agent-spring-boot-starter` | Spring Boot auto-configuration for the agent library: `AgentRegistry` bean, `articulorium.agents.*` settings, `/actuator/info` ([README](agent-spring-boot-starter/README.md)) |
+| `i18n-spring-boot-starter` | Shipped locales, `articulorium.i18n.*` settings, locale resolution, message bundles and locale propagation for every service ([README](i18n-spring-boot-starter/README.md), [Internationalization](#internationalization)) |
 | `ui`          | Angular single page application, packaged as static resources ([ui/README.md](ui/README.md)) |
 | `platform`    | The LDP server: RDF sources, containers, files, versions, fixity, search, OCFL storage  |
 | `gateway`     | Spring Cloud Gateway; public entry point (`/ui/**`, `/platform/**`, `/transform/**`, `/topology/**`, `/auth/**` for the identity provider) and one Swagger UI for all services |
@@ -430,6 +431,102 @@ Spring bean that implements `com.articulorium.transform.spi.Transformer` and lis
 `articulorium.transform.transformers`; `POST /transformers/<name>/preview?iri=…` tries one on a
 posted RDF document. The transform service also serves the [IIIF](#iiif) exports.
 
+## Internationalization
+
+Articulorium is used in **12 languages**, shipped in every build:
+
+| Tag     | Language              | Tag     | Language             |
+|---------|-----------------------|---------|----------------------|
+| `en`    | English (default)     | `ja`    | 日本語 (Japanese)     |
+| `ar`    | العربية (Arabic, right to left) | `ko` | 한국어 (Korean) |
+| `de`    | Deutsch (German)      | `nl`    | Nederlands (Dutch)   |
+| `es`    | Español (Spanish)     | `pl`    | Polski (Polish)      |
+| `fr`    | Français (French)     | `pt-BR` | Português (Brasil)   |
+| `it`    | Italiano (Italian)    | `zh-CN` | 简体中文 (Simplified Chinese) |
+
+The single list of shipped locales is the manifest
+[`locales.properties`](i18n-spring-boot-starter/src/main/resources/articulorium/locales.properties)
+of [i18n-spring-boot-starter](i18n-spring-boot-starter/README.md), the module every service uses
+for locale support (settings, locale resolution, message bundles, locale propagation).
+
+### How the locale is chosen
+
+Every request gets one of the enabled locales, in this order:
+
+1. the `lang` query parameter (`/ui/browse?lang=de`, `/platform/?lang=fr`), for links;
+2. the `articulorium-locale` cookie (path `/`), which the user interface writes when the user
+   picks a language in the toolbar's language menu;
+3. `Accept-Language`, negotiated by weight: an exact tag wins (`pt-BR`), then a locale of the same
+   language (`de-AT` gets `de`, `pt-PT` gets `pt-BR`, `zh` gets `zh-CN`);
+4. the default locale, `articulorium.i18n.default-locale` (`en`).
+
+### Where it applies
+
+| Part | What follows the locale | Fallback |
+|------|-------------------------|----------|
+| User interface | every text, accessibility labels, validation and error messages, plural forms, dates and numbers (`Intl`), `<html lang dir>`, the paginator, right-to-left layout | missing texts show in the default locale (the service merges each translation over it) |
+| `index.html` (service) | rendered by Thymeleaf in the locale with `lang`, `dir`, description and the client's texts inlined (`#ui-i18n`): the first frame is translated, no flash, no second request | `Content-Language` and `Vary: Accept-Language, Cookie` keep caches correct |
+| Platform | HTML view of resources (texts, `lang`/`dir`, sizes, titles in the reader's language), error messages with a code (not found, conflicts, limits) | protocol diagnostics stay in the default locale; `Content-Language` says which, and the user interface then shows its own translated summary of the status first |
+| Topology service | built-in topologies' names, descriptions and labels; problem titles | custom topologies keep their own labels; validation details are in the default locale |
+| Transform service (IIIF) | labels Articulorium writes (`Rights`, `homepage`, `seeAlso`) in the request's locale; every language-tagged title, summary and metadata value keeps its language in IIIF language maps, so viewers pick the reader's | untagged values are `none`; metadata labels derived from property names are English |
+| Search index | language-tagged texts also go to Solr's per-language fields (`title_txt_de`, `title_txt_ja`, Chinese and Korean `_txt_cjk`) with the matching analyzers, and `languages` lists them | languages without an analyzer stay in the language-neutral field only |
+| Keycloak | sign-in sends `ui_locales`; the realm enables the shipped locales | Keycloak's own fallback (English) for locales it lacks |
+| Services calling services | topology, transform and OAI pass the user's `Accept-Language` to the platform | calls outside a request (bus events) use the default locale |
+| OAI-PMH | Dublin Core values keep their `xml:lang` | protocol errors are English: the OAI-PMH schema allows no language on them, and harvesters are programs |
+| Swagger UI, actuator, logs | not localized (developer tools) | English |
+
+Language-tagged literals (`"Moby Dick oder Der Wal"@de`) are shown in the reader's language
+wherever the user interface picks a title or description, and marked with `lang` attributes.
+
+### Configuring locales in a deployment
+
+```yaml
+articulorium:
+  i18n:
+    default-locale: en        # must be enabled; used for unsupported requests and missing texts
+    locales: en, de, fr       # enabled locales in menu order; empty (default) = every shipped locale
+    cookie-name: articulorium-locale
+    parameter-name: lang
+    verify-bundles: true      # log translations missing from a service's bundles at start-up
+```
+
+Set the same values in every service: the Consul key/value store shares them
+(`config/application/articulorium/i18n/locales`), or use environment variables
+(`ARTICULORIUM_I18N_LOCALES=en,de,fr`, `ARTICULORIUM_I18N_DEFAULT_LOCALE=de`). A locale that is
+enabled but not shipped works with the default locale's texts. Enable the same locales in the
+Keycloak realm (`supportedLocales`) for a translated login page.
+
+### Contributing translations
+
+Translations live next to the code that uses them, one file per locale:
+
+| Texts | Default (English) | Translation |
+|-------|-------------------|-------------|
+| User interface | [`ui/src/i18n/en.json`](ui/src/i18n/en.json) | `ui/src/i18n/<tag>.json` |
+| Shared server texts (HTTP statuses) | `i18n-spring-boot-starter/src/main/resources/i18n/common.properties` | `common_<tag with _>.properties` |
+| A service's texts | `<module>/src/main/resources/i18n/messages.properties` | `messages_<tag with _>.properties` |
+
+* Change a text: edit the English file and every translation; keep the keys and the
+  placeholders (`{{name}}` in JSON, `{0}` in properties).
+* Plural forms: a JSON group `{ "one": ..., "other": ... }` holds exactly the categories of the
+  language's plural rules (`Intl.PluralRules`: Japanese only `other`, Polish `one`/`few`/`many`/
+  `other`, Arabic six).
+* Properties are UTF-8 `java.text.MessageFormat` patterns: write an apostrophe as `''` (or use the
+  typographic `’`).
+* Checks: `npm run i18n:check` in `ui` (run by the Maven build) and each module's `MessageBundles`
+  test fail on a missing file, missing or unknown keys, wrong placeholders and plural forms.
+
+### Adding a locale
+
+1. Add a line to the manifest: `sv = Svenska` (append `, rtl` for right-to-left scripts).
+2. Add `ui/src/i18n/sv.json`, `common_sv.properties` in the starter and `messages_sv.properties`
+   in `service`, `platform`, `topology` and `transform` (copy the English files and translate).
+3. Run `npm run i18n:check` (in `ui`) and `mvn verify`; add `sv` to the Keycloak realm's
+   `supportedLocales`.
+
+No other module changes: the locale menu, negotiation, document direction and formatting follow
+the manifest.
+
 ## Event dispatch (Spring Integration)
 
 Services that consume bus events (transform, index, triplestore) receive them through
@@ -515,7 +612,7 @@ runs them in the `compose` job:
 
 ```bash
 docker compose up --build -d --wait
-docker compose --profile e2e run --rm e2e      # E2E_ARGS="--spec cypress/e2e/search.cy.ts" for one spec
+docker compose --profile e2e run --rm e2e # E2E_ARGS="--spec cypress/e2e/search.cy.ts" for one spec
 ```
 
 ## GraalVM native images
@@ -524,7 +621,7 @@ Every service has a `native` profile (Spring AOT + GraalVM Native Build Tools).
 
 ```bash
 # with a local GraalVM 25
-mvn -Pnative -pl platform -am package -DskipTests      # -> platform/target/platform
+mvn -Pnative -pl platform -am package -DskipTests # -> platform/target/platform
 
 # with Docker only
 docker build -f Dockerfile.native --build-arg MODULE=gateway -t articulorium/gateway:native .

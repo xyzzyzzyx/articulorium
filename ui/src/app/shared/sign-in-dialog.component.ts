@@ -5,10 +5,12 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { AuthService } from '../core/auth/auth.service';
-import { errorMessage } from '../core/ldp/problem';
+import { I18nService } from '../core/i18n/i18n.service';
 import { WebAcService } from '../core/webac/webac.service';
+import { Notifier } from './notifier.service';
 
 /**
  * Asks for a token (with `auth.provider: token`, typically a Consul ACL token), checks it with the
@@ -16,30 +18,37 @@ import { WebAcService } from '../core/webac/webac.service';
  */
 @Component({
   selector: 'ui-sign-in-dialog',
-  imports: [FormsModule, MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatProgressBarModule],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatProgressBarModule,
+    TranslatePipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h2 mat-dialog-title>Sign in</h2>
+    <h2 mat-dialog-title>{{ 'auth.signIn' | translate }}</h2>
     <form (ngSubmit)="submit()">
       <mat-dialog-content class="ui-form">
-        <p>
-          Paste a Consul ACL token (its secret ID). The repository maps the token's description to your agent and its
-          roles and policies to groups used by access control lists.
-        </p>
+        <p>{{ 'auth.tokenHelp' | translate }}</p>
         <mat-form-field>
-          <mat-label>Consul ACL token</mat-label>
+          <mat-label>{{ 'auth.token' | translate }}</mat-label>
           <input matInput name="token" type="password" autocomplete="off" required [(ngModel)]="token" />
         </mat-form-field>
         @if (busy()) {
-          <mat-progress-bar mode="indeterminate" />
+          <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
         }
         @if (error(); as message) {
           <p class="ui-error-text" role="alert">{{ message }}</p>
         }
       </mat-dialog-content>
       <mat-dialog-actions align="end">
-        <button mat-button type="button" mat-dialog-close>Cancel</button>
-        <button mat-flat-button color="primary" type="submit" [disabled]="busy() || !token.trim()">Sign in</button>
+        <button mat-button type="button" mat-dialog-close>{{ 'common.cancel' | translate }}</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="busy() || !token.trim()">
+          {{ 'auth.signIn' | translate }}
+        </button>
       </mat-dialog-actions>
     </form>
   `,
@@ -48,6 +57,10 @@ export class SignInDialogComponent {
   private readonly auth = inject(AuthService);
 
   private readonly webac = inject(WebAcService);
+
+  private readonly i18n = inject(I18nService);
+
+  private readonly notifier = inject(Notifier);
 
   private readonly dialog = inject<MatDialogRef<SignInDialogComponent, string>>(MatDialogRef);
 
@@ -67,7 +80,7 @@ export class SignInDialogComponent {
         this.busy.set(false);
         if (!info.agent.authenticated) {
           void this.auth.forget();
-          this.error.set('The repository did not accept the token (Consul ACL tokens may be disabled).');
+          this.error.set(this.i18n.t('auth.tokenRejected'));
           return;
         }
         this.dialog.close(info.agent.webId ?? 'signed in');
@@ -75,7 +88,7 @@ export class SignInDialogComponent {
       error: (error: unknown) => {
         this.busy.set(false);
         void this.auth.forget();
-        this.error.set(errorMessage(error));
+        this.error.set(this.notifier.message(error));
       },
     });
   }

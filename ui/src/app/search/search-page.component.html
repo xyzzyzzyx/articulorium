@@ -1,5 +1,5 @@
 <header class="ui-page-header">
-  <h1>Search</h1>
+  <h1>{{ 'route.search' | translate }}</h1>
 </header>
 
 <div class="ui-search-layout">
@@ -9,7 +9,7 @@
         @for (row of rows(); track $index; let i = $index) {
           <div class="ui-condition">
             <mat-form-field>
-              <mat-label>Field</mat-label>
+              <mat-label>{{ 'search.field' | translate }}</mat-label>
               <mat-select [name]="'field' + i" [(ngModel)]="row.field">
                 @for (field of fields; track field) {
                   <mat-option [value]="field">{{ field }}</mat-option>
@@ -17,7 +17,7 @@
               </mat-select>
             </mat-form-field>
             <mat-form-field class="ui-operator">
-              <mat-label>Operator</mat-label>
+              <mat-label>{{ 'search.operator' | translate }}</mat-label>
               <mat-select [name]="'operator' + i" [(ngModel)]="row.operator">
                 @for (operator of operators; track operator) {
                   <mat-option [value]="operator">{{ operator }}</mat-option>
@@ -25,70 +25,73 @@
               </mat-select>
             </mat-form-field>
             <mat-form-field class="ui-grow">
-              <mat-label>Query term</mat-label>
+              <mat-label>{{ 'search.term' | translate }}</mat-label>
               <input matInput [name]="'value' + i" [(ngModel)]="row.value" />
             </mat-form-field>
-            <button mat-icon-button type="button" (click)="removeCondition(i)" [disabled]="rows().length === 1" aria-label="Remove condition">
-              <mat-icon>remove_circle_outline</mat-icon>
+            <button mat-icon-button type="button" (click)="removeCondition(i)" [disabled]="rows().length === 1" [attr.aria-label]="'search.removeCondition' | translate">
+              <mat-icon aria-hidden="true">remove_circle_outline</mat-icon>
             </button>
           </div>
         }
         <div class="ui-row">
-          <button mat-button type="button" (click)="addCondition()"><mat-icon>add</mat-icon> Add condition</button>
+          <button mat-button type="button" (click)="addCondition()">
+            <mat-icon aria-hidden="true">add</mat-icon> {{ 'search.addCondition' | translate }}
+          </button>
         </div>
         <div class="ui-condition">
           <mat-form-field>
-            <mat-label>Order by</mat-label>
+            <mat-label>{{ 'search.orderBy' | translate }}</mat-label>
             <mat-select name="orderBy" [(ngModel)]="orderBy">
-              <mat-option value="">(none)</mat-option>
+              <mat-option value="">{{ 'search.noOrder' | translate }}</mat-option>
               @for (field of fields; track field) {
                 <mat-option [value]="field">{{ field }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Order</mat-label>
+            <mat-label>{{ 'search.order' | translate }}</mat-label>
             <mat-select name="order" [(ngModel)]="order">
-              <mat-option value="asc">ascending</mat-option>
-              <mat-option value="desc">descending</mat-option>
+              <mat-option value="asc">{{ 'search.ascending' | translate }}</mat-option>
+              <mat-option value="desc">{{ 'search.descending' | translate }}</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
-        <button mat-flat-button color="primary" type="submit"><mat-icon>search</mat-icon> Search</button>
+        <button mat-flat-button color="primary" type="submit">
+          <mat-icon aria-hidden="true">search</mat-icon> {{ 'route.search' | translate }}
+        </button>
       </form>
     </mat-card-content>
   </mat-card>
 
   <mat-card appearance="outlined" class="ui-help">
     <mat-card-content>
-      <p><strong>Fields</strong></p>
+      <p><strong>{{ 'search.help.fields' | translate }}</strong></p>
       <ul>
-        <li><b>fedora_id</b>: the IRI or path of the resource</li>
-        <li><b>created</b>, <b>modified</b>: dates or date-times</li>
-        <li><b>content_size</b>: size of a binary in bytes</li>
-        <li><b>mime_type</b>: media type of a binary</li>
-        <li><b>rdf_type</b>: an <code>rdf:type</code> of the resource</li>
+        <li><b>fedora_id</b>: {{ 'search.help.fedoraId' | translate }}</li>
+        <li><b>created</b>, <b>modified</b>: {{ 'search.help.dates' | translate }}</li>
+        <li><b>content_size</b>: {{ 'search.help.size' | translate }}</li>
+        <li><b>mime_type</b>: {{ 'search.help.mimeType' | translate }}</li>
+        <li><b>rdf_type</b>: {{ 'search.help.rdfType' | translate }}</li>
       </ul>
-      <p>
-        Use <code>*</code> wildcards with <code>=</code> on fedora_id, mime_type and rdf_type
-        (escape a literal <code>*</code> as <code>\*</code>).
-      </p>
+      <p>{{ 'search.help.wildcards' | translate }}</p>
     </mat-card-content>
   </mat-card>
 </div>
 
 @if (results.isLoading()) {
-  <mat-progress-bar mode="indeterminate" />
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
 }
 @if (error(); as message) {
-  <p class="ui-error-text">{{ message }}</p>
+  <p class="ui-error-text" role="alert">{{ message }}</p>
 }
 @if (results.hasValue()) {
   @let page = results.value();
-  <p class="ui-muted">{{ page.pagination.totalResults | number }} result(s)</p>
+  <p class="ui-muted" role="status">
+    {{ 'search.results' | tplural: page.pagination.totalResults }}
+  </p>
   <table mat-table [dataSource]="page.items" class="ui-table">
     <ng-container matColumnDef="fedora_id">
-      <th mat-header-cell *matHeaderCellDef>Resource</th>
+      <th mat-header-cell *matHeaderCellDef>{{ 'search.resource' | translate }}</th>
       <td mat-cell *matCellDef="let item">
         @if (itemRoute(item); as commands) {
           <a [routerLink]="commands">{{ item.fedora_id }}</a>
@@ -98,23 +101,23 @@
       </td>
     </ng-container>
     <ng-container matColumnDef="created">
-      <th mat-header-cell *matHeaderCellDef>Created</th>
-      <td mat-cell *matCellDef="let item">{{ item.created | date: 'short' }}</td>
+      <th mat-header-cell *matHeaderCellDef>{{ 'resource.created' | translate }}</th>
+      <td mat-cell *matCellDef="let item">{{ item.created | l10nDate: 'short' }}</td>
     </ng-container>
     <ng-container matColumnDef="modified">
-      <th mat-header-cell *matHeaderCellDef>Modified</th>
-      <td mat-cell *matCellDef="let item">{{ item.modified | date: 'short' }}</td>
+      <th mat-header-cell *matHeaderCellDef>{{ 'search.modified' | translate }}</th>
+      <td mat-cell *matCellDef="let item">{{ item.modified | l10nDate: 'short' }}</td>
     </ng-container>
     <ng-container matColumnDef="content_size">
-      <th mat-header-cell *matHeaderCellDef>Size</th>
-      <td mat-cell *matCellDef="let item">{{ (item.content_size ?? null) === null ? '' : (item.content_size | number) }}</td>
+      <th mat-header-cell *matHeaderCellDef>{{ 'binary.size' | translate }}</th>
+      <td mat-cell *matCellDef="let item">{{ (item.content_size ?? null) === null ? '' : (item.content_size | l10nNumber) }}</td>
     </ng-container>
     <ng-container matColumnDef="mime_type">
-      <th mat-header-cell *matHeaderCellDef>MIME type</th>
+      <th mat-header-cell *matHeaderCellDef>{{ 'binary.mimeType' | translate }}</th>
       <td mat-cell *matCellDef="let item">{{ item.mime_type ?? '' }}</td>
     </ng-container>
     <ng-container matColumnDef="rdf_type">
-      <th mat-header-cell *matHeaderCellDef>Types</th>
+      <th mat-header-cell *matHeaderCellDef>{{ 'resource.types' | translate }}</th>
       <td mat-cell *matCellDef="let item">
         @for (type of item.rdf_type ?? []; track type) {
           <span class="ui-type">{{ typeName(type) }}</span>
@@ -130,6 +133,6 @@
     [pageIndex]="page.pagination.pageNumber"
     [pageSizeOptions]="[10, 20, 50, 100]"
     (page)="changePage($event)"
-    aria-label="Result pages"
+    [attr.aria-label]="'search.pages' | translate"
   />
 }

@@ -15,7 +15,8 @@ public class PayloadTooLargeException extends LdpException {
      * @param limitBytes the configured limit in bytes
      */
     public PayloadTooLargeException(final long limitBytes) {
-        super(HttpStatus.PAYLOAD_TOO_LARGE, "Request body exceeds the limit of " + limitBytes + " bytes");
+        super(HttpStatus.PAYLOAD_TOO_LARGE, "error.payload-too-large", new Object[] { limitBytes },
+            "Request body exceeds the limit of " + limitBytes + " bytes", null, null);
     }
 
 }

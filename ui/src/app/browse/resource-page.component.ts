@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,12 +9,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { filter, switchMap } from 'rxjs';
 
+import { LocalizedDatePipe, LocalizedNumberPipe } from '../core/i18n/format.pipes';
+import { I18nService } from '../core/i18n/i18n.service';
 import { LdpService } from '../core/ldp/ldp.service';
 import { ResourceView } from '../core/ldp/models';
 import { normalizePath, parentPath, pathOf, routeTo } from '../core/ldp/paths';
-import { errorMessage } from '../core/ldp/problem';
 import { compact } from '../core/rdf/graph';
 import { ART, FEDORA, LDP, PCDM } from '../core/rdf/vocabulary';
 import { allows } from '../core/webac/webac';
@@ -50,7 +51,8 @@ interface Child {
     BinaryContentComponent,
     BreadcrumbComponent,
     CreateChildFormComponent,
-    DatePipe,
+    LocalizedDatePipe,
+    LocalizedNumberPipe,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,
@@ -62,6 +64,7 @@ interface Child {
     RouterLink,
     SparqlUpdateFormComponent,
     TopologyPanelComponent,
+    TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './resource-page.component.html',
@@ -77,6 +80,8 @@ export class ResourcePageComponent {
   private readonly notifier = inject(Notifier);
 
   private readonly config = inject(ConfigService);
+
+  private readonly i18n = inject(I18nService);
 
   /** Path of the resource (bound from the route); empty for the root container. */
   readonly path = input('');
@@ -99,7 +104,7 @@ export class ResourcePageComponent {
   /** Message of a failed load. */
   protected readonly loadError = computed(() => {
     const error = this.resource.error();
-    return error ? errorMessage(error) : undefined;
+    return error ? this.notifier.message(error) : undefined;
   });
 
   /** The children of a container, sorted by name. */
@@ -119,7 +124,7 @@ export class ResourcePageComponent {
           route: path === undefined ? undefined : routeTo('browse', path),
         };
       })
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => a.name.localeCompare(b.name, this.i18n.locale(), { numeric: true }));
   });
 
   /** Types of the resource as prefixed names. */
@@ -152,7 +157,7 @@ export class ResourcePageComponent {
     return view.graph
       .subjects()
       .filter((subject) => subject.kind !== view.subject.kind || subject.value !== view.subject.value)
-      .map((subject) => ({ subject, title: view.graph.title(subject) }));
+      .map((subject) => ({ subject, title: view.graph.title(subject, this.i18n.locale()) }));
   });
 
   /** Whether the resource is a container (may have children). */
@@ -170,12 +175,27 @@ export class ResourcePageComponent {
   protected readonly title = computed(() => {
     const view = this.view();
     if (!view) {
-      return this.resourcePath() || 'Root';
+      return this.resourcePath() || this.i18n.t('breadcrumb.root');
     }
     return view.path === '' && !view.graph.value(view.subject, 'http://purl.org/dc/terms/title')
-      ? 'Root'
-      : view.graph.title(view.subject);
+      ? this.i18n.t('breadcrumb.root')
+      : view.graph.title(view.subject, this.i18n.locale());
   });
+
+  /**
+   * The user's access modes, translated.
+   *
+   * @param modes - WebAC modes such as `read`, `write`
+   * @returns for example "Lesen, Schreiben", or the text for no access
+   */
+  protected accessModes(modes: Iterable<string>): string {
+    const list = [...modes].map((mode) => {
+      const key = `access.mode.${mode}`;
+      const text = this.i18n.t(key);
+      return text === key ? mode : text;
+    });
+    return list.length ? list.join(', ') : this.i18n.t('access.none');
+  }
 
   /** Path of the archival group a member belongs to. */
   protected readonly archivalGroupRoute = computed(() => {
@@ -253,19 +273,21 @@ export class ResourcePageComponent {
   protected createVersion(): void {
     this.ldp.createVersion(this.resourcePath()).subscribe({
       next: () => {
-        this.notifier.success('Version created');
+        this.notifier.success(this.i18n.t('resource.versionCreated'));
         void this.router.navigate(this.routeOf('versions'));
       },
-      error: (error: unknown) => this.notifier.error('Create version', error),
+      error: (error: unknown) => this.notifier.error(this.i18n.t('resource.createVersion'), error),
     });
   }
 
   /** Deletes the resource after confirmation and returns to its parent. */
   protected delete(): void {
     const data: ConfirmData = {
-      title: 'Delete resource',
-      message: `Delete ${this.title()}${this.isContainer() ? ' and everything it contains' : ''}? This cannot be undone.`,
-      confirm: 'Delete',
+      title: this.i18n.t('resource.deleteTitle'),
+      message: this.i18n.t(this.isContainer() ? 'resource.deleteContainerConfirm' : 'resource.deleteConfirm', {
+        title: this.title(),
+      }),
+      confirm: this.i18n.t('common.delete'),
     };
     this.dialog
       .open(ConfirmDialogComponent, { data })
@@ -276,10 +298,10 @@ export class ResourcePageComponent {
       )
       .subscribe({
         next: () => {
-          this.notifier.success('Resource deleted');
+          this.notifier.success(this.i18n.t('resource.deleted'));
           void this.router.navigate(routeTo('browse', parentPath(this.resourcePath()) ?? ''));
         },
-        error: (error: unknown) => this.notifier.error('Delete', error),
+        error: (error: unknown) => this.notifier.error(this.i18n.t('common.delete'), error),
       });
   }
 }

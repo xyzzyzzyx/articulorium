@@ -59,10 +59,10 @@ describe('Binaries', () => {
         cy.visitUi(`browse/${path}`);
         cy.contains('a', 'Fixity').click();
         cy.location('pathname').should('eq', `/ui/fixity/${path}`);
-        cy.get('.ui-status').should('contain.text', 'SUCCESS');
+        cy.get('.ui-status').should('contain.text', 'Fixity check passed');
         cy.get('.ui-facts').should('contain.text', '11 bytes').and('contain.text', 'valid');
         cy.contains('button', 'Check again').click();
-        cy.get('.ui-status').should('contain.text', 'SUCCESS');
+        cy.get('.ui-status').should('contain.text', 'Fixity check passed');
         cy.contains('a', 'Back to resource').click();
         cy.location('pathname').should('eq', `/ui/browse/${path}`);
       });

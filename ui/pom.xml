@@ -4,7 +4,7 @@
   Platform (feature parity with the Fedora Commons web UI).
 
   The build installs Node and npm locally (into the repository's node/ directory), runs
-  "npm install", "npm run lint" and "npm run build", and packages dist/ui/browser as static/ in a
+  "npm install", "npm run lint", "npm run i18n:check" and "npm run build", and packages dist/ui/browser as static/ in a
   jar that the service module serves. Skip the npm steps with -Dskip.npm (the jar then contains
   whatever dist/ui/browser already holds) and the Node download with -Dskip.installnodenpm.
 -->
@@ -77,6 +77,17 @@
             <phase>generate-resources</phase>
             <configuration>
               <arguments>run lint</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <!-- every shipped locale has a complete translation (scripts/check-i18n.mjs) -->
+            <id>npm run i18n:check</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>run i18n:check</arguments>
             </configuration>
           </execution>
           <execution>

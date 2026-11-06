@@ -9,8 +9,11 @@ public class ResourceNotFoundException extends LdpException {
 
     private static final long serialVersionUID = 1L;
 
-    /** Message template; the argument is the resource path. */
+    /** Message template in the default locale; the argument is the resource path. */
     public static final String TEMPLATE = "Resource %s was not found";
+
+    /** Code of the translated message ({@code i18n/messages}); the argument is the path. */
+    public static final String CODE = "error.not-found";
 
     /**
      * Creates the exception.
@@ -18,7 +21,8 @@ public class ResourceNotFoundException extends LdpException {
      * @param path the missing path
      */
     public ResourceNotFoundException(final String path) {
-        super(HttpStatus.NOT_FOUND, String.format(TEMPLATE, "/" + path));
+        super(HttpStatus.NOT_FOUND, CODE, new Object[] { "/" + path }, String.format(TEMPLATE, "/" + path),
+            null, null);
     }
 
 }

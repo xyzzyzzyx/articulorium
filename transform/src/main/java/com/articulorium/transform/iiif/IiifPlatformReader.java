@@ -1,5 +1,7 @@
 package com.articulorium.transform.iiif;
 
+import com.articulorium.i18n.AcceptLanguageInterceptor;
+
 import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.util.Optional;
@@ -38,7 +40,8 @@ public class IiifPlatformReader {
      * @param properties IIIF settings
      */
     public IiifPlatformReader(final RestClient.Builder builder, final IiifProperties properties) {
-        this.client = builder.build();
+        // the user's locale travels with every call, so the platform answers in it
+        this.client = builder.clone().requestInterceptor(new AcceptLanguageInterceptor()).build();
         this.platformUrl = properties.getPlatformUrl().endsWith("/")
             ? properties.getPlatformUrl()
             : properties.getPlatformUrl() + "/";
