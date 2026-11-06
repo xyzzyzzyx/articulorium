@@ -612,7 +612,7 @@ runs them in the `compose` job:
 
 ```bash
 docker compose up --build -d --wait
-docker compose --profile e2e run --rm e2e      # E2E_ARGS="--spec cypress/e2e/search.cy.ts" for one spec
+docker compose --profile e2e run --rm e2e # E2E_ARGS="--spec cypress/e2e/search.cy.ts" for one spec
 ```
 
 ## GraalVM native images
@@ -621,7 +621,7 @@ Every service has a `native` profile (Spring AOT + GraalVM Native Build Tools).
 
 ```bash
 # with a local GraalVM 25
-mvn -Pnative -pl platform -am package -DskipTests      # -> platform/target/platform
+mvn -Pnative -pl platform -am package -DskipTests # -> platform/target/platform
 
 # with Docker only
 docker build -f Dockerfile.native --build-arg MODULE=gateway -t articulorium/gateway:native .
