@@ -8,7 +8,7 @@ describe('Internationalization', () => {
     cy.request({ url: '/ui/browse', headers: { Accept: 'text/html', 'Accept-Language': 'de-AT, en;q=0.5' } }).then(
       (response) => {
         expect(response.headers['content-language']).to.eq('de');
-        expect(response.headers['vary']).to.contain('Accept-Language');
+        expect(response.headers['vary']).to.contain('accept-language');
         expect(response.body).to.contain('<html lang="de" dir="ltr"');
         // the client starts from this state: no request, no flash of English text
         expect(response.body).to.match(/<script id="ui-i18n" type="application\/json">\{"locale":"de"/);
