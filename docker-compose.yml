@@ -471,6 +471,11 @@ services:
         condition: service_healthy
       oai:
         condition: service_healthy
+      # the indexing pipeline spec reads what these write to Solr and QLever
+      index:
+        condition: service_healthy
+      triplestore:
+        condition: service_healthy
     networks:
       - cloud
 
