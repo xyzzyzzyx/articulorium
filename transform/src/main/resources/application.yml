@@ -37,7 +37,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,env,configprops,loggers
+        include: health,info,metrics,env,configprops,loggers,integrationgraph
   info:
     env:
       enabled: true
