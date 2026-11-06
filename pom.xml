@@ -38,6 +38,7 @@
     <!-- shared libraries -->
     <module>domain</module>
     <module>event</module>
+    <module>activitystreams</module>
     <module>agent</module>
     <module>agent-spring-boot-starter</module>
     <!-- Angular single page application, packaged as a jar of static resources -->
@@ -48,6 +49,7 @@
     <module>index</module>
     <module>triplestore</module>
     <module>topology</module>
+    <module>oai</module>
     <module>service</module>
     <module>gateway</module>
   </modules>
@@ -158,6 +160,12 @@
       <dependency>
         <groupId>com.articulorium</groupId>
         <artifactId>event</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.articulorium</groupId>
+        <artifactId>activitystreams</artifactId>
         <version>${project.version}</version>
       </dependency>
 

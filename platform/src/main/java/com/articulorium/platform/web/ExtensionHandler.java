@@ -12,6 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.articulorium.activitystreams.ActivityStreams;
 import com.articulorium.domain.LdpResource;
 import com.articulorium.domain.Triple;
 import com.articulorium.domain.rdf.Iris;
@@ -194,7 +195,8 @@ public class ExtensionHandler {
             case INBOX -> inbox(request, extension, base, NotificationEntity.Direction.INBOUND);
             case OUTBOX -> inbox(request, extension, base, NotificationEntity.Direction.OUTBOUND);
             case NOTIFICATION -> ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(CoarNotify.JSON_LD))
+                .contentType(notificationMediaType(request))
+                .varyBy(HttpHeaders.ACCEPT)
                 .body(notifications.get(extension.resourcePath(), extension.versionId()).getContent());
         };
         if (head) {
@@ -215,13 +217,13 @@ public class ExtensionHandler {
         final String base = RequestTargets.base(request);
         if (extension.extension() == ExtensionRequest.Extension.INBOX) {
             final NotificationEntity received = notifications.receive(extension.resourcePath(), body(request),
-                agent.name());
+                notificationContentType(request), agent.name());
             final String location = NotificationService.inboxIri(base, extension.resourcePath()) + "/" + received.getId();
             return ResponseEntity.created(URI.create(location)).build();
         }
         if (extension.extension() == ExtensionRequest.Extension.OUTBOX) {
-            final NotificationEntity sent = notifications.send(extension.resourcePath(), body(request), base,
-                agent.name());
+            final NotificationEntity sent = notifications.send(extension.resourcePath(), body(request),
+                notificationContentType(request), base, agent.name());
             return ResponseEntity.status(sent.getStatus() == NotificationEntity.Status.SENT
                     ? HttpStatus.CREATED : HttpStatus.BAD_GATEWAY)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -247,6 +249,10 @@ public class ExtensionHandler {
     public ResponseEntity<Void> options(final ExtensionRequest extension) {
         final HttpHeaders headers = new HttpHeaders();
         headers.setAllow(allowed(extension));
+        if (extension.extension() == ExtensionRequest.Extension.INBOX
+                || extension.extension() == ExtensionRequest.Extension.OUTBOX) {
+            headers.set(LdpHeaders.ACCEPT_POST, CoarNotify.ACCEPTED_TYPES);
+        }
         return ResponseEntity.noContent().headers(headers).build();
     }
 
@@ -401,7 +407,7 @@ public class ExtensionHandler {
         final HttpHeaders headers = new HttpHeaders();
         headers.setAllow(allowed(extension));
         headers.setVary(List.of(HttpHeaders.ACCEPT));
-        headers.set(LdpHeaders.ACCEPT_POST, CoarNotify.JSON_LD);
+        headers.set(LdpHeaders.ACCEPT_POST, CoarNotify.ACCEPTED_TYPES);
         final String accept = request.getHeader(HttpHeaders.ACCEPT);
         if (direction == NotificationEntity.Direction.OUTBOUND || accept == null
                 || (accept.contains(MediaType.APPLICATION_JSON_VALUE) && !accept.contains(CoarNotify.JSON_LD))) {
@@ -418,6 +424,48 @@ public class ExtensionHandler {
         }
         namespaces.applyTo(model);
         return ResponseEntity.ok().headers(headers).body(model);
+    }
+
+    /**
+     * Returns the media type of a notification sent to an inbox or outbox.
+     *
+     * @param request the request
+     * @return its {@code Content-Type}, or {@code null} when not given
+     * @throws UnsupportedMediaTypeException when the body is not JSON
+     */
+    static String notificationContentType(final HttpServletRequest request) {
+        final String contentType = request.getContentType();
+        if (contentType != null && !contentType.isBlank() && !ActivityStreams.isSupportedMediaType(contentType)) {
+            throw new UnsupportedMediaTypeException("Notifications must be " + CoarNotify.ACCEPTED_TYPES,
+                LdpHeaders.ACCEPT_POST, CoarNotify.ACCEPTED_TYPES);
+        }
+        return contentType;
+    }
+
+    /**
+     * Chooses the media type of a stored notification: {@code application/activity+json} when the
+     * client asks for it at least as much as for {@code application/ld+json}, which is the default.
+     *
+     * @param request the request
+     * @return the media type
+     */
+    static MediaType notificationMediaType(final HttpServletRequest request) {
+        double activityJson = 0;
+        double jsonLd = 0;
+        try {
+            for (final MediaType type : MediaType.parseMediaTypes(request.getHeader(HttpHeaders.ACCEPT))) {
+                if (ActivityStreams.isActivityJson(type.toString())) {
+                    activityJson = Math.max(activityJson, type.getQualityValue());
+                } else if (RdfMediaTypes.APPLICATION_LD_JSON.equalsTypeAndSubtype(type)) {
+                    jsonLd = Math.max(jsonLd, type.getQualityValue());
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            // an unreadable Accept header gets the default
+        }
+        return activityJson > 0 && activityJson >= jsonLd
+            ? MediaType.parseMediaType(ActivityStreams.MEDIA_TYPE)
+            : MediaType.parseMediaType(CoarNotify.JSON_LD);
     }
 
     private static NotificationSummary summary(final NotificationEntity entity, final String base) {

@@ -33,7 +33,7 @@ class GatewayApplicationTest {
 
         assertThat(routes).extracting(Route::getId)
             .contains("articulorium-platform", "articulorium-transform", "articulorium-topology", "articulorium-service",
-                "articulorium-root", "articulorium-ui-slash", "articulorium-auth");
+                "articulorium-root", "articulorium-ui-slash", "articulorium-auth", "articulorium-oai");
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-platform"))
             .singleElement()
             .satisfies(route -> {
@@ -49,6 +49,11 @@ class GatewayApplicationTest {
             .satisfies(route -> {
                 assertThat(route.getUri().toString()).isEqualTo("http://keycloak:8080");
                 assertThat(route.getFilters()).noneMatch(filter -> filter.toString().contains("StripPrefix"));
+        assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-oai"))
+            .singleElement()
+            .satisfies(route -> {
+                assertThat(route.getUri().toString()).isEqualTo("lb://articulorium-oai");
+                assertThat(route.getFilters()).isNotEmpty();
             });
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-service"))
             .singleElement()

@@ -6,6 +6,7 @@
 #   /transform/**     transform (transformer preview API, IIIF Presentation exports)
 #   /topology/**      topology (PCDM topologies and their instantiation)
 #   /auth/**          the OpenID Connect provider (Keycloak in docker compose; not in Consul)
+#   /oai              oai (OAI-PMH 2.0 data provider; the repository's base URL)
 #   /swagger-ui.html  Swagger UI for the OpenAPI descriptions of every service above
 
 logging:
@@ -42,6 +43,8 @@ springdoc:
         url: /transform/v3/api-docs
       - name: topology
         url: /topology/v3/api-docs
+      - name: oai
+        url: /oai/v3/api-docs
       - name: service
         url: /ui/api/docs
 
@@ -113,6 +116,13 @@ spring:
               uri: ${articulorium.gateway.auth-uri:http://keycloak:8080}
               predicates:
                 - Path=/auth,/auth/**
+            # OAI-PMH base URL: http://<gateway>/oai (StripPrefix turns /oai into the service's /)
+            - id: articulorium-oai
+              uri: lb://articulorium-oai
+              predicates:
+                - Path=/oai,/oai/**
+              filters:
+                - StripPrefix=1
             # /ui is redirected here (relative to the gateway's address): the service's own
             # context-root redirect would point browsers at the service's internal address
             - id: articulorium-ui-slash

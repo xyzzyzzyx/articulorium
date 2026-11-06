@@ -24,6 +24,8 @@
 #   http://localhost:7001/            QLever SPARQL endpoint (queries; updates need QLEVER_ACCESS_TOKEN)
 #   http://localhost:8000/topology/topologies
 #                                     PCDM topologies (topology service)
+#   http://localhost:8000/oai?verb=Identify
+#                                     OAI-PMH 2.0 data provider (base URL http://localhost:8000/oai)
 #   http://localhost:8000/transform/iiif/<path>
 #                                     IIIF Presentation 3 manifest / collection of a PCDM resource
 #
@@ -195,6 +197,28 @@ services:
       <<: *spring-env
     ports:
       - "9006:9000"
+    depends_on:
+      consul:
+        condition: service_healthy
+      platform:
+        condition: service_healthy
+
+  oai:
+    # OAI-PMH 2.0 data provider: the repository's metadata (oai_dc) for harvesters, with
+    # communities and collections as sets; the gateway serves it at /oai
+    <<: *service
+    image: articulorium/oai:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: oai
+    environment:
+      <<: *spring-env
+      ARTICULORIUM_OAI_REPOSITORY_NAME: ${OAI_REPOSITORY_NAME:-Articulorium}
+      ARTICULORIUM_OAI_ADMIN_EMAILS: ${OAI_ADMIN_EMAIL:-admin@example.org}
+    ports:
+      - "9007:9000"
     depends_on:
       consul:
         condition: service_healthy
@@ -444,6 +468,8 @@ services:
       topology:
         condition: service_healthy
       transform:
+        condition: service_healthy
+      oai:
         condition: service_healthy
     networks:
       - cloud
