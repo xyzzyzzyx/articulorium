@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+  <responseDate>2026-11-06T12:00:00Z</responseDate>
+  <request verb="Identify">https://repo.test/oai</request>
+  <Identify>
+    <repositoryName>Test repository</repositoryName>
+    <baseURL>https://repo.test/oai</baseURL>
+    <protocolVersion>2.0</protocolVersion>
+    <adminEmail>admin@repo.test</adminEmail>
+    <earliestDatestamp>2001-01-01T00:00:00Z</earliestDatestamp>
+    <deletedRecord>persistent</deletedRecord>
+    <granularity>YYYY-MM-DDThh:mm:ssZ</granularity>
+  </Identify>
+</OAI-PMH>

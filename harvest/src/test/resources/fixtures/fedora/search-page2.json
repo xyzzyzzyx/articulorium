@@ -1,0 +1,32 @@
+{
+ "pagination": {
+  "maxResults": 3,
+  "offset": 1,
+  "totalResults": 3,
+  "pageNumber": 0,
+  "numberOfPages": 1
+ },
+ "items": [
+  {
+   "fedora_id": "info:fedora/books/gone",
+   "modified": 1791025200.5,
+   "rdf_type": [
+    "http://www.w3.org/ns/ldp#RDFSource"
+   ]
+  },
+  {
+   "fedora_id": "http://elsewhere.test/rest/x",
+   "modified": "2026-10-04T10:00:00Z",
+   "rdf_type": [
+    "http://www.w3.org/ns/ldp#RDFSource"
+   ]
+  },
+  {
+   "fedora_id": "http://fedora.test/rest/books/moby/cover.png/fcr:metadata",
+   "modified": "2026-10-04T11:00:00Z",
+   "rdf_type": [
+    "http://fedora.info/definitions/v4/repository#NonRdfSourceDescription"
+   ]
+  }
+ ]
+}

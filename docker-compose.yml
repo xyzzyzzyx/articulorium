@@ -28,6 +28,9 @@
 #                                     OAI-PMH 2.0 data provider (base URL http://localhost:8000/oai)
 #   http://localhost:8000/transform/iiif/<path>
 #                                     IIIF Presentation 3 manifest / collection of a PCDM resource
+#   http://localhost:8000/platform/harvested/
+#                                     records harvested from other repositories (harvest service;
+#                                     run harvests with its actuator endpoint, see harvest/README.md)
 #
 # Credentials can be overridden with environment variables or an .env file next to this file.
 # docker-compose.acl.yml turns on Consul ACLs and accepts Consul tokens as WebAC identities.
@@ -223,6 +226,40 @@ services:
       consul:
         condition: service_healthy
       platform:
+        condition: service_healthy
+
+  harvest:
+    # Harvests external repositories (Fedora Commons, DSpace, VIVO, any OAI-PMH data provider) into
+    # the platform under /harvested. It has no public API: operators list and run harvests with the
+    # actuator endpoint on its management port (harvest/README.md), e.g.
+    #   docker compose exec harvest curl -s localhost:8000/actuator/harvest
+    #   docker compose exec harvest curl -s -X POST -H 'Content-Type: application/json' \
+    #     -d '{"mode":"full"}' localhost:8000/actuator/harvest/self-oai
+    <<: *service
+    image: articulorium/harvest:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: harvest
+    environment:
+      <<: *spring-env
+      # the harvester's credentials towards the platform (a fixed Authorization header); the
+      # default root ACL lets anyone write, so none are needed locally
+      HARVEST_PLATFORM_AUTHORIZATION: ${HARVEST_PLATFORM_AUTHORIZATION:-}
+      # demo sources, harvested on demand only: this repository's own OAI-PMH data provider, and
+      # its LDP API (as a Fedora repository) below /harvest-source. Add real sources here or in
+      # Consul (config/harvest/articulorium/harvest/sources/...).
+      SPRING_APPLICATION_JSON: >-
+        {"articulorium": {"harvest": {"sources": {
+        "self-oai": {"type": "oai-pmh", "url": "http://oai:9000/"},
+        "self-ldp": {"type": "fedora", "url": "http://platform:9000/", "options": {"root": "harvest-source"}}}}}}
+    depends_on:
+      consul:
+        condition: service_healthy
+      platform:
+        condition: service_healthy
+      oai:
         condition: service_healthy
 
   service:
@@ -470,6 +507,9 @@ services:
       transform:
         condition: service_healthy
       oai:
+        condition: service_healthy
+      # the harvest spec runs harvests on the harvest service's management port
+      harvest:
         condition: service_healthy
       # the indexing pipeline spec reads what these write to Solr and QLever
       index:

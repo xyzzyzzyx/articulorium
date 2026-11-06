@@ -1,0 +1,4 @@
+<http://fedora.test/rest/books/moby/cover.png> <http://purl.org/dc/terms/title> "Cover" .
+<http://fedora.test/rest/books/moby/cover.png> <http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#filename> "cover.png" .
+<http://fedora.test/rest/books/moby/cover.png> <http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#hasMimeType> "image/png" .
+<http://fedora.test/rest/books/moby/cover.png> <http://www.loc.gov/premis/rdf/v1#hasSize> "2048"^^<http://www.w3.org/2001/XMLSchema#long> .

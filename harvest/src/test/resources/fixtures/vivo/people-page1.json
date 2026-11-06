@@ -1,0 +1,3 @@
+{"head":{"vars":["s"]},"results":{"bindings":[
+  {"s":{"type":"uri","value":"https://vivo.test/individual/n1"}},
+  {"s":{"type":"uri","value":"https://vivo.test/individual/n2"}}]}}

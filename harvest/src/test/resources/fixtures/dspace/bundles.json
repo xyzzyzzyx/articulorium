@@ -1,0 +1,79 @@
+{
+ "_embedded": {
+  "bundles": [
+   {
+    "uuid": "b-1",
+    "name": "ORIGINAL",
+    "type": "bundle",
+    "_embedded": {
+     "bitstreams": {
+      "_embedded": {
+       "bitstreams": [
+        {
+         "id": "bs-1",
+         "uuid": "bs-1",
+         "name": "article.pdf",
+         "sizeBytes": 12345,
+         "type": "bitstream",
+         "_embedded": {
+          "format": {
+           "mimetype": "application/pdf",
+           "type": "bitstreamformat"
+          }
+         },
+         "_links": {
+          "content": {
+           "href": "https://dspace.test/server/api/core/bitstreams/bs-1/content"
+          }
+         }
+        },
+        {
+         "id": "bs-2",
+         "uuid": "bs-2",
+         "name": "data.csv",
+         "type": "bitstream",
+         "_links": {}
+        }
+       ]
+      },
+      "page": {
+       "number": 0,
+       "size": 20,
+       "totalElements": 2
+      }
+     }
+    }
+   },
+   {
+    "uuid": "b-2",
+    "name": "LICENSE",
+    "type": "bundle",
+    "_embedded": {
+     "bitstreams": {
+      "_embedded": {
+       "bitstreams": [
+        {
+         "id": "bs-3",
+         "uuid": "bs-3",
+         "name": "license.txt",
+         "sizeBytes": 10,
+         "_links": {
+          "content": {
+           "href": "https://dspace.test/server/api/core/bitstreams/bs-3/content"
+          }
+         }
+        }
+       ]
+      }
+     }
+    }
+   }
+  ]
+ },
+ "page": {
+  "number": 0,
+  "size": 100,
+  "totalElements": 2,
+  "totalPages": 1
+ }
+}

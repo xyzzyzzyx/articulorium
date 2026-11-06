@@ -51,6 +51,7 @@
     <module>triplestore</module>
     <module>topology</module>
     <module>oai</module>
+    <module>harvest</module>
     <module>service</module>
     <module>gateway</module>
   </modules>

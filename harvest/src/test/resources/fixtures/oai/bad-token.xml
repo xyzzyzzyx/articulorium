@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+  <responseDate>2026-11-06T12:00:03Z</responseDate>
+  <request verb="ListRecords">https://repo.test/oai</request>
+  <error code="badResumptionToken">The token has expired</error>
+</OAI-PMH>
