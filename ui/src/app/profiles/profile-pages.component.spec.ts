@@ -198,6 +198,17 @@ describe('profile pages', () => {
       expect(element.querySelector('input[name=givenName]')).toBe(document.activeElement);
     });
 
+    it('keeps the labels of the narrow year fields above their inputs', async () => {
+      const fixture = TestBed.createComponent(ProfileEditorPageComponent);
+      fixture.detectChanges();
+      let element = await render(fixture);
+      (element.querySelector('.ui-add-position') as HTMLButtonElement).click();
+      element = await render(fixture);
+      const labels = [...element.querySelectorAll('.ui-profile-position .ui-profile-year .mdc-floating-label')];
+      expect(labels).toHaveLength(2);
+      expect(labels.every((label) => label.classList.contains('mdc-floating-label--float-above'))).toBe(true);
+    });
+
     it('names invalid rows in the summary', async () => {
       const fixture = TestBed.createComponent(ProfileEditorPageComponent);
       fixture.detectChanges();

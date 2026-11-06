@@ -131,6 +131,7 @@ const SECTION_ITEMS: Record<string, string> = {
     .ui-profile-wide {
       width: 100%;
     }
+    /* narrow: the label always floats, so it never covers the input */
     .ui-inline-fields .ui-profile-year {
       flex: 0 1 180px;
     }
@@ -325,12 +326,12 @@ const SECTION_ITEMS: Record<string, string> = {
                   <input matInput required [name]="'position-organization-' + i" [(ngModel)]="position.organization" [errorStateMatcher]="matcher('positions.' + i + '.organization')" />
                   <mat-error>{{ issueText('positions.' + i + '.organization') }}</mat-error>
                 </mat-form-field>
-                <mat-form-field class="ui-profile-year">
+                <mat-form-field class="ui-profile-year" floatLabel="always">
                   <mat-label>{{ 'profiles.field.startYear' | translate }}</mat-label>
                   <input matInput inputmode="numeric" maxlength="4" [name]="'position-start-' + i" [(ngModel)]="position.start" [errorStateMatcher]="matcher('positions.' + i + '.start')" />
                   <mat-error>{{ issueText('positions.' + i + '.start') }}</mat-error>
                 </mat-form-field>
-                <mat-form-field class="ui-profile-year">
+                <mat-form-field class="ui-profile-year" floatLabel="always">
                   <mat-label>{{ 'profiles.field.endYear' | translate }}</mat-label>
                   <input matInput inputmode="numeric" maxlength="4" [name]="'position-end-' + i" [(ngModel)]="position.end" [errorStateMatcher]="matcher('positions.' + i + '.end')" />
                   <mat-hint>{{ 'profiles.hint.endYear' | translate }}</mat-hint>
@@ -365,7 +366,7 @@ const SECTION_ITEMS: Record<string, string> = {
                 <input matInput required [name]="'education-organization-' + i" [(ngModel)]="education.organization" [errorStateMatcher]="matcher('education.' + i + '.organization')" />
                 <mat-error>{{ issueText('education.' + i + '.organization') }}</mat-error>
               </mat-form-field>
-              <mat-form-field class="ui-profile-year">
+              <mat-form-field class="ui-profile-year" floatLabel="always">
                 <mat-label>{{ 'profiles.field.yearAwarded' | translate }}</mat-label>
                 <input matInput inputmode="numeric" maxlength="4" [name]="'education-end-' + i" [(ngModel)]="education.end" [errorStateMatcher]="matcher('education.' + i + '.end')" />
                 <mat-error>{{ issueText('education.' + i + '.end') }}</mat-error>
@@ -404,7 +405,7 @@ const SECTION_ITEMS: Record<string, string> = {
                   <mat-label>{{ 'profiles.field.venue' | translate }}</mat-label>
                   <input matInput [name]="'publication-venue-' + i" [(ngModel)]="publication.venue" />
                 </mat-form-field>
-                <mat-form-field class="ui-profile-year">
+                <mat-form-field class="ui-profile-year" floatLabel="always">
                   <mat-label>{{ 'profiles.field.year' | translate }}</mat-label>
                   <input matInput inputmode="numeric" maxlength="4" [name]="'publication-year-' + i" [(ngModel)]="publication.year" [errorStateMatcher]="matcher('publications.' + i + '.year')" />
                   <mat-error>{{ issueText('publications.' + i + '.year') }}</mat-error>
