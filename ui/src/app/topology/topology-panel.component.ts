@@ -228,9 +228,10 @@ export class TopologyPanelComponent {
     return view.graph.value(view.subject, ART.topologyNode);
   });
 
+  // the topology service translates built-in topologies: load them again when the language changes
   protected readonly topology = rxResource({
-    params: () => this.topologyId(),
-    stream: ({ params }) => this.topologies.get(params),
+    params: () => withLocale(this.topologyId(), this.i18n.locale()),
+    stream: ({ params }) => this.topologies.get(params.id),
   });
 
   protected readonly node = computed<TopologyNode | undefined>(() => {
@@ -292,15 +293,16 @@ export class TopologyPanelComponent {
 
   /** Topologies offered for building, loaded once the build form opens. */
   protected readonly summaries = rxResource({
-    params: () => (this.canBuild() && !this.topologyId() && (this.building() || this.expanded()) ? true : undefined),
+    params: () =>
+      this.canBuild() && !this.topologyId() && (this.building() || this.expanded()) ? this.i18n.locale() : undefined,
     stream: () => this.topologies.list(),
   });
 
   protected readonly selectedId = signal<string | undefined>(undefined);
 
   protected readonly selected = rxResource({
-    params: () => this.selectedId(),
-    stream: ({ params }) => this.topologies.get(params),
+    params: () => withLocale(this.selectedId(), this.i18n.locale()),
+    stream: ({ params }) => this.topologies.get(params.id),
   });
 
   /** Values of the metadata form, by predicate (repeatable fields: one value per line). */
@@ -512,4 +514,16 @@ export class TopologyPanelComponent {
       .map((path) => ({ name: path.split('/').pop() ?? path, path, route: routeTo('browse', path) }))
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   }
+}
+
+/**
+ * Resource parameters that change with the interface language, so a resource the server translates
+ * is loaded again in the new language.
+ *
+ * @param id - what to load, `undefined` for nothing
+ * @param locale - the interface locale
+ * @returns the parameters, `undefined` when there is nothing to load
+ */
+function withLocale(id: string | undefined, locale: string): { id: string; locale: string } | undefined {
+  return id ? { id, locale } : undefined;
 }

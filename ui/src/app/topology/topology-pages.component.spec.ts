@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
+import { I18nService } from '../core/i18n/i18n.service';
 import { Topology, emptyNode } from '../core/topology/topology';
 import { TEST_TOPOLOGY, provideTestConfig } from '../testing/test-config';
 import { TopologyEditorPageComponent } from './topology-editor-page.component';
@@ -42,6 +43,46 @@ describe('topology pages', () => {
     ]);
     expect(element.textContent).toContain('Built-in');
     expect(element.textContent).toContain('Custom');
+  });
+
+  it('loads the list again in the language the user switches to', async () => {
+    const script = document.createElement('script');
+    script.id = 'ui-i18n';
+    script.type = 'application/json';
+    const locales = [
+      { tag: 'en', name: 'English', direction: 'ltr' },
+      { tag: 'fr', name: 'Français', direction: 'ltr' },
+    ];
+    script.textContent = JSON.stringify({ locale: 'en', direction: 'ltr', defaultLocale: 'en', locales, messages: {} });
+    document.head.appendChild(script);
+    try {
+      const i18n = TestBed.inject(I18nService);
+      await i18n.init();
+      const fixture = TestBed.createComponent(TopologyListPageComponent);
+      fixture.detectChanges();
+      TestBed.tick();
+      http.expectOne(`${TEST_TOPOLOGY}topologies`).flush([{ id: 'book', name: 'Book', builtIn: true, depth: 2 }]);
+      await fixture.whenStable();
+
+      const switching = i18n.use('fr');
+      http
+        .expectOne('api/i18n/fr')
+        .flush({ locale: 'fr', direction: 'ltr', defaultLocale: 'en', locales, messages: {} });
+      await switching;
+      fixture.detectChanges();
+      TestBed.tick();
+      http.expectOne(`${TEST_TOPOLOGY}topologies`).flush([{ id: 'book', name: 'Livre', builtIn: true, depth: 2 }]);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect((fixture.nativeElement as HTMLElement).querySelector('.ui-topology-summary mat-card-title a')?.textContent).toBe(
+        'Livre',
+      );
+    } finally {
+      script.remove();
+      document.documentElement.lang = 'en';
+      document.cookie = 'articulorium-locale=; path=/; max-age=0';
+    }
   });
 
   it('shows built-in topologies read-only and saves copies as new topologies', async () => {

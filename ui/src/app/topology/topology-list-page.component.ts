@@ -8,6 +8,7 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { PluralPipe } from '../core/i18n/format.pipes';
+import { I18nService } from '../core/i18n/i18n.service';
 import { TopologyService } from '../core/topology/topology.service';
 import { Notifier } from '../shared/notifier.service';
 
@@ -55,7 +56,11 @@ export class TopologyListPageComponent {
 
   private readonly notifier = inject(Notifier);
 
-  protected readonly topologies = rxResource({ stream: () => this.service.list() });
+  private readonly i18n = inject(I18nService);
+
+  // built-in topologies are translated by the topology service: load them again when the
+  // language changes
+  protected readonly topologies = rxResource({ params: () => this.i18n.locale(), stream: () => this.service.list() });
 
   /**
    * Formats a load failure.
