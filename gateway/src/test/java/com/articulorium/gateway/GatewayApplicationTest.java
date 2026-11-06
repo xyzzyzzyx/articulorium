@@ -49,6 +49,7 @@ class GatewayApplicationTest {
             .satisfies(route -> {
                 assertThat(route.getUri().toString()).isEqualTo("http://keycloak:8080");
                 assertThat(route.getFilters()).noneMatch(filter -> filter.toString().contains("StripPrefix"));
+            });
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-oai"))
             .singleElement()
             .satisfies(route -> {

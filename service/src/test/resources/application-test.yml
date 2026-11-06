@@ -4,6 +4,8 @@ management:
     port: 0
 
 spring:
+  config:
+    import:
   cloud:
     consul:
       enabled: false
