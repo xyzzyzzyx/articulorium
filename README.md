@@ -34,6 +34,7 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 | `transform`   | Turns resources into search documents with pluggable transformers; exports PCDM structures as IIIF ([transform/README.md](transform/README.md)) |
 | `topology`    | PCDM topologies and building their resources in the platform ([topology/README.md](topology/README.md)) |
 | `oai`         | OAI-PMH 2.0 data provider: records as Dublin Core, communities and collections as sets ([oai/README.md](oai/README.md)) |
+| `harvest`     | Harvests OAI-PMH, DSpace, Fedora Commons and VIVO repositories into the platform; source-independent harvest and ingest abstractions ([harvest/README.md](harvest/README.md)) |
 | `index`       | Keeps a Solr collection in sync                                                         |
 | `triplestore` | Mirrors every resource into a SPARQL 1.1 store ([QLever](https://github.com/ad-freiburg/qlever)), one named graph each |
 
@@ -43,6 +44,7 @@ browser ──> gateway ──> service (UI)
                ├─────> topology ───────────────(LDP)──┐
                ├─────> transform (IIIF) ───────(LDP)──┤
                ├─────> oai (OAI-PMH) ──────────(LDP)──┤
+               │  harvest (other repositories) (LDP)──┤
                └─────> platform <─────────────────────┘
                           │   └──(resource-bus)──> transform ──(document-bus)──> index ──> Solr
                           │   └──(resource-bus)──> triplestore ──> QLever
@@ -419,6 +421,25 @@ harvester sees. Deleted records are not reported (`deletedRecord=no`).
 
 ```bash
 curl 'http://localhost:8000/oai?verb=ListRecords&metadataPrefix=oai_dc&from=2026-01-01'
+```
+
+## Harvesting
+
+The harvest service ([harvest/README.md](harvest/README.md)) harvests other repositories into the
+platform: any OAI-PMH data provider, DSpace 7+ (REST API), Fedora Commons 6 (and other Articulorium
+instances) and VIVO (SPARQL Query API). Sources are configured under
+`articulorium.harvest.sources`; their records are mapped to one shared representation (RDF
+metadata, sets, file references) and stored at `/harvested/<source>/<record>` with their
+provenance, replaced on every harvest. Paging, incremental harvests from a checkpoint kept on the
+source's container, retries and failure reports are common to every source; a checkpoint only moves
+after a harvest without failures, so no record is skipped. Harvests run on per-source schedules or
+on demand through the `harvest` actuator endpoint on the service's management port (not exposed by
+the gateway). The compose stack configures two demo sources that harvest the repository itself.
+
+```bash
+docker compose exec harvest curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"mode":"full"}' localhost:8000/actuator/harvest/self-oai
+docker compose exec harvest curl -s localhost:8000/actuator/harvest/self-oai
 ```
 
 ## Database

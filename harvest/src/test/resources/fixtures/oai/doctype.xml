@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE OAI-PMH [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/"><responseDate>&xxe;</responseDate></OAI-PMH>

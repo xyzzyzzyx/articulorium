@@ -1,0 +1,32 @@
+{
+ "query": null,
+ "scope": null,
+ "appliedFilters": [],
+ "sort": {
+  "by": "lastModified",
+  "order": "ASC"
+ },
+ "type": "discover",
+ "_embedded": {
+  "searchResult": {
+   "_embedded": {
+    "objects": [
+     {
+      "_embedded": {
+       "indexableObject": {
+        "type": "item",
+        "lastModified": "2026-10-05T10:00:00Z"
+       }
+      }
+     }
+    ]
+   },
+   "page": {
+    "number": 0,
+    "size": 2,
+    "totalPages": 1,
+    "totalElements": 1
+   }
+  }
+ }
+}

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+  <responseDate>2026-11-06T12:00:01Z</responseDate>
+  <request verb="ListRecords" metadataPrefix="oai_dc">https://repo.test/oai</request>
+  <ListRecords>
+    <record>
+      <header>
+        <identifier>oai:repo.test:item/1</identifier>
+        <datestamp>2026-10-01T08:30:00Z</datestamp>
+        <setSpec>physics</setSpec>
+        <setSpec>physics:optics</setSpec>
+      </header>
+      <metadata>
+        <oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+          <dc:title xml:lang="en">Light in fibres</dc:title>
+          <dc:title xml:lang="fr">La lumière dans les fibres</dc:title>
+          <dc:creator>Doe, Jane</dc:creator>
+          <dc:date>2026</dc:date>
+          <dc:identifier>https://repo.test/item/1</dc:identifier>
+          <dc:subject>   </dc:subject>
+          <dc:unknown>ignored</dc:unknown>
+        </oai_dc:dc>
+      </metadata>
+    </record>
+    <record>
+      <header status="deleted">
+        <identifier>oai:repo.test:item/2</identifier>
+        <datestamp>2026-10-02T09:00:00Z</datestamp>
+      </header>
+    </record>
+    <resumptionToken cursor="0" completeListSize="4">token 1/2</resumptionToken>
+  </ListRecords>
+</OAI-PMH>

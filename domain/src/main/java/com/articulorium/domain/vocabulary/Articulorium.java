@@ -43,6 +43,42 @@ public final class Articulorium {
     /** The key of the topology node a resource instantiates. */
     public static final String TOPOLOGY_NODE = NAMESPACE + "topologyNode";
 
+    /** The container holding the records harvested from external repositories, one container per source. */
+    public static final String HARVEST_ROOT = NAMESPACE + "HarvestRoot";
+
+    /**
+     * The container of the records harvested from one external repository; it carries the source's
+     * {@link #HARVEST_CHECKPOINT}.
+     */
+    public static final String HARVEST_SOURCE_CONTAINER = NAMESPACE + "HarvestSource";
+
+    /** A record harvested from an external repository. */
+    public static final String HARVESTED_RECORD = NAMESPACE + "HarvestedRecord";
+
+    /** The identifier of the source a record was harvested from (a literal). */
+    public static final String HARVEST_SOURCE = NAMESPACE + "harvestSource";
+
+    /** The identifier of a harvested record in its source (a literal: OAI identifier, UUID, IRI, path). */
+    public static final String HARVEST_IDENTIFIER = NAMESPACE + "harvestIdentifier";
+
+    /** When the source last changed a harvested record ({@code xsd:dateTime}), when the source says. */
+    public static final String HARVEST_DATESTAMP = NAMESPACE + "harvestDatestamp";
+
+    /** When a record was last harvested ({@code xsd:dateTime}). */
+    public static final String HARVESTED_AT = NAMESPACE + "harvestedAt";
+
+    /** A set (collection, community, OAI set) the source puts a harvested record in (a literal). */
+    public static final String HARVEST_SET = NAMESPACE + "harvestSet";
+
+    /** A file of a harvested record, left in the source (an IRI described with ebucore/premis terms). */
+    public static final String HARVEST_FILE = NAMESPACE + "harvestFile";
+
+    /**
+     * Where the next incremental harvest of a source starts ({@code xsd:dateTime}, on the source's
+     * {@link #HARVEST_SOURCE_CONTAINER} container).
+     */
+    public static final String HARVEST_CHECKPOINT = NAMESPACE + "harvestCheckpoint";
+
     private Articulorium() {
         // constants holder
     }

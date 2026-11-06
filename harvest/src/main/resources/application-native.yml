@@ -1,0 +1,10 @@
+# Settings applied when the service is built as (and runs as) a GraalVM native image.
+# Spring Cloud's refresh scope relies on runtime bean re-creation, which AOT does not support.
+spring:
+  cloud:
+    refresh:
+      enabled: false
+    consul:
+      config:
+        watch:
+          enabled: false

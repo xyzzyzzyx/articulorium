@@ -1,0 +1,222 @@
+{
+ "query": null,
+ "scope": null,
+ "appliedFilters": [],
+ "sort": {
+  "by": "lastModified",
+  "order": "ASC"
+ },
+ "type": "discover",
+ "_embedded": {
+  "searchResult": {
+   "_embedded": {
+    "objects": [
+     {
+      "hitHighlights": {},
+      "_embedded": {
+       "indexableObject": {
+        "id": "uuid-7",
+        "uuid": "uuid-7",
+        "name": "Seventh",
+        "handle": null,
+        "metadata": {
+         "dc.title": [
+          {
+           "value": "Seventh",
+           "language": "en_US",
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ],
+         "dc.contributor.author": [
+          {
+           "value": "Doe, Jane",
+           "language": null,
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          },
+          {
+           "value": "Roe, Richard",
+           "language": "",
+           "authority": null,
+           "confidence": -1,
+           "place": 1
+          }
+         ],
+         "dc.date.issued": [
+          {
+           "value": "2024-05",
+           "language": null,
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ],
+         "dc.rights.uri": [
+          {
+           "value": "https://creativecommons.org/licenses/by/4.0/",
+           "language": null,
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ],
+         "dc.description.provenance": [
+          {
+           "value": "Submitted by admin",
+           "language": "en",
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ],
+         "dspace.entity.type": [
+          {
+           "value": "Publication",
+           "language": null,
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ],
+         "local.note": [
+          {
+           "value": "local",
+           "language": null,
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ]
+        },
+        "inArchive": true,
+        "discoverable": true,
+        "withdrawn": false,
+        "lastModified": "2026-10-05T10:00:00Z",
+        "entityType": null,
+        "type": "item",
+        "_links": {
+         "self": {
+          "href": "https://dspace.test/server/api/core/items/uuid-7"
+         }
+        }
+       }
+      },
+      "_links": {
+       "indexableObject": {
+        "href": "https://dspace.test/server/api/core/items/uuid-7"
+       }
+      }
+     },
+     {
+      "hitHighlights": {},
+      "_embedded": {
+       "indexableObject": {
+        "id": "uuid-8",
+        "uuid": "uuid-8",
+        "name": "Eighth",
+        "handle": null,
+        "metadata": {
+         "dc.title": [
+          {
+           "value": "Eighth",
+           "language": "en_US",
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ],
+         "dc.contributor.author": [
+          {
+           "value": "Doe, Jane",
+           "language": null,
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          },
+          {
+           "value": "Roe, Richard",
+           "language": "",
+           "authority": null,
+           "confidence": -1,
+           "place": 1
+          }
+         ],
+         "dc.date.issued": [
+          {
+           "value": "2024-05",
+           "language": null,
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ],
+         "dc.rights.uri": [
+          {
+           "value": "https://creativecommons.org/licenses/by/4.0/",
+           "language": null,
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ],
+         "dc.description.provenance": [
+          {
+           "value": "Submitted by admin",
+           "language": "en",
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ],
+         "dspace.entity.type": [
+          {
+           "value": "Publication",
+           "language": null,
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ],
+         "local.note": [
+          {
+           "value": "local",
+           "language": null,
+           "authority": null,
+           "confidence": -1,
+           "place": 0
+          }
+         ]
+        },
+        "inArchive": true,
+        "discoverable": true,
+        "withdrawn": false,
+        "lastModified": "2026-10-01T10:00:00Z",
+        "entityType": null,
+        "type": "item",
+        "_links": {
+         "self": {
+          "href": "https://dspace.test/server/api/core/items/uuid-8"
+         }
+        }
+       }
+      },
+      "_links": {
+       "indexableObject": {
+        "href": "https://dspace.test/server/api/core/items/uuid-8"
+       }
+      }
+     }
+    ]
+   },
+   "page": {
+    "number": 0,
+    "size": 2,
+    "totalPages": 1,
+    "totalElements": 2
+   }
+  }
+ }
+}
