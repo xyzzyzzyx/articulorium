@@ -3,7 +3,7 @@
   Articulorium reactor POM.
 
   Defines the shared build for every module: Java level, dependency management (Spring Boot,
-  Spring Cloud, Apache Jena, OCFL, AWS SDK, springdoc), annotation processing, test runtime
+  Spring Cloud, Apache Jena, OCFL, AWS SDK, springdoc, Nimbus JOSE + JWT), annotation processing, test runtime
   settings and the GraalVM "native" profile.
 
   Common commands:
@@ -72,6 +72,8 @@
     <ocfl-java.version>2.2.3</ocfl-java.version>
     <aws-sdk.version>2.55.14</aws-sdk.version>
     <tika.version>4.1.0</tika.version>
+    <!-- JOSE / JWT validation of OpenID Connect access tokens (platform WebAC) -->
+    <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
     <!-- heap of the GraalVM native-image builder (its default is most of the machine's memory,
          which exhausts Docker when several images are built at once) -->
     <native.max-heap>8g</native.max-heap>
@@ -135,6 +137,12 @@
         <groupId>org.springdoc</groupId>
         <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
         <version>${springdoc.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>nimbus-jose-jwt</artifactId>
+        <version>${nimbus-jose-jwt.version}</version>
       </dependency>
 
       <dependency>

@@ -85,7 +85,11 @@ class ServiceApplicationTest {
             .andExpect(jsonPath("$.apiDocsUrl").value("../swagger-ui.html"))
             .andExpect(jsonPath("$.topologyUrl").value("../topology/"))
             .andExpect(jsonPath("$.transformUrl").value("../transform/"))
-            .andExpect(jsonPath("$.communitiesPath").value("communities"));
+            .andExpect(jsonPath("$.communitiesPath").value("communities"))
+            .andExpect(jsonPath("$.auth.provider").value("oidc"))
+            .andExpect(jsonPath("$.auth.oidc.authority").value("../auth/realms/articulorium"))
+            .andExpect(jsonPath("$.auth.oidc.clientId").value("articulorium-ui"))
+            .andExpect(jsonPath("$.auth.oidc.scope").value("openid profile"));
     }
 
     @Test

@@ -21,7 +21,7 @@ with the Fedora Commons HTML interface. The `service` module serves it; the gate
 | Error modal                               | Snack bar with the RFC 9457 problem detail; error card for missing resources |
 | Archival groups                           | "Archival group" option when creating containers; badges on groups and their members; members point to versioning the group |
 | WebAC (ACL)                               | Your access modes on every resource (`WAC-Allow`), actions hidden when not allowed; **Permissions** page: effective rules and where they come from, grant (everyone, authenticated agents, an agent or a group; modes; inheritance) and revoke, remove the ACL to inherit again |
-| —                                         | **Sign in** with a Consul ACL token (sent as `Authorization: Bearer` to the repository's services only, kept in session storage) |
+| —                                         | **Sign in** with the OpenID Connect provider (Keycloak by default: authorization code flow with PKCE, tokens renewed and kept in session storage) or, with `auth.provider: token`, a pasted Consul ACL token; either is sent as `Authorization: Bearer` to the repository's services only |
 | —                                         | **Communities**: navigate communities, sub-communities, collections and items; create them; build items from topologies |
 | —                                         | **Topologies**: list built-in and custom topologies, view them, duplicate, edit (levels, PCDM types, metadata fields, files, child counts), delete |
 | —                                         | **Topology aside** on resource pages: node, parent, ordered members, add children, edit the node's metadata fields, upload files per PCDM use; build a topology in any container |
@@ -45,7 +45,7 @@ with the Fedora Commons HTML interface. The `service` module serves it; the gate
   the transform service's `iiif/<path>`.
 
 Code layout: `core/` (configuration, the `LdpService` HTTP client, RDF parsing and helpers,
-`auth/` (token and interceptor), `webac/`, `topology/`, `notify/`), `shared/` (term rendering,
+`auth/` (the `AuthProvider` abstraction: OpenID Connect, pasted token, none; and the interceptor), `webac/`, `topology/`, `notify/`), `shared/` (term rendering,
 property table, breadcrumb, dialogs), and one folder per view (`browse/`, `history/`, `search/`,
 `permissions/`, `communities/`, `topology/`, `notifications/`, `about/`).
 

@@ -25,7 +25,7 @@ import { SignInDialogComponent } from './shared/sign-in-dialog.component';
 export class AppComponent {
   private readonly config = inject(ConfigService);
 
-  private readonly auth = inject(AuthService);
+  protected readonly auth = inject(AuthService);
 
   private readonly webac = inject(WebAcService);
 
@@ -53,16 +53,25 @@ export class AppComponent {
   });
 
   constructor() {
+    const failure = this.auth.error();
+    if (failure) {
+      this.notifier.error('Signing in', failure);
+    }
     if (this.auth.signedIn()) {
       this.webac.access('').subscribe({
         next: (info) => this.agent.set(info.agent.authenticated ? (info.agent.webId ?? undefined) : undefined),
-        error: () => this.auth.signOut(),
+        // the repository rejects the credentials (expired, revoked, another issuer): drop them here
+        error: () => void this.auth.forget(),
       });
     }
   }
 
-  /** Opens the sign-in dialog. */
+  /** Leaves for the identity provider's login page, or asks for a token. */
   protected signIn(): void {
+    if (this.auth.redirects()) {
+      this.auth.signIn().catch((error: unknown) => this.notifier.error('Signing in', error));
+      return;
+    }
     this.dialog
       .open(SignInDialogComponent, { width: '480px' })
       .afterClosed()
@@ -74,10 +83,17 @@ export class AppComponent {
       });
   }
 
-  /** Forgets the token. */
+  /** Signs out (at the identity provider too, which then returns to the user interface). */
   protected signOut(): void {
-    this.auth.signOut();
-    this.agent.set(undefined);
-    this.notifier.success('Signed out');
+    const redirects = this.auth.redirects();
+    this.auth.signOut().then(
+      () => {
+        this.agent.set(undefined);
+        if (!redirects) {
+          this.notifier.success('Signed out');
+        }
+      },
+      (error: unknown) => this.notifier.error('Signing out', error),
+    );
   }
 }

@@ -33,7 +33,7 @@ class GatewayApplicationTest {
 
         assertThat(routes).extracting(Route::getId)
             .contains("articulorium-platform", "articulorium-transform", "articulorium-topology", "articulorium-service",
-                "articulorium-oai", "articulorium-root", "articulorium-ui-slash");
+                "articulorium-root", "articulorium-ui-slash", "articulorium-auth", "articulorium-oai");
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-platform"))
             .singleElement()
             .satisfies(route -> {
@@ -43,6 +43,13 @@ class GatewayApplicationTest {
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-topology"))
             .singleElement()
             .satisfies(route -> assertThat(route.getUri().toString()).isEqualTo("lb://articulorium-topology"));
+        // the identity provider is not registered in Consul: a fixed address, path unchanged
+        assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-auth"))
+            .singleElement()
+            .satisfies(route -> {
+                assertThat(route.getUri().toString()).isEqualTo("http://keycloak:8080");
+                assertThat(route.getFilters()).noneMatch(filter -> filter.toString().contains("StripPrefix"));
+            });
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-oai"))
             .singleElement()
             .satisfies(route -> {

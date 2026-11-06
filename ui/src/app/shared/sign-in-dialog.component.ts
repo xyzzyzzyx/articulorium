@@ -11,8 +11,8 @@ import { errorMessage } from '../core/ldp/problem';
 import { WebAcService } from '../core/webac/webac.service';
 
 /**
- * Asks for a Consul ACL token, checks it with the platform's WebAC endpoint and keeps it for the
- * session. Closes with the agent's identifier.
+ * Asks for a token (with `auth.provider: token`, typically a Consul ACL token), checks it with the
+ * platform's WebAC endpoint and keeps it for the session. Closes with the agent's identifier.
  */
 @Component({
   selector: 'ui-sign-in-dialog',
@@ -58,15 +58,15 @@ export class SignInDialogComponent {
   protected readonly error = signal<string | undefined>(undefined);
 
   /** Stores the token, verifies it and closes with the agent, or forgets it again on failure. */
-  protected submit(): void {
+  protected async submit(): Promise<void> {
     this.busy.set(true);
     this.error.set(undefined);
-    this.auth.signIn(this.token);
+    await this.auth.signIn(this.token);
     this.webac.access('').subscribe({
       next: (info) => {
         this.busy.set(false);
         if (!info.agent.authenticated) {
-          this.auth.signOut();
+          void this.auth.forget();
           this.error.set('The repository did not accept the token (Consul ACL tokens may be disabled).');
           return;
         }
@@ -74,7 +74,7 @@ export class SignInDialogComponent {
       },
       error: (error: unknown) => {
         this.busy.set(false);
-        this.auth.signOut();
+        void this.auth.forget();
         this.error.set(errorMessage(error));
       },
     });

@@ -16,6 +16,23 @@ export interface UiConfig {
   readonly transformUrl?: string;
   /** Path (below the LDP root) of the community structure. */
   readonly communitiesPath?: string;
+  /** How users sign in. */
+  readonly auth?: AuthConfig;
+}
+
+/** How users sign in (`articulorium.ui.auth.*` of the service). */
+export interface AuthConfig {
+  /** `oidc` (an OpenID Connect provider), `token` (a pasted token) or `none`. */
+  readonly provider: 'oidc' | 'token' | 'none';
+  /** The OpenID Connect client, for `oidc`. */
+  readonly oidc: {
+    /** The issuer, relative to the document base or absolute. */
+    readonly authority: string;
+    /** The public client registered with the provider. */
+    readonly clientId: string;
+    /** Requested scopes. */
+    readonly scope: string;
+  };
 }
 
 /** Settings used when `api/config` cannot be loaded (for example `ng serve` without a backend). */
@@ -26,6 +43,10 @@ export const FALLBACK_CONFIG: Required<UiConfig> = {
   topologyUrl: '../topology/',
   transformUrl: '../transform/',
   communitiesPath: 'communities',
+  auth: {
+    provider: 'oidc',
+    oidc: { authority: '../auth/realms/articulorium', clientId: 'articulorium-ui', scope: 'openid profile' },
+  },
 };
 
 /**
@@ -97,6 +118,19 @@ export class ConfigService {
    */
   communitiesPath(): string {
     return (this.state().communitiesPath || FALLBACK_CONFIG.communitiesPath).replace(/^\/+|\/+$/g, '');
+  }
+
+  /**
+   * The sign-in settings, with the OpenID Connect issuer resolved against the document's base URI
+   * (without a trailing `/`: the issuer identifier tokens carry).
+   *
+   * @returns for example `{ provider: 'oidc', oidc: { authority: 'http://localhost:8000/auth/realms/articulorium', ... } }`
+   */
+  auth(): AuthConfig {
+    const auth = this.state().auth ?? FALLBACK_CONFIG.auth;
+    const oidc = { ...FALLBACK_CONFIG.auth.oidc, ...auth.oidc };
+    const authority = new URL(oidc.authority, document.baseURI).toString().replace(/\/+$/, '');
+    return { provider: auth.provider ?? FALLBACK_CONFIG.auth.provider, oidc: { ...oidc, authority } };
   }
 }
 

@@ -52,4 +52,25 @@ describe('ConfigService', () => {
     expect(service.config()).toEqual(FALLBACK_CONFIG);
     warn.mockRestore();
   });
+
+  it('resolves the OpenID Connect issuer and falls back to the default sign-in', async () => {
+    const service = TestBed.inject(ConfigService);
+    expect(service.auth().provider).toBe('oidc');
+    expect(service.auth().oidc.authority).toBe(new URL('../auth/realms/articulorium', document.baseURI).toString());
+    expect(service.auth().oidc.clientId).toBe('articulorium-ui');
+
+    const loaded = service.load();
+    TestBed.inject(HttpTestingController)
+      .expectOne('api/config')
+      .flush({
+        platformUrl: '../platform/',
+        title: 'Repo',
+        auth: { provider: 'oidc', oidc: { authority: 'https://idp.example/realms/r/', clientId: 'lib', scope: 'openid' } },
+      });
+    await loaded;
+    expect(service.auth()).toEqual({
+      provider: 'oidc',
+      oidc: { authority: 'https://idp.example/realms/r', clientId: 'lib', scope: 'openid' },
+    });
+  });
 });

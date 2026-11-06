@@ -55,6 +55,14 @@
       <artifactId>spring-boot-starter-restclient</artifactId>
     </dependency>
 
+    <!-- OpenID Connect / OAuth 2.0 access tokens (WebAC agents): JWT signature and claim
+         validation with Nimbus JOSE + JWT, the library Spring Security uses. Not a Spring Security
+         starter: WebAcFilter stays the single place that authenticates and authorizes. -->
+    <dependency>
+      <groupId>com.nimbusds</groupId>
+      <artifactId>nimbus-jose-jwt</artifactId>
+    </dependency>
+
     <!-- Spring Cloud: Consul discovery/configuration and the Kafka bus -->
     <!-- only Consul configuration and discovery: consul-all would also add a Consul bus
          integration that requires a stream binder -->

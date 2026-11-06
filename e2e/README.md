@@ -13,7 +13,7 @@ docker compose --profile e2e run --rm e2e    # the tests
 The `e2e` compose service (image `cypress/included`, only started with the `e2e` profile) mounts
 this folder, installs its packages into its own `node_modules` volume (never the host's, which
 may be built for another OS), forwards its `localhost:8000` to the gateway so every URL is the
-same as in a browser on the host, waits for the user interface and the platform, and runs
+same as in a browser on the host, waits for the user interface, the platform and Keycloak, and runs
 `cypress run`.
 
 | Variable      | Default  | Effect                                                              |
@@ -44,6 +44,7 @@ open` for the interactive runner. `CYPRESS_BASE_URL` points the tests elsewhere.
 | `search.cy.ts`      | conditions, shareable URLs, ordering and paging                           |
 | `delete.cy.ts`      | cancel, delete binaries and containers recursively                       |
 | `archival-groups.cy.ts` | creating archival groups from the form, members versioned through their group |
+| `authentication.cy.ts` | signing in with Keycloak (authorization code flow with PKCE), the agent recorded as creator, the session surviving a reload, signing out, rejected foreign tokens, the issuer on the gateway |
 | `permissions.cy.ts` | effective access, granting and revoking on the Permissions page, enforcement of ACLs |
 | `communities.cy.ts` | communities, sub-communities and collections; building a book from a topology, adding pages and metadata |
 | `topologies.cy.ts`  | built-in topologies, duplicating, editing and deleting a custom one, building from the topology aside |
