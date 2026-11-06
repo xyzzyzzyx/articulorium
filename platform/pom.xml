@@ -134,6 +134,11 @@
       <artifactId>event</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>com.articulorium</groupId>
+      <artifactId>activitystreams</artifactId>
+    </dependency>
+
     <!-- JDBC drivers -->
     <dependency>
       <groupId>com.h2database</groupId>
