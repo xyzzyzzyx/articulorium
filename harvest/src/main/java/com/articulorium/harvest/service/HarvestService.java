@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
+import com.articulorium.harvest.config.HarvestConfiguration;
 import com.articulorium.harvest.config.HarvestProperties;
 import com.articulorium.harvest.core.CheckpointStore;
 import com.articulorium.harvest.core.HarvestListener;
@@ -45,6 +46,7 @@ import io.micrometer.core.instrument.Timer;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.TaskScheduler;
@@ -93,14 +95,15 @@ public class HarvestService {
      * @param harvester   the workflow
      * @param ingestor    where records go
      * @param checkpoints the checkpoint store
-     * @param scheduler   starts scheduled harvests
+     * @param scheduler   starts scheduled harvests (the service's own: Spring Cloud Consul adds others)
      * @param meters      the metrics registry
      * @param clock       the clock
      * @throws IllegalStateException when a source is misconfigured
      */
     public HarvestService(final HarvestProperties properties, final List<HarvestSourceFactory> factories,
             final Harvester harvester, final RecordIngestor ingestor, final CheckpointStore checkpoints,
-            final TaskScheduler scheduler, final MeterRegistry meters, final Clock clock) {
+            @Qualifier(HarvestConfiguration.SCHEDULER) final TaskScheduler scheduler, final MeterRegistry meters,
+            final Clock clock) {
         this.harvester = harvester;
         this.ingestor = ingestor;
         this.checkpoints = checkpoints;

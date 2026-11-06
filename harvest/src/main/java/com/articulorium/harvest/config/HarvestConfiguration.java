@@ -31,6 +31,12 @@ import org.springframework.web.client.RestClient;
 public class HarvestConfiguration {
 
     /**
+     * Name of the scheduler of scheduled harvests. Spring Cloud Consul defines task schedulers of
+     * its own (configuration and catalog watches), so the harvest service asks for this one by name.
+     */
+    public static final String SCHEDULER = "harvestScheduler";
+
+    /**
      * A builder of clients that resolve Consul service names such as {@code http://articulorium-platform}.
      *
      * @return the load-balanced builder
@@ -151,7 +157,7 @@ public class HarvestConfiguration {
      *
      * @return the scheduler
      */
-    @Bean
+    @Bean(SCHEDULER)
     public ThreadPoolTaskScheduler harvestScheduler() {
         final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setThreadNamePrefix("harvest-schedule-");
