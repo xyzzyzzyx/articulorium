@@ -97,6 +97,20 @@ class ServiceApplicationTest {
     }
 
     @Test
+    void findsOneAgent() throws Exception {
+        mvc.perform(get("/api/agents/owl"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("owl"))
+            .andExpect(jsonPath("$.description").value("read owl"));
+    }
+
+    @Test
+    void unknownAgentsAreNotFound() throws Exception {
+        mvc.perform(get("/api/agents/crow"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
     void detectsMediaTypesFromContent() throws Exception {
         final MockMultipartFile file = new MockMultipartFile("file", "picture.bin", "application/octet-stream",
             PNG_SIGNATURE);
@@ -127,7 +141,8 @@ class ServiceApplicationTest {
         mvc.perform(get("/api/docs"))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("/api/media-type")))
-            .andExpect(content().string(containsString("/api/config")));
+            .andExpect(content().string(containsString("/api/config")))
+            .andExpect(content().string(containsString("/api/agents/{name}")));
     }
 
 }

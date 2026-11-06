@@ -13,6 +13,11 @@ articulorium:
     transform-url: ../transform/
     # container of the community / sub-community / collection structure on the platform
     communities-path: communities
+  # agents served by /api/agents (agent-spring-boot-starter); Agent beans are added too
+  agents:
+    definitions:
+      owl:
+        description: read owl
 
 logging:
   level:

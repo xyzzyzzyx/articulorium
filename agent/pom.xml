@@ -33,6 +33,35 @@
 
   <build>
     <plugins>
+      <!--
+        The library stays framework free so non-Spring applications can use it as is; Spring
+        support lives in agent-spring-boot-starter. Fail the build if Spring reaches the
+        compile, runtime or provided class path (test scope is fine).
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>framework-free</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>org.springframework*:*:*:*:compile</exclude>
+                    <exclude>org.springframework*:*:*:*:runtime</exclude>
+                    <exclude>org.springframework*:*:*:*:provided</exclude>
+                  </excludes>
+                  <message>The agent library must not depend on Spring; put Spring support in agent-spring-boot-starter.</message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
