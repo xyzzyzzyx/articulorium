@@ -71,6 +71,10 @@ spring:
         binder:
           brokers: kafka:9092
           auto-add-partitions: true
+          # every bus topic has 3 partitions from the first binding on, whichever service binds
+          # first: a consumer that subscribed to a 1-partition topic would only see partitions added
+          # later by a producer after its next metadata refresh (5 minutes) and miss their events
+          min-partition-count: 3
       bindings:
         springCloudBusInput:
           destination: document-bus
