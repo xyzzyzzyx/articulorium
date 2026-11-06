@@ -60,6 +60,7 @@ jobs:
           curl -fsS http://localhost:9001/.well-known/openapi | grep -q openapi
           curl -fsS http://localhost:8000/swagger-ui.html -o /dev/null -w "%{http_code}" | grep -qE "200|302"
           curl -fsS http://localhost:8000/ui/ | grep -q '<ui-root'
+          curl -fsS http://localhost:8000/ui/api/agents | grep -q '"owl"'
           docker compose exec -T platform curl -fsS http://localhost:8000/actuator/health | grep -q '"db"' 
       - name: Smoke test topologies, communities, access control, notifications, IIIF and QLever
         run: |

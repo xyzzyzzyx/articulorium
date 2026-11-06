@@ -62,9 +62,10 @@
       <artifactId>tika-core</artifactId>
     </dependency>
 
+    <!-- the agent library with its Spring Boot auto-configuration (AgentRegistry, articulorium.agents.*) -->
     <dependency>
       <groupId>com.articulorium</groupId>
-      <artifactId>agent</artifactId>
+      <artifactId>agent-spring-boot-starter</artifactId>
     </dependency>
 
     <dependency>

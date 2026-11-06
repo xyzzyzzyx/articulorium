@@ -20,11 +20,12 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 |---------------|----------------------------------------------------------------------------------------|
 | `domain`      | LDP resource model, vocabularies, IRI and N-Triples helpers (no framework dependencies) |
 | `event`       | Spring Cloud Bus events (`ResourceEvent`, `DocumentEvent`) and listener plumbing        |
-| `agent`       | Agent model shared with the user interface                                              |
+| `agent`       | Agent library: `Agent` and `AgentRegistry`, plain Java ([agent/README.md](agent/README.md)) |
+| `agent-spring-boot-starter` | Spring Boot auto-configuration for the agent library: `AgentRegistry` bean, `articulorium.agents.*` settings, `/actuator/info` ([README](agent-spring-boot-starter/README.md)) |
 | `ui`          | Angular single page application, packaged as static resources ([ui/README.md](ui/README.md)) |
 | `platform`    | The LDP server: RDF sources, containers, files, versions, fixity, search, OCFL storage  |
 | `gateway`     | Spring Cloud Gateway; public entry point (`/ui/**`, `/platform/**`, `/transform/**`, `/topology/**`) and one Swagger UI for all services |
-| `service`     | Serves the UI and its support API (settings, agents, media type detection with Apache Tika) |
+| `service`     | Serves the UI and its support API (settings, agents from `articulorium.agents.definitions`, media type detection with Apache Tika) |
 | `transform`   | Turns resources into search documents with pluggable transformers; exports PCDM structures as IIIF ([transform/README.md](transform/README.md)) |
 | `topology`    | PCDM topologies and building their resources in the platform ([topology/README.md](topology/README.md)) |
 | `index`       | Keeps a Solr collection in sync                                                         |
@@ -307,6 +308,15 @@ replacing the retired Apache Marmotta LDPath engine). Add a transformation by co
 Spring bean that implements `com.articulorium.transform.spi.Transformer` and listing its name in
 `articulorium.transform.transformers`; `POST /transformers/<name>/preview?iri=…` tries one on a
 posted RDF document. The transform service also serves the [IIIF](#iiif) exports.
+
+## Agents
+
+The agent library ([agent/](agent/README.md)) is plain Java; Spring Boot services add
+[agent-spring-boot-starter](agent-spring-boot-starter/README.md), which auto-configures an
+`AgentRegistry` from `Agent` beans and `articulorium.agents.definitions`. The service declares its
+agents in [application.yml](service/src/main/resources/application.yml) and serves them at
+`/ui/api/agents` and `/ui/api/agents/<name>`; add one without a rebuild with, for example,
+`ARTICULORIUM_AGENTS_DEFINITIONS_LARK_DESCRIPTION=sing` or a Consul key.
 
 ## Operations
 
