@@ -124,7 +124,7 @@ public class SearchService {
         final SearchField orderBy = request.orderBy() == null || request.orderBy() == SearchField.RDF_TYPE
             ? SearchField.FEDORA_ID
             : request.orderBy();
-        final Sort sort = Sort.by(request.ascending() ? Sort.Direction.ASC : Sort.Direction.DESC, orderBy.attribute());
+        final Sort sort = sortOf(orderBy, request.ascending());
         final int page = offset / maxResults;
         final Page<LdpResource> results = repository.findAll(specification, PageRequest.of(page, maxResults, sort));
         final List<Map<String, Object>> items = new ArrayList<>();
@@ -133,6 +133,21 @@ public class SearchService {
         final long total = results.getTotalElements();
         return new SearchResult(items, new Pagination(maxResults, offset, total, page,
             (int) ((total + maxResults - 1) / maxResults)));
+    }
+
+    /**
+     * Orders results by a field, then by path (unique), so resources with equal values (for
+     * example several modified in the same instant) always come in the same order and paging
+     * through them neither repeats nor skips any.
+     *
+     * @param orderBy   the field
+     * @param ascending the direction of both keys
+     * @return the sort
+     */
+    static Sort sortOf(final SearchField orderBy, final boolean ascending) {
+        final Sort.Direction direction = ascending ? Sort.Direction.ASC : Sort.Direction.DESC;
+        final Sort sort = Sort.by(direction, orderBy.attribute());
+        return orderBy == SearchField.FEDORA_ID ? sort : sort.and(Sort.by(direction, SearchField.FEDORA_ID.attribute()));
     }
 
     /**
