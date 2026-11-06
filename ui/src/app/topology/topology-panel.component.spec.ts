@@ -10,6 +10,7 @@ import { ART, LDP, PCDM, RDF } from '../core/rdf/vocabulary';
 import { Topology, emptyNode } from '../core/topology/topology';
 import { TEST_BASE, TEST_TOPOLOGY, provideTestConfig } from '../testing/test-config';
 import { TopologyPanelComponent } from './topology-panel.component';
+import { provideTestI18n } from '../testing/test-i18n';
 
 const BOOK: Topology = {
   id: 'book',
@@ -37,7 +38,7 @@ describe('TopologyPanelComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TopologyPanelComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([{ path: '**', children: [] }]), provideTestConfig()],
+      providers: [...provideTestI18n(), provideHttpClient(), provideHttpClientTesting(), provideRouter([{ path: '**', children: [] }]), provideTestConfig()],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(TopologyPanelComponent);

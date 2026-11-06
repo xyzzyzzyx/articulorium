@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 
 import { TEST_BASE, provideTestConfig } from '../testing/test-config';
 import { NotificationsPageComponent } from './notifications-page.component';
+import { provideTestI18n } from '../testing/test-i18n';
 
 describe('NotificationsPageComponent', () => {
   let fixture: ComponentFixture<NotificationsPageComponent>;
@@ -13,7 +14,7 @@ describe('NotificationsPageComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [NotificationsPageComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), provideTestConfig()],
+      providers: [...provideTestI18n(), provideHttpClient(), provideHttpClientTesting(), provideRouter([]), provideTestConfig()],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(NotificationsPageComponent);

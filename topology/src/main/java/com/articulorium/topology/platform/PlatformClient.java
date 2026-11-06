@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.articulorium.domain.rdf.ResourcePaths;
+import com.articulorium.i18n.AcceptLanguageInterceptor;
 import com.articulorium.topology.config.TopologyProperties;
 
 import org.apache.jena.rdf.model.Model;
@@ -52,7 +53,8 @@ public class PlatformClient {
      * @param properties topology settings
      */
     public PlatformClient(final RestClient.Builder builder, final TopologyProperties properties) {
-        this.client = builder.build();
+        // the user's locale travels with every call, so the platform answers in it
+        this.client = builder.clone().requestInterceptor(new AcceptLanguageInterceptor()).build();
         this.base = properties.getPlatformUrl().endsWith("/")
             ? properties.getPlatformUrl()
             : properties.getPlatformUrl() + "/";

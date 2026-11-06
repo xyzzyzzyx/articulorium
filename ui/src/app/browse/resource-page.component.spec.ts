@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 
 import { BINARY_NT, CONTAINER_NT, TEST_BASE, provideTestConfig } from '../testing/test-config';
 import { ResourcePageComponent } from './resource-page.component';
+import { provideTestI18n } from '../testing/test-i18n';
 
 describe('ResourcePageComponent', () => {
   let fixture: ComponentFixture<ResourcePageComponent>;
@@ -33,6 +34,7 @@ describe('ResourcePageComponent', () => {
     TestBed.configureTestingModule({
       imports: [ResourcePageComponent],
       providers: [
+        ...provideTestI18n(),
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),

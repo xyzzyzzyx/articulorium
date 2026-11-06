@@ -4,10 +4,11 @@ import { provideRouter } from '@angular/router';
 import { Term } from '../core/rdf/term';
 import { TEST_BASE } from '../testing/test-config';
 import { TermComponent } from './term.component';
+import { provideTestI18n } from '../testing/test-i18n';
 
 describe('TermComponent', () => {
   const render = (term: Term): HTMLElement => {
-    TestBed.configureTestingModule({ imports: [TermComponent], providers: [provideRouter([])] });
+    TestBed.configureTestingModule({ imports: [TermComponent], providers: [...provideTestI18n(), provideRouter([])] });
     const fixture = TestBed.createComponent(TermComponent);
     fixture.componentRef.setInput('term', term);
     fixture.componentRef.setInput('base', TEST_BASE);

@@ -1,5 +1,6 @@
 package com.articulorium.service.api;
 
+import com.articulorium.i18n.Messages;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
@@ -27,13 +28,17 @@ public class MediaTypeController {
 
     private final Tika tika;
 
+    private final Messages messages;
+
     /**
      * Creates the controller.
      *
-     * @param tika the Tika facade
+     * @param tika     the Tika facade
+     * @param messages error messages in the request's locale
      */
-    public MediaTypeController(final Tika tika) {
+    public MediaTypeController(final Tika tika, final Messages messages) {
         this.tika = tika;
+        this.messages = messages;
     }
 
     /**
@@ -58,7 +63,7 @@ public class MediaTypeController {
     public Detection detect(@RequestParam("file") final MultipartFile file) {
         if (file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Select a file to analyse");
+                messages.get("media-type.empty"));
         }
         final Metadata metadata = new Metadata();
         if (file.getOriginalFilename() != null) {
@@ -69,7 +74,7 @@ public class MediaTypeController {
             return new Detection(file.getOriginalFilename(), mediaType, file.getSize());
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT,
-                "Unable to read the file: " + e.getMessage(), e);
+                messages.get("media-type.unreadable"), e);
         }
     }
 

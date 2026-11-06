@@ -58,6 +58,26 @@ class FieldMappingTransformerTest {
         assertThat(values(document.get("pages"))).containsExactly(635L);
     }
 
+    /** Language-tagged texts also go to Solr's per-language fields, and their languages are listed. */
+    @Test
+    void indexesLanguageTaggedTextsPerLanguage() {
+        final Model model = ModelFactory.createDefaultModel();
+        model.createResource(IRI)
+            .addProperty(DCTerms.title, "Moby Dick", "en")
+            .addProperty(DCTerms.title, "Moby Dick oder Der Wal", "de-AT")
+            .addProperty(DCTerms.alternative, "白鲸", "zh-cn")
+            .addProperty(DCTerms.alternative, "Valfångaren", "xx");
+
+        final Map<String, Collection<?>> document = transformer.transform(new TransformationContext(IRI, null, model));
+
+        assertThat(values(document.get("title"))).hasSize(4);
+        assertThat(values(document.get("title_txt_en"))).containsExactly("Moby Dick");
+        assertThat(values(document.get("title_txt_de"))).containsExactly("Moby Dick oder Der Wal");
+        assertThat(values(document.get("title_txt_cjk"))).containsExactly("白鲸");
+        assertThat(values(document.get(FieldMappingTransformer.LANGUAGES_FIELD)))
+            .containsExactly("de-AT", "en", "xx", "zh-CN");
+    }
+
     /** Paths do not continue through literals. */
     @Test
     void stopsAtLiterals() {

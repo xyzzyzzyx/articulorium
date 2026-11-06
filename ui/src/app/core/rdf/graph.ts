@@ -63,6 +63,31 @@ export class Graph {
   }
 
   /**
+   * Returns the text of a property in the reader's language: a literal tagged with the locale,
+   * then one with the same primary language, then an untagged one, then any value.
+   *
+   * @param subject - the subject
+   * @param predicate - the predicate IRI
+   * @param locale - the reader's locale, for example `de-AT`; without one, the first value
+   * @returns the value, if any
+   */
+  text(subject: SubjectTerm, predicate: string, locale?: string): string | undefined {
+    const objects = this.objects(subject, predicate);
+    if (!locale || objects.length < 2) {
+      return objects[0]?.value;
+    }
+    const wanted = locale.toLowerCase();
+    const primary = wanted.split('-')[0];
+    const language = (term: Term) => (term.kind === 'literal' && term.language ? term.language.toLowerCase() : '');
+    return (
+      objects.find((term) => language(term) === wanted) ??
+      objects.find((term) => language(term).split('-')[0] === primary) ??
+      objects.find((term) => term.kind === 'literal' && !term.language) ??
+      objects[0]
+    ).value;
+  }
+
+  /**
    * Returns the `rdf:type`s of a subject.
    *
    * @param subject - the subject
@@ -115,14 +140,16 @@ export class Graph {
 
   /**
    * Picks a human readable title for a subject: the first title-like property (Dublin Core title,
-   * SKOS label, rdfs:label...) or, failing that, the last segment of its IRI.
+   * SKOS label, rdfs:label...) in the reader's language when the property has several (see
+   * {@link text}) or, failing that, the last segment of its IRI.
    *
    * @param subject - the subject
+   * @param locale - the reader's locale
    * @returns the title
    */
-  title(subject: SubjectTerm): string {
+  title(subject: SubjectTerm, locale?: string): string {
     for (const property of TITLE_PROPERTIES) {
-      const value = this.value(subject, property);
+      const value = this.text(subject, property, locale);
       if (value) {
         return value;
       }

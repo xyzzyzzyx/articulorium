@@ -161,6 +161,17 @@ describe('OidcAuthProvider', () => {
     expect(client.redirects).toEqual([{ state: '/ui/search?q=owl#top' }]);
   });
 
+  it('asks the provider for the interface language', async () => {
+    let created: FakeClient | undefined;
+    const localized = new OidcAuthProvider({ ...SETTINGS, uiLocales: () => 'pt-BR' }, () => {
+      created = new FakeClient();
+      return created;
+    });
+    window.history.replaceState(null, '', '/ui/browse');
+    await localized.signIn();
+    expect(created?.redirects).toEqual([{ state: '/ui/browse', ui_locales: 'pt-BR' }]);
+  });
+
   it('follows renewed and expired tokens', async () => {
     await provider.init();
     client.renew('renewed');

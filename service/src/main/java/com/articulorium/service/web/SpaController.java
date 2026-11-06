@@ -2,61 +2,47 @@ package com.articulorium.service.web;
 
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
  * Serves the Angular single page application.
  *
- * <p>The application's {@code index.html} is rendered as a Thymeleaf template so that its
- * {@code <base href>} reflects the path the browser used (including a gateway prefix applied
- * through {@code X-Forwarded-Prefix}). Browser navigations to client-side routes such as
- * {@code /browse/books} have no static resource; they are answered with the same page so the
- * Angular router can take over (HTML5 routing). Requests for missing API resources or assets
- * still get a 404.</p>
+ * <p>The application's {@code index.html} is rendered as a Thymeleaf template ({@link IndexPage})
+ * so that its {@code <base href>} reflects the path the browser used and its language, writing
+ * direction and texts are those of the request's locale. Browser navigations to client-side
+ * routes such as {@code /browse/books} have no static resource; they are answered with the same
+ * page so the Angular router can take over (HTML5 routing). Requests for missing API resources or
+ * assets still get a 404.</p>
  */
 @Hidden
 @Controller
 public class SpaController {
 
-    /** Name of the Thymeleaf view rendering {@code index.html}. */
-    static final String INDEX_VIEW = "index";
+    private final IndexPage page;
+
+    /**
+     * Creates the controller.
+     *
+     * @param page the page model
+     */
+    public SpaController(final IndexPage page) {
+        this.page = page;
+    }
 
     /**
      * Renders the application.
      *
+     * @param model    the view model
+     * @param response the response
      * @return the index view
      */
     @GetMapping("/")
-    public String index() {
-        return INDEX_VIEW;
-    }
-
-    /**
-     * Exposes the base href of the application to the index template.
-     *
-     * @param model the view model
-     */
-    @ModelAttribute
-    public void addBase(final Model model) {
-        model.addAttribute("base", baseHref());
-    }
-
-    /**
-     * Computes the base href: the context path as seen by the browser, ending with a slash.
-     *
-     * @return for example {@code /} or {@code /ui/}
-     */
-    static String baseHref() {
-        final String path = ServletUriComponentsBuilder.fromCurrentContextPath().build().getPath();
-        if (path == null || path.isEmpty()) {
-            return "/";
-        }
-        return path.endsWith("/") ? path : path + "/";
+    public String index(final Model model, final HttpServletResponse response) {
+        return page.render(model, response);
     }
 
     /**

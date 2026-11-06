@@ -1,5 +1,6 @@
 package com.articulorium.platform.web;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -10,6 +11,8 @@ import com.articulorium.domain.LdpResource;
 import com.articulorium.domain.rdf.Iris;
 import com.articulorium.domain.vocabulary.Ldp;
 import com.articulorium.domain.vocabulary.Rdf;
+import com.articulorium.i18n.LocaleDescriptor;
+import com.articulorium.i18n.Messages;
 import com.articulorium.platform.service.LdpService;
 import com.articulorium.platform.service.ResolvedTarget;
 
@@ -27,6 +30,10 @@ import org.springframework.web.util.HtmlUtils;
  * <p>The page is plain server-rendered HTML with a few lines of script for delete buttons; it
  * talks to the same LDP endpoints as any other client (multipart POST to create, DELETE to
  * remove). Every interpolated value is HTML-escaped.</p>
+ *
+ * <p>The page is written in the request's locale ({@code ?lang=}, the user interface's locale
+ * cookie, {@code Accept-Language}): its texts, document language, writing direction and number
+ * formats. Resource data (titles, triples) is shown as stored.</p>
  */
 @Component
 public class HtmlView {
@@ -87,7 +94,7 @@ public class HtmlView {
         document.querySelectorAll('button[data-delete]').forEach(function (button) {
           button.addEventListener('click', function () {
             var target = button.getAttribute('data-delete');
-            if (!window.confirm('Delete ' + target + ' and everything it contains?')) { return; }
+            if (!window.confirm(button.getAttribute('data-confirm'))) { return; }
             fetch(target, { method: 'DELETE' }).then(function (response) {
               if (response.ok) { window.location.reload(); }
               else { response.text().then(function (text) { window.alert(response.status + ': ' + text); }); }
@@ -96,8 +103,19 @@ public class HtmlView {
         });
         """;
 
+    private final Messages messages;
+
     /**
-     * Renders the page.
+     * Creates the view.
+     *
+     * @param messages the texts in the request's locale
+     */
+    public HtmlView(final Messages messages) {
+        this.messages = messages;
+    }
+
+    /**
+     * Renders the page in the request's locale.
      *
      * @param target the displayed target
      * @param model  its rendered representation
@@ -105,167 +123,241 @@ public class HtmlView {
      * @return the HTML document
      */
     public String render(final ResolvedTarget target, final Model model, final String base) {
-        final LdpResource resource = target.resource();
-        final String iri = Iris.resolve(base, target.relativeIri());
-        final String subjectIri = Iris.resolve(base, resource.getRelativeIri());
-        final StringBuilder html = new StringBuilder(8192);
-        html.append("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">")
-            .append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">")
-            .append("<title>").append(escape(title(model, subjectIri, resource))).append(" · Articulorium</title>")
-            .append("<style>").append(STYLE).append("</style></head><body><main>");
-
-        breadcrumbs(html, base, resource, target.description());
-        html.append("<h1>").append(escape(title(model, subjectIri, resource))).append("</h1>")
-            .append("<div class=\"iri\">").append(escape(iri)).append("</div>");
-
-        html.append("<div class=\"types\">");
-        for (final String type : resource.getInteractionModel().getTypeIris()) {
-            html.append("<span class=\"badge\">").append(escape(model.shortForm(type))).append("</span>");
-        }
-        if (target.description()) {
-            html.append("<span class=\"badge\">description</span>");
-        }
-        html.append("</div>");
-
-        if (resource.isNonRdfSource()) {
-            binarySection(html, resource, subjectIri);
-        }
-        if (resource.isContainer() && !target.description()) {
-            containerSection(html, model, subjectIri, iri);
-        }
-        triplesSection(html, model, subjectIri);
-
-        html.append("<p class=\"meta\">Request this page with <code>Accept: text/turtle</code> (or ")
-            .append("<code>application/ld+json</code>) for its RDF representation. ")
-            .append("<a href=\"").append(escape(Iris.normalizeBase(base) + ConstraintsController.PATH))
-            .append("\">Server constraints</a>.</p>");
-        html.append("</main><script>").append(SCRIPT).append("</script></body></html>");
-        return html.toString();
+        return new Page(messages.descriptor()).render(target, model, base);
     }
 
-    private static void breadcrumbs(final StringBuilder html, final String base, final LdpResource resource,
-            final boolean description) {
-        html.append("<nav><a href=\"").append(escape(Iris.resolve(base, "/"))).append("\">root</a>");
-        String path = "";
-        if (!resource.getPath().isEmpty()) {
-            for (final String segment : resource.getPath().split("/")) {
-                path = path.isEmpty() ? segment : path + "/" + segment;
-                html.append(" / <a href=\"").append(escape(Iris.resolve(base, "/" + path))).append("\">")
-                    .append(escape(segment)).append("</a>");
+    /**
+     * The document language of the pages rendered for the current request.
+     *
+     * @return for example {@code de}
+     */
+    public String language() {
+        return messages.descriptor().tag();
+    }
+
+    /** One rendering, in one locale. */
+    private final class Page {
+
+        private final LocaleDescriptor locale;
+
+        Page(final LocaleDescriptor locale) {
+            this.locale = locale;
+        }
+
+        private String t(final String code, final Object... arguments) {
+            return escape(messages.get(locale.locale(), code, arguments));
+        }
+
+        String render(final ResolvedTarget target, final Model model, final String base) {
+            final LdpResource resource = target.resource();
+            final String iri = Iris.resolve(base, target.relativeIri());
+            final String subjectIri = Iris.resolve(base, resource.getRelativeIri());
+            final StringBuilder html = new StringBuilder(8192);
+            html.append("<!doctype html><html lang=\"").append(escape(locale.tag())).append("\" dir=\"")
+                .append(escape(locale.direction())).append("\"><head><meta charset=\"utf-8\">")
+                .append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">")
+                .append("<title>").append(t("html.title", title(model, subjectIri, resource))).append("</title>")
+                .append("<style>").append(STYLE).append("</style></head><body><main>");
+
+            breadcrumbs(html, base, resource, target.description());
+            html.append("<h1>").append(escape(title(model, subjectIri, resource))).append("</h1>")
+                .append("<div class=\"iri\">").append(escape(iri)).append("</div>");
+
+            html.append("<div class=\"types\">");
+            for (final String type : resource.getInteractionModel().getTypeIris()) {
+                html.append("<span class=\"badge\">").append(escape(model.shortForm(type))).append("</span>");
             }
-        }
-        if (description) {
-            html.append(" / ").append(LdpService.DESCRIPTION_SEGMENT);
-        }
-        html.append("</nav>");
-    }
+            if (target.description()) {
+                html.append("<span class=\"badge\">").append(t("html.description")).append("</span>");
+            }
+            html.append("</div>");
 
-    private static void binarySection(final StringBuilder html, final LdpResource resource, final String binaryIri) {
-        final BinaryContent binary = resource.getBinary();
-        html.append("<h2>File</h2><p><a href=\"").append(escape(binaryIri)).append("\" download>Download</a>");
-        if (binary != null) {
-            html.append(" <span class=\"meta\">")
-                .append(escape(binary.getFilename() == null ? "" : binary.getFilename() + " · "))
-                .append(escape(binary.getContentType() == null ? "application/octet-stream" : binary.getContentType()))
-                .append(" · ").append(humanSize(binary.getSize() == null ? 0 : binary.getSize()))
-                .append("</span>");
-        }
-        html.append(" · <a href=\"").append(escape(binaryIri + "/" + LdpService.DESCRIPTION_SEGMENT))
-            .append("\">description</a></p>");
-    }
+            if (resource.isNonRdfSource()) {
+                binarySection(html, resource, subjectIri);
+            }
+            if (resource.isContainer() && !target.description()) {
+                containerSection(html, model, subjectIri, iri);
+            }
+            triplesSection(html, model, subjectIri);
 
-    private static void containerSection(final StringBuilder html, final Model model, final String containerIri,
-            final String formAction) {
-        final List<String> children = new ArrayList<>();
-        model.listObjectsOfProperty(model.createResource(containerIri), model.createProperty(Ldp.CONTAINS))
-            .forEachRemaining(node -> {
-                if (node.isURIResource()) {
-                    children.add(node.asResource().getURI());
+            html.append("<p class=\"meta\">").append(t("html.rdf-hint", "%1", "%2")
+                    .replace("%1", "<code>Accept: text/turtle</code>")
+                    .replace("%2", "<code>application/ld+json</code>"))
+                .append(" <a href=\"").append(escape(Iris.normalizeBase(base) + ConstraintsController.PATH))
+                .append("\">").append(t("html.constraints")).append("</a></p>");
+            html.append("</main><script>").append(SCRIPT).append("</script></body></html>");
+            return html.toString();
+        }
+
+        private void breadcrumbs(final StringBuilder html, final String base, final LdpResource resource,
+                final boolean description) {
+            html.append("<nav aria-label=\"").append(t("html.breadcrumb")).append("\"><a href=\"")
+                .append(escape(Iris.resolve(base, "/"))).append("\">").append(t("html.root")).append("</a>");
+            String path = "";
+            if (!resource.getPath().isEmpty()) {
+                for (final String segment : resource.getPath().split("/")) {
+                    path = path.isEmpty() ? segment : path + "/" + segment;
+                    html.append(" / <a href=\"").append(escape(Iris.resolve(base, "/" + path))).append("\">")
+                        .append(escape(segment)).append("</a>");
                 }
-            });
-        children.sort(Comparator.naturalOrder());
-
-        html.append("<h2>Contains (").append(children.size()).append(")</h2>");
-        if (children.isEmpty()) {
-            html.append("<div class=\"empty\">This container is empty.</div>");
-        } else {
-            html.append("<ul class=\"children\">");
-            for (final String child : children) {
-                html.append("<li><a href=\"").append(escape(child)).append("\">").append(escape(lastSegment(child)))
-                    .append("</a><button class=\"danger\" type=\"button\" data-delete=\"").append(escape(child))
-                    .append("\">Delete</button></li>");
             }
-            html.append("</ul>");
-        }
-
-        html.append("<h2>Upload a file</h2>")
-            .append("<form method=\"post\" enctype=\"multipart/form-data\" action=\"").append(escape(formAction)).append("\">")
-            .append("<input type=\"hidden\" name=\"").append(KIND_FIELD).append("\" value=\"").append(KIND_FILE).append("\">")
-            .append("<input type=\"file\" name=\"").append(FILE_FIELD).append("\" required>")
-            .append("<input type=\"text\" name=\"").append(SLUG_FIELD).append("\" placeholder=\"name (optional)\">")
-            .append("<button type=\"submit\">Upload</button></form>");
-
-        html.append("<h2>Create a container</h2>")
-            .append("<form method=\"post\" enctype=\"multipart/form-data\" action=\"").append(escape(formAction)).append("\">")
-            .append("<input type=\"hidden\" name=\"").append(KIND_FIELD).append("\" value=\"").append(KIND_CONTAINER).append("\">")
-            .append("<input type=\"text\" name=\"").append(SLUG_FIELD).append("\" placeholder=\"name (optional)\">")
-            .append("<button type=\"submit\">Create</button></form>");
-    }
-
-    private static void triplesSection(final StringBuilder html, final Model model, final String subjectIri) {
-        final List<Statement> statements = model.listStatements().toList();
-        statements.removeIf(statement -> Ldp.CONTAINS.equals(statement.getPredicate().getURI()));
-        statements.sort(Comparator
-            .comparing((Statement s) -> s.getSubject().isURIResource() && subjectIri.equals(s.getSubject().getURI()) ? 0 : 1)
-            .thenComparing(s -> s.getSubject().toString())
-            .thenComparing(s -> Rdf.TYPE.equals(s.getPredicate().getURI()) ? "" : s.getPredicate().getURI())
-            .thenComparing(s -> s.getObject().toString()));
-
-        html.append("<h2>Triples (").append(statements.size()).append(")</h2>");
-        if (statements.isEmpty()) {
-            html.append("<div class=\"empty\">No triples.</div>");
-            return;
-        }
-        html.append("<table><thead><tr><th>Subject</th><th>Predicate</th><th>Object</th></tr></thead><tbody>");
-        for (final Statement statement : statements) {
-            html.append("<tr><td class=\"mono\">").append(node(model, statement.getSubject(), subjectIri)).append("</td>")
-                .append("<td class=\"mono\">").append(node(model, statement.getPredicate(), subjectIri)).append("</td>")
-                .append("<td>").append(node(model, statement.getObject(), subjectIri)).append("</td></tr>");
-        }
-        html.append("</tbody></table>");
-    }
-
-    private static String node(final Model model, final RDFNode node, final String subjectIri) {
-        if (node.isURIResource()) {
-            final String uri = node.asResource().getURI();
-            final String label = uri.equals(subjectIri) ? "&lt;this&gt;" : escape(model.shortForm(uri));
-            return "<a href=\"" + escape(uri) + "\">" + label + "</a>";
-        }
-        if (node.isAnon()) {
-            return escape("_:" + node.asResource().getId().getLabelString());
-        }
-        final Literal literal = node.asLiteral();
-        final StringBuilder out = new StringBuilder(escape(literal.getLexicalForm()));
-        if (literal.getLanguage() != null && !literal.getLanguage().isEmpty()) {
-            out.append(" <span class=\"meta\">@").append(escape(literal.getLanguage())).append("</span>");
-        } else if (literal.getDatatypeURI() != null && !Rdf.XSD_STRING.equals(literal.getDatatypeURI())) {
-            out.append(" <span class=\"meta\">").append(escape(model.shortForm(literal.getDatatypeURI()))).append("</span>");
-        }
-        return out.toString();
-    }
-
-    private static String title(final Model model, final String subjectIri, final LdpResource resource) {
-        for (final String predicate : List.of(Rdf.RDFS_LABEL, "http://purl.org/dc/terms/title",
-                "http://purl.org/dc/elements/1.1/title")) {
-            final Statement statement = model.getResource(subjectIri).getProperty(model.createProperty(predicate));
-            if (statement != null && statement.getObject().isLiteral()) {
-                return statement.getObject().asLiteral().getLexicalForm();
+            if (description) {
+                html.append(" / ").append(LdpService.DESCRIPTION_SEGMENT);
             }
+            html.append("</nav>");
         }
-        if (resource.getBinary() != null && resource.getBinary().getFilename() != null) {
-            return resource.getBinary().getFilename();
+
+        private void binarySection(final StringBuilder html, final LdpResource resource, final String binaryIri) {
+            final BinaryContent binary = resource.getBinary();
+            html.append("<h2>").append(t("html.file")).append("</h2><p><a href=\"").append(escape(binaryIri))
+                .append("\" download>").append(t("html.download")).append("</a>");
+            if (binary != null) {
+                html.append(" <span class=\"meta\">")
+                    .append(escape(binary.getFilename() == null ? "" : binary.getFilename() + " · "))
+                    .append(escape(binary.getContentType() == null ? "application/octet-stream" : binary.getContentType()))
+                    .append(" · ").append(escape(humanSize(binary.getSize() == null ? 0 : binary.getSize(),
+                        locale.locale())))
+                    .append("</span>");
+            }
+            html.append(" · <a href=\"").append(escape(binaryIri + "/" + LdpService.DESCRIPTION_SEGMENT))
+                .append("\">").append(t("html.description")).append("</a></p>");
         }
-        return resource.isRoot() ? "root" : lastSegment(resource.getPath());
+
+        private void containerSection(final StringBuilder html, final Model model, final String containerIri,
+                final String formAction) {
+            final List<String> children = new ArrayList<>();
+            model.listObjectsOfProperty(model.createResource(containerIri), model.createProperty(Ldp.CONTAINS))
+                .forEachRemaining(node -> {
+                    if (node.isURIResource()) {
+                        children.add(node.asResource().getURI());
+                    }
+                });
+            children.sort(Comparator.naturalOrder());
+
+            html.append("<h2>").append(t("html.contains", children.size())).append("</h2>");
+            if (children.isEmpty()) {
+                html.append("<div class=\"empty\">").append(t("html.empty-container")).append("</div>");
+            } else {
+                html.append("<ul class=\"children\">");
+                for (final String child : children) {
+                    html.append("<li><a href=\"").append(escape(child)).append("\">").append(escape(lastSegment(child)))
+                        .append("</a><button class=\"danger\" type=\"button\" data-delete=\"").append(escape(child))
+                        .append("\" data-confirm=\"").append(t("html.delete-confirm", child)).append("\">")
+                        .append(t("html.delete")).append("</button></li>");
+                }
+                html.append("</ul>");
+            }
+
+            html.append("<h2>").append(t("html.upload-title")).append("</h2>")
+                .append("<form method=\"post\" enctype=\"multipart/form-data\" action=\"").append(escape(formAction)).append("\">")
+                .append("<input type=\"hidden\" name=\"").append(KIND_FIELD).append("\" value=\"").append(KIND_FILE).append("\">")
+                .append("<input type=\"file\" name=\"").append(FILE_FIELD).append("\" required aria-label=\"")
+                .append(t("html.file")).append("\">")
+                .append("<input type=\"text\" name=\"").append(SLUG_FIELD).append("\" placeholder=\"")
+                .append(t("html.name-optional")).append("\" aria-label=\"").append(t("html.name-optional")).append("\">")
+                .append("<button type=\"submit\">").append(t("html.upload")).append("</button></form>");
+
+            html.append("<h2>").append(t("html.create-title")).append("</h2>")
+                .append("<form method=\"post\" enctype=\"multipart/form-data\" action=\"").append(escape(formAction)).append("\">")
+                .append("<input type=\"hidden\" name=\"").append(KIND_FIELD).append("\" value=\"").append(KIND_CONTAINER).append("\">")
+                .append("<input type=\"text\" name=\"").append(SLUG_FIELD).append("\" placeholder=\"")
+                .append(t("html.name-optional")).append("\" aria-label=\"").append(t("html.name-optional")).append("\">")
+                .append("<button type=\"submit\">").append(t("html.create")).append("</button></form>");
+        }
+
+        private void triplesSection(final StringBuilder html, final Model model, final String subjectIri) {
+            final List<Statement> statements = model.listStatements().toList();
+            statements.removeIf(statement -> Ldp.CONTAINS.equals(statement.getPredicate().getURI()));
+            statements.sort(Comparator
+                .comparing((Statement s) -> s.getSubject().isURIResource() && subjectIri.equals(s.getSubject().getURI()) ? 0 : 1)
+                .thenComparing(s -> s.getSubject().toString())
+                .thenComparing(s -> Rdf.TYPE.equals(s.getPredicate().getURI()) ? "" : s.getPredicate().getURI())
+                .thenComparing(s -> s.getObject().toString()));
+
+            html.append("<h2>").append(t("html.triples", statements.size())).append("</h2>");
+            if (statements.isEmpty()) {
+                html.append("<div class=\"empty\">").append(t("html.no-triples")).append("</div>");
+                return;
+            }
+            html.append("<table><thead><tr><th scope=\"col\">").append(t("html.subject"))
+                .append("</th><th scope=\"col\">").append(t("html.predicate"))
+                .append("</th><th scope=\"col\">").append(t("html.object")).append("</th></tr></thead><tbody>");
+            for (final Statement statement : statements) {
+                html.append("<tr><td class=\"mono\">").append(node(model, statement.getSubject(), subjectIri)).append("</td>")
+                    .append("<td class=\"mono\">").append(node(model, statement.getPredicate(), subjectIri)).append("</td>")
+                    .append("<td>").append(node(model, statement.getObject(), subjectIri)).append("</td></tr>");
+            }
+            html.append("</tbody></table>");
+        }
+
+        private String node(final Model model, final RDFNode node, final String subjectIri) {
+            if (node.isURIResource()) {
+                final String uri = node.asResource().getURI();
+                final String label = uri.equals(subjectIri) ? t("html.this") : escape(model.shortForm(uri));
+                return "<a href=\"" + escape(uri) + "\">" + label + "</a>";
+            }
+            if (node.isAnon()) {
+                return escape("_:" + node.asResource().getId().getLabelString());
+            }
+            final Literal literal = node.asLiteral();
+            final boolean tagged = literal.getLanguage() != null && !literal.getLanguage().isEmpty();
+            // a language-tagged text keeps its language for browsers and screen readers
+            final StringBuilder out = new StringBuilder(tagged
+                ? "<span lang=\"" + escape(literal.getLanguage()) + "\">" + escape(literal.getLexicalForm()) + "</span>"
+                : escape(literal.getLexicalForm()));
+            if (tagged) {
+                out.append(" <span class=\"meta\">@").append(escape(literal.getLanguage())).append("</span>");
+            } else if (literal.getDatatypeURI() != null && !Rdf.XSD_STRING.equals(literal.getDatatypeURI())) {
+                out.append(" <span class=\"meta\">").append(escape(model.shortForm(literal.getDatatypeURI()))).append("</span>");
+            }
+            return out.toString();
+        }
+
+        /**
+         * Picks the literal in the reader's language: tagged with the locale's language, then
+         * untagged, then the first one.
+         *
+         * @param statements the statements of one property
+         * @return the literal, {@code null} when none is a literal
+         */
+        private Literal preferred(final List<Statement> statements) {
+            final String language = locale.locale().getLanguage();
+            Literal untagged = null;
+            Literal first = null;
+            for (final Statement statement : statements) {
+                if (!statement.getObject().isLiteral()) {
+                    continue;
+                }
+                final Literal literal = statement.getObject().asLiteral();
+                final String tag = literal.getLanguage() == null ? "" : literal.getLanguage();
+                if (!tag.isEmpty() && Locale.forLanguageTag(tag).getLanguage().equals(language)) {
+                    return literal;
+                }
+                if (tag.isEmpty() && untagged == null) {
+                    untagged = literal;
+                }
+                if (first == null) {
+                    first = literal;
+                }
+            }
+            return untagged != null ? untagged : first;
+        }
+
+        private String title(final Model model, final String subjectIri, final LdpResource resource) {
+            for (final String predicate : List.of(Rdf.RDFS_LABEL, "http://purl.org/dc/terms/title",
+                    "http://purl.org/dc/elements/1.1/title")) {
+                final Literal literal = preferred(model.getResource(subjectIri)
+                    .listProperties(model.createProperty(predicate)).toList());
+                if (literal != null) {
+                    return literal.getLexicalForm();
+                }
+            }
+            if (resource.getBinary() != null && resource.getBinary().getFilename() != null) {
+                return resource.getBinary().getFilename();
+            }
+            return resource.isRoot() ? messages.get(locale.locale(), "html.root") : lastSegment(resource.getPath());
+        }
+
     }
 
     private static String lastSegment(final String value) {
@@ -275,14 +367,16 @@ public class HtmlView {
     }
 
     /**
-     * Formats a byte count for humans.
+     * Formats a byte count for humans in a locale's number format.
      *
-     * @param bytes the size in bytes
-     * @return for example {@code 1.5 MB}
+     * @param bytes  the size in bytes
+     * @param locale the locale
+     * @return for example {@code 1.5 MB}, or {@code 1,5 MB} in German
      */
-    static String humanSize(final long bytes) {
+    static String humanSize(final long bytes, final Locale locale) {
+        final NumberFormat format = NumberFormat.getNumberInstance(locale);
         if (bytes < 1024) {
-            return bytes + " B";
+            return format.format(bytes) + " B";
         }
         final String[] units = { "KB", "MB", "GB", "TB" };
         double value = bytes;
@@ -291,7 +385,9 @@ public class HtmlView {
             value /= 1024;
             unit++;
         }
-        return String.format(Locale.ROOT, "%.1f %s", value, units[unit]);
+        format.setMinimumFractionDigits(1);
+        format.setMaximumFractionDigits(1);
+        return format.format(value) + " " + units[unit];
     }
 
     private static String escape(final String value) {

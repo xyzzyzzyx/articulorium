@@ -29,6 +29,32 @@ with the Fedora Commons HTML interface. The `service` module serves it; the gate
 | —                                         | **IIIF** link to the Manifest or Collection of PCDM objects, collections and communities |
 | Versions                                  | Mementos of files show the technical metadata of that version (size, digest, media type, file name) |
 
+## Languages
+
+The interface is translated into every locale the service enables (12 by default, including
+Arabic right to left); see [Internationalization](../README.md#internationalization).
+
+* Texts are keys translated with [ngx-translate](https://github.com/ngx-translate/core)
+  (`{{ 'nav.browse' | translate }}`, `I18nService.t()`), from `src/i18n/<tag>.json`; the English
+  `en.json` is the reference and is also built into the bundle as the last-resort fallback.
+* The service renders `index.html` in the request's locale (`lang`, `dir`) and inlines the
+  locale's texts (`#ui-i18n`), merged over the default locale's: `I18nService` starts from that
+  state, so the first frame is translated and matches the server-rendered document. Without it
+  (`ng serve`) it asks `api/i18n`, and without the service it uses the built-in English texts.
+* The toolbar's language menu writes the `articulorium-locale` cookie (read by every service) and
+  switches texts in place, reloading only when the writing direction changes.
+* Every request carries the locale as `Accept-Language` (`localeInterceptor`), so services answer
+  in it; error messages a service only has in its default language (`Content-Language`) are
+  preceded by the interface's translated summary of the status (`errorMessage`).
+* Dates and numbers use `Intl` in the current locale (`l10nDate`, `l10nNumber`), counts the
+  locale's plural rules (`tplural`, `I18nService.plural`); route titles, the paginator and
+  sign-in (`ui_locales`) are translated too.
+* RDF literals in another language than the interface keep their `lang` attribute; titles and
+  descriptions are picked in the reader's language when a resource has several.
+
+`npm run i18n:check` (part of the Maven build) fails when a shipped locale lacks a file, a key, a
+placeholder or a plural form.
+
 ## How it talks to the platform
 
 * Settings come from `api/config` (the service): `platformUrl` (default `../platform/`, the gateway
@@ -44,7 +70,8 @@ with the Fedora Commons HTML interface. The `service` module serves it; the gate
 * The topology service (`topologies`, `topologies/<id>/instances`, `topologies/<id>/members`) and
   the transform service's `iiif/<path>`.
 
-Code layout: `core/` (configuration, the `LdpService` HTTP client, RDF parsing and helpers,
+Code layout: `core/` (configuration, `i18n/` (locale, translations, formatting pipes), the
+`LdpService` HTTP client, RDF parsing and helpers,
 `auth/` (the `AuthProvider` abstraction: OpenID Connect, pasted token, none; and the interceptor), `webac/`, `topology/`, `notify/`), `shared/` (term rendering,
 property table, breadcrumb, dialogs), and one folder per view (`browse/`, `history/`, `search/`,
 `permissions/`, `communities/`, `topology/`, `notifications/`, `about/`).
@@ -56,6 +83,7 @@ npm ci
 npm start                  # ng serve on http://localhost:4200, proxied to the gateway on :8000
 npm test                   # unit tests (Vitest + jsdom)
 npm run lint
+npm run i18n:check         # every shipped locale has a complete translation
 npm run build              # production build in dist/ui/browser
 ```
 

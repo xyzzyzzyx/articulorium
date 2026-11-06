@@ -10,6 +10,7 @@ import com.articulorium.topology.model.Topology;
 import com.articulorium.topology.model.TopologySummary;
 import com.articulorium.topology.service.InvalidTopologyException;
 import com.articulorium.topology.service.TopologyBuilder;
+import com.articulorium.topology.service.TopologyLocalizer;
 import com.articulorium.topology.service.TopologyRegistry;
 
 import org.springframework.http.HttpHeaders;
@@ -47,15 +48,20 @@ public class TopologyController {
 
     private final TopologyBuilder builder;
 
+    private final TopologyLocalizer localizer;
+
     /**
      * Creates the controller.
      *
-     * @param registry the topology registry
-     * @param builder  builds topology instances
+     * @param registry  the topology registry
+     * @param builder   builds topology instances
+     * @param localizer translates built-in topologies into the request's locale
      */
-    public TopologyController(final TopologyRegistry registry, final TopologyBuilder builder) {
+    public TopologyController(final TopologyRegistry registry, final TopologyBuilder builder,
+            final TopologyLocalizer localizer) {
         this.registry = registry;
         this.builder = builder;
+        this.localizer = localizer;
     }
 
     /**
@@ -68,7 +74,7 @@ public class TopologyController {
     @Operation(operationId = "listTopologies", summary = "List the topologies")
     public List<TopologySummary> list(@RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false)
             final String authorization) {
-        return registry.list(authorization).stream().map(TopologySummary::of).toList();
+        return registry.list(authorization).stream().map(localizer::localize).map(TopologySummary::of).toList();
     }
 
     /**
@@ -82,7 +88,7 @@ public class TopologyController {
     @Operation(operationId = "getTopology", summary = "Read a topology")
     public Topology get(@PathVariable("id") final String id,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) final String authorization) {
-        return registry.get(id, authorization);
+        return localizer.localize(registry.get(id, authorization));
     }
 
     /**

@@ -12,6 +12,9 @@
   "accessTokenLifespan": 300,
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 36000,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en", "ar", "de", "es", "fr", "it", "ja", "ko", "nl", "pl", "pt-BR", "zh-CN"],
+  "defaultLocale": "en",
   "roles": {
     "realm": [
       {

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { routeTo, segmentsOf } from '../core/ldp/paths';
 
@@ -9,12 +10,12 @@ import { routeTo, segmentsOf } from '../core/ldp/paths';
  */
 @Component({
   selector: 'ui-breadcrumb',
-  imports: [MatIconModule, RouterLink],
+  imports: [MatIconModule, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <nav class="ui-breadcrumb" aria-label="Breadcrumb">
+    <nav class="ui-breadcrumb" [attr.aria-label]="'breadcrumb.label' | translate">
       <ol>
-        <li><a [routerLink]="['/browse']"><mat-icon inline>home</mat-icon> Root</a></li>
+        <li><a [routerLink]="['/browse']"><mat-icon inline aria-hidden="true">home</mat-icon> {{ 'breadcrumb.root' | translate }}</a></li>
         @for (crumb of crumbs(); track crumb.path; let last = $last) {
           <li>
             @if (last && !suffix()) {
@@ -32,7 +33,7 @@ import { routeTo, segmentsOf } from '../core/ldp/paths';
   `,
   styles: `
     ol { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; margin: 0 0 16px; padding: 0; }
-    li + li::before { content: '/'; margin-right: 4px; color: #999; }
+    li + li::before { content: '/'; margin-inline-end: 4px; color: #999; }
     a { text-decoration: none; }
     mat-icon { vertical-align: text-bottom; }
   `,
@@ -41,7 +42,7 @@ export class BreadcrumbComponent {
   /** The resource path. */
   readonly path = input.required<string>();
 
-  /** An extra trailing crumb, for example `Versions`. */
+  /** An extra trailing crumb, already translated, for example `Versions`. */
   readonly suffix = input<string>();
 
   /** One crumb per ancestor and the resource itself. */

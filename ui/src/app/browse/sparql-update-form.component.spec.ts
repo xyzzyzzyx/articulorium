@@ -6,6 +6,7 @@ import { Graph } from '../core/rdf/graph';
 import { parseNTriples } from '../core/rdf/ntriples';
 import { TEST_BASE, provideTestConfig } from '../testing/test-config';
 import { SparqlUpdateFormComponent } from './sparql-update-form.component';
+import { provideTestI18n } from '../testing/test-i18n';
 
 describe('SparqlUpdateFormComponent', () => {
   const target = `${TEST_BASE}books`;
@@ -33,7 +34,7 @@ describe('SparqlUpdateFormComponent', () => {
   beforeEach(async () => {
     TestBed.configureTestingModule({
       imports: [SparqlUpdateFormComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideTestConfig()],
+      providers: [...provideTestI18n(), provideHttpClient(), provideHttpClientTesting(), provideTestConfig()],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(SparqlUpdateFormComponent);

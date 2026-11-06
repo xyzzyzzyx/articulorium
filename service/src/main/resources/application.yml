@@ -23,6 +23,12 @@ articulorium:
         authority: ../auth/realms/articulorium
         client-id: articulorium-ui
         scope: openid profile
+  # locales (i18n-spring-boot-starter): every locale of the manifest is enabled unless
+  # "locales" lists some; the default locale is used for unsupported requests and missing texts.
+  # Use the same values in every service (Consul key/value configuration shares them).
+  i18n:
+    default-locale: en
+    # locales: en, de, fr
   # agents served by /api/agents (agent-spring-boot-starter); Agent beans are added too
   agents:
     definitions:
@@ -117,7 +123,8 @@ spring:
       file-size-threshold: 1MB
 
   thymeleaf:
-    # index.html of the Angular build is the only template (for <base th:href>)
+    # index.html of the Angular build is the only template (<base th:href>, document language,
+    # writing direction and the inlined translations)
     prefix: classpath:/static/
     view-names: index
 

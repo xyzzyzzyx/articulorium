@@ -10,16 +10,16 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { ConfigService } from '../core/config.service';
+import { I18nService } from '../core/i18n/i18n.service';
 import { normalizePath, pathOf, platformUrl, routeTo } from '../core/ldp/paths';
-import { errorMessage } from '../core/ldp/problem';
 import {
   ACCESS_MODES,
   AccessMode,
   AuthorizationDraft,
   GranteeKind,
-  granteeLabel,
   toDrafts,
 } from '../core/webac/webac';
 import { WebAcService } from '../core/webac/webac.service';
@@ -49,40 +49,42 @@ import { Notifier } from '../shared/notifier.service';
     MatProgressBarModule,
     MatSelectModule,
     RouterLink,
+    TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <ui-breadcrumb [path]="resourcePath()" suffix="Permissions" />
+    <ui-breadcrumb [path]="resourcePath()" [suffix]="'resource.permissions' | translate" />
     <header class="ui-page-header">
-      <h1>Permissions</h1>
-      <a mat-button [routerLink]="resourceRoute()">Back to resource</a>
+      <h1>{{ 'resource.permissions' | translate }}</h1>
+      <a mat-button [routerLink]="resourceRoute()">{{ 'common.backToResource' | translate }}</a>
     </header>
     @if (access.isLoading()) {
-      <mat-progress-bar mode="indeterminate" />
+      <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
     }
     @if (loadError(); as message) {
-      <p class="ui-error-text">{{ message }}</p>
+      <p class="ui-error-text" role="alert">{{ message }}</p>
     }
     @if (access.value(); as info) {
       <mat-card appearance="outlined">
         <mat-card-content>
           <dl class="ui-facts">
-            <dt>You</dt>
-            <dd class="ui-permissions-agent">{{ info.agent.webId ?? 'Anonymous' }}</dd>
-            <dt>Your access</dt>
-            <dd class="ui-permissions-user">{{ info.userModes.join(', ') || 'none' }}</dd>
-            <dt>Everyone</dt>
-            <dd class="ui-permissions-public">{{ info.publicModes.join(', ') || 'none' }}</dd>
-            <dt>Rules</dt>
+            <dt>{{ 'permissions.you' | translate }}</dt>
+            <dd class="ui-permissions-agent">{{ info.agent.webId ?? ('permissions.anonymous' | translate) }}</dd>
+            <dt>{{ 'permissions.yourAccess' | translate }}</dt>
+            <dd class="ui-permissions-user">{{ modeList(info.userModes) }}</dd>
+            <dt>{{ 'permissions.everyone' | translate }}</dt>
+            <dd class="ui-permissions-public">{{ modeList(info.publicModes) }}</dd>
+            <dt>{{ 'permissions.rules' | translate }}</dt>
             <dd class="ui-permissions-source">
               @if (!info.enforced) {
-                Access control is disabled on this repository.
+                {{ 'permissions.disabled' | translate }}
               } @else if (!info.aclResource) {
-                Repository default (no access control list on this resource or its ancestors)
+                {{ 'permissions.repositoryDefault' | translate }}
               } @else if (info.inherited) {
-                Inherited from <a [routerLink]="routeOfIri(info.aclResource)">{{ info.aclResource }}</a>
+                {{ 'permissions.inheritedFrom' | translate }}
+                <a [routerLink]="routeOfIri(info.aclResource)">{{ info.aclResource }}</a>
               } @else {
-                This resource's own access control list
+                {{ 'permissions.own' | translate }}
               }
             </dd>
           </dl>
@@ -90,68 +92,77 @@ import { Notifier } from '../shared/notifier.service';
       </mat-card>
 
       @if (info.enforced && info.userModes.includes('control')) {
-        <h2>Authorizations</h2>
+        <h2>{{ 'permissions.authorizations' | translate }}</h2>
         @if (drafts().length === 0) {
-          <p class="ui-muted">No authorizations: nobody can access this resource.</p>
+          <p class="ui-muted">{{ 'permissions.noAuthorizations' | translate }}</p>
         }
         <ul class="ui-authorizations">
           @for (draft of drafts(); track $index) {
             <li class="ui-authorization">
-              <strong>{{ label(draft) }}</strong>: {{ draft.modes.join(', ') }}
+              <strong>{{ label(draft) }}</strong>: {{ modeList(draft.modes) }}
               @if (draft.inherit) {
-                <span class="ui-pill">inherited by children</span>
+                <span class="ui-pill">{{ 'permissions.inheritedByChildren' | translate }}</span>
               }
-              <button mat-icon-button type="button" [attr.aria-label]="'Remove ' + label(draft)" (click)="remove($index)">
-                <mat-icon>delete</mat-icon>
+              <button
+                mat-icon-button
+                type="button"
+                [attr.aria-label]="'permissions.removeGrant' | translate: { grantee: label(draft) }"
+                (click)="remove($index)"
+              >
+                <mat-icon aria-hidden="true">delete</mat-icon>
               </button>
             </li>
           }
         </ul>
 
         <mat-card appearance="outlined">
-          <mat-card-header><mat-card-title>Grant access</mat-card-title></mat-card-header>
+          <mat-card-header><mat-card-title>{{ 'permissions.grant' | translate }}</mat-card-title></mat-card-header>
           <mat-card-content>
             <form class="ui-form ui-grant-form" (ngSubmit)="add()">
               <mat-form-field>
-                <mat-label>Who</mat-label>
+                <mat-label>{{ 'permissions.who' | translate }}</mat-label>
                 <mat-select name="kind" [(ngModel)]="kind">
-                  <mat-option value="everyone">Everyone</mat-option>
-                  <mat-option value="authenticated">Authenticated agents</mat-option>
-                  <mat-option value="agent">Agent</mat-option>
-                  <mat-option value="group">Group</mat-option>
+                  <mat-option value="everyone">{{ 'permissions.grantee.everyone' | translate }}</mat-option>
+                  <mat-option value="authenticated">{{ 'permissions.grantee.authenticated' | translate }}</mat-option>
+                  <mat-option value="agent">{{ 'permissions.grantee.agentKind' | translate }}</mat-option>
+                  <mat-option value="group">{{ 'permissions.grantee.groupKind' | translate }}</mat-option>
                 </mat-select>
               </mat-form-field>
               @if (kind === 'agent' || kind === 'group') {
                 <mat-form-field>
-                  <mat-label>{{ kind === 'agent' ? 'Agent IRI' : 'Group IRI' }}</mat-label>
+                  <mat-label>{{ (kind === 'agent' ? 'permissions.agentIri' : 'permissions.groupIri') | translate }}</mat-label>
                   <input matInput name="iri" [(ngModel)]="iri" required
                     [placeholder]="kind === 'agent' ? 'info:consul/agent/jane' : 'info:consul/role/editors'" />
                 </mat-form-field>
               }
               <div class="ui-row">
                 @for (mode of modes; track mode) {
-                  <mat-checkbox [name]="'mode-' + mode" [(ngModel)]="selected[mode]">{{ mode }}</mat-checkbox>
+                  <mat-checkbox [name]="'mode-' + mode" [(ngModel)]="selected[mode]">{{ 'access.mode.' + mode | translate }}</mat-checkbox>
                 }
               </div>
-              <mat-checkbox name="inherit" [(ngModel)]="inherit">Children inherit this authorization</mat-checkbox>
-              <button mat-stroked-button type="submit" [disabled]="!canAdd()"><mat-icon>add</mat-icon> Add</button>
+              <mat-checkbox name="inherit" [(ngModel)]="inherit">{{ 'permissions.inherit' | translate }}</mat-checkbox>
+              <button mat-stroked-button type="submit" [disabled]="!canAdd()">
+                <mat-icon aria-hidden="true">add</mat-icon> {{ 'common.add' | translate }}
+              </button>
             </form>
           </mat-card-content>
         </mat-card>
 
         @if (busy()) {
-          <mat-progress-bar mode="indeterminate" />
+          <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
         }
         <div class="ui-row ui-permissions-actions">
           <button mat-flat-button color="primary" type="button" [disabled]="busy() || !dirty()" (click)="save()">
-            Save permissions
+            {{ 'permissions.save' | translate }}
           </button>
           @if (info.aclResource && !info.inherited) {
-            <button mat-button type="button" [disabled]="busy()" (click)="restoreInheritance()">Remove access control list</button>
+            <button mat-button type="button" [disabled]="busy()" (click)="restoreInheritance()">
+              {{ 'permissions.removeAcl' | translate }}
+            </button>
           }
         </div>
       } @else if (info.enforced) {
-        <p class="ui-muted">You need control access (acl:Control) to see and change the authorizations.</p>
+        <p class="ui-muted">{{ 'permissions.needControl' | translate }}</p>
       }
     }
   `,
@@ -162,6 +173,8 @@ export class PermissionsPageComponent {
   private readonly config = inject(ConfigService);
 
   private readonly notifier = inject(Notifier);
+
+  private readonly i18n = inject(I18nService);
 
   /** Path of the resource (bound from the route). */
   readonly path = input('');
@@ -177,7 +190,7 @@ export class PermissionsPageComponent {
 
   protected readonly loadError = computed(() => {
     const error = this.access.error();
-    return error ? errorMessage(error) : undefined;
+    return error ? this.notifier.message(error) : undefined;
   });
 
   /** The authorizations being edited. */
@@ -212,7 +225,28 @@ export class PermissionsPageComponent {
    * @returns the label
    */
   protected label(draft: AuthorizationDraft): string {
-    return granteeLabel(draft);
+    switch (draft.kind) {
+      case 'everyone':
+        return this.i18n.t('permissions.grantee.everyone');
+      case 'authenticated':
+        return this.i18n.t('permissions.grantee.authenticated');
+      case 'agent':
+        return this.i18n.t('permissions.grantee.agent', { iri: draft.iri ?? '' });
+      case 'group':
+        return this.i18n.t('permissions.grantee.group', { iri: draft.iri ?? '' });
+    }
+  }
+
+  /**
+   * Lists access modes in the interface language.
+   *
+   * @param modes - the modes
+   * @returns for example "read, write", or the text for none
+   */
+  protected modeList(modes: readonly string[]): string {
+    return modes.length
+      ? modes.map((mode) => this.i18n.t(`access.mode.${mode}`)).join(', ')
+      : this.i18n.t('permissions.noModes');
   }
 
   /**
@@ -264,12 +298,12 @@ export class PermissionsPageComponent {
     this.webac.save(path, platformUrl(this.config.platformBase(), path), this.drafts()).subscribe({
       next: () => {
         this.busy.set(false);
-        this.notifier.success('Permissions saved');
+        this.notifier.success(this.i18n.t('permissions.saved'));
         this.access.reload();
       },
       error: (error: unknown) => {
         this.busy.set(false);
-        this.notifier.error('Save permissions', error);
+        this.notifier.error(this.i18n.t('permissions.save'), error);
       },
     });
   }
@@ -280,12 +314,12 @@ export class PermissionsPageComponent {
     this.webac.remove(this.resourcePath()).subscribe({
       next: () => {
         this.busy.set(false);
-        this.notifier.success('Access control list removed');
+        this.notifier.success(this.i18n.t('permissions.aclRemoved'));
         this.access.reload();
       },
       error: (error: unknown) => {
         this.busy.set(false);
-        this.notifier.error('Remove access control list', error);
+        this.notifier.error(this.i18n.t('permissions.removeAcl'), error);
       },
     });
   }

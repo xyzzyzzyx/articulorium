@@ -30,7 +30,8 @@
               "src/android-chrome-192x192.png",
               "src/android-chrome-512x512.png",
               "src/site.webmanifest",
-              "src/assets"
+              "src/assets",
+              { "glob": "*.json", "input": "src/i18n", "output": "i18n" }
             ],
             "styles": [
               "src/styles.scss"

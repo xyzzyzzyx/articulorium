@@ -6,6 +6,7 @@ import { BehaviorSubject } from 'rxjs';
 
 import { TEST_BASE, provideTestConfig } from '../testing/test-config';
 import { SearchPageComponent } from './search-page.component';
+import { provideTestI18n } from '../testing/test-i18n';
 
 describe('SearchPageComponent', () => {
   const queryParams = new BehaviorSubject<Record<string, unknown>>({ condition: 'mime_type=image/*', max_results: '20' });
@@ -14,6 +15,7 @@ describe('SearchPageComponent', () => {
     TestBed.configureTestingModule({
       imports: [SearchPageComponent],
       providers: [
+        ...provideTestI18n(),
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter([]),
@@ -38,7 +40,7 @@ describe('SearchPageComponent', () => {
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.textContent).toContain('1 result(s)');
+    expect(element.textContent).toContain('1 result');
     expect(element.querySelector('a[href="/browse/books/cover.png"]')).not.toBeNull();
     expect(element.textContent).toContain('ldp:NonRDFSource');
     expect((element.querySelector('input[name="value0"]') as HTMLInputElement).value).toBe('image/*');

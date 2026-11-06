@@ -7,6 +7,7 @@ import { Topology, emptyNode } from '../core/topology/topology';
 import { TEST_TOPOLOGY, provideTestConfig } from '../testing/test-config';
 import { TopologyEditorPageComponent } from './topology-editor-page.component';
 import { TopologyListPageComponent } from './topology-list-page.component';
+import { provideTestI18n } from '../testing/test-i18n';
 
 const BOOK: Topology = { id: 'book', name: 'Book', builtIn: true, root: emptyNode('book', 'Book') };
 
@@ -16,7 +17,7 @@ describe('topology pages', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TopologyListPageComponent, TopologyEditorPageComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([{ path: '**', children: [] }]), provideTestConfig()],
+      providers: [...provideTestI18n(), provideHttpClient(), provideHttpClientTesting(), provideRouter([{ path: '**', children: [] }]), provideTestConfig()],
     });
     http = TestBed.inject(HttpTestingController);
   });

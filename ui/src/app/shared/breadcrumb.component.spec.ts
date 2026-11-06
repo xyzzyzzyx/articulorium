@@ -2,10 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { BreadcrumbComponent } from './breadcrumb.component';
+import { provideTestI18n } from '../testing/test-i18n';
 
 describe('BreadcrumbComponent', () => {
   it('links every ancestor and marks the current resource', () => {
-    TestBed.configureTestingModule({ imports: [BreadcrumbComponent], providers: [provideRouter([])] });
+    TestBed.configureTestingModule({ imports: [BreadcrumbComponent], providers: [...provideTestI18n(), provideRouter([])] });
     const fixture = TestBed.createComponent(BreadcrumbComponent);
     fixture.componentRef.setInput('path', 'books/moby dick');
     fixture.detectChanges();
@@ -17,7 +18,7 @@ describe('BreadcrumbComponent', () => {
   });
 
   it('adds a trailing label', () => {
-    TestBed.configureTestingModule({ imports: [BreadcrumbComponent], providers: [provideRouter([])] });
+    TestBed.configureTestingModule({ imports: [BreadcrumbComponent], providers: [...provideTestI18n(), provideRouter([])] });
     const fixture = TestBed.createComponent(BreadcrumbComponent);
     fixture.componentRef.setInput('path', 'books');
     fixture.componentRef.setInput('suffix', 'Versions');

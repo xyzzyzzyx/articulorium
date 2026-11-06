@@ -16,6 +16,17 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @ControllerAdvice
 public class SpaFallbackAdvice {
 
+    private final IndexPage page;
+
+    /**
+     * Creates the advice.
+     *
+     * @param page the page model
+     */
+    public SpaFallbackAdvice(final IndexPage page) {
+        this.page = page;
+    }
+
     /**
      * Handles requests no controller or static resource matched.
      *
@@ -30,8 +41,7 @@ public class SpaFallbackAdvice {
     public String handle(final NoResourceFoundException exception, final HttpServletRequest request,
             final HttpServletResponse response, final Model model) throws IOException {
         if (SpaController.isClientRoute(request)) {
-            model.addAttribute("base", SpaController.baseHref());
-            return SpaController.INDEX_VIEW;
+            return page.render(model, response);
         }
         response.sendError(HttpStatus.NOT_FOUND.value());
         return null;

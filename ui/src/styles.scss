@@ -246,7 +246,7 @@ body {
 .ui-tree {
   list-style: none;
   margin: 0;
-  padding-left: 16px;
+  padding-inline-start: 16px;
 
   li {
     margin: 4px 0;
@@ -269,9 +269,10 @@ body {
 }
 
 .ui-node-editor {
-  border-left: 3px solid #90a4ae;
+  border-inline-start: 3px solid #90a4ae;
   margin: 8px 0;
-  padding: 8px 0 8px 12px;
+  padding-block: 8px;
+  padding-inline: 12px 0;
 }
 
 .ui-json {
@@ -282,4 +283,28 @@ body {
   border-radius: 4px;
   font-size: 0.8rem;
   white-space: pre-wrap;
+}
+
+// keyboard users can jump over the navigation; the link shows only when focused
+.ui-skip-link {
+  position: absolute;
+  inset-inline-start: 8px;
+  top: -48px;
+  z-index: 100;
+  padding: 8px 16px;
+  background: #fff;
+  color: #000;
+
+  &:focus {
+    top: 8px;
+  }
+}
+
+.ui-content:focus {
+  outline: none;
+}
+
+// right-to-left locales: icons that point somewhere follow the reading direction
+[dir='rtl'] .ui-directional-icon {
+  transform: scaleX(-1);
 }

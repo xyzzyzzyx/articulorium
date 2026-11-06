@@ -34,7 +34,7 @@ describe('Notifications (COAR Notify)', () => {
       cy.get('.ui-send-notification input[name=targetInbox]').type('http://127.0.0.1:9/inbox');
       cy.get('.ui-send-notification').contains('button', 'Send').click();
       cy.notified(/Delivery failed/);
-      cy.get('.ui-outbox').should('contain.text', 'Offer Review').and('contain.text', 'FAILED');
+      cy.get('.ui-outbox').should('contain.text', 'Offer Review').and('contain.text', 'failed');
     });
   });
 

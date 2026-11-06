@@ -7,11 +7,18 @@ import com.articulorium.domain.InteractionModel;
 import com.articulorium.domain.LdpResource;
 import com.articulorium.domain.vocabulary.Ldp;
 import com.articulorium.domain.vocabulary.Rdf;
+import com.articulorium.i18n.LocaleManifest;
+import com.articulorium.i18n.Messages;
+import com.articulorium.i18n.SupportedLocales;
 import com.articulorium.platform.service.ResolvedTarget;
+
+import java.util.Locale;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 /**
  * Unit tests for {@link HtmlView}.
@@ -20,7 +27,12 @@ class HtmlViewTest {
 
     private static final String BASE = "http://localhost";
 
-    private final HtmlView view = new HtmlView();
+    private final HtmlView view = new HtmlView(Messages.of(new SupportedLocales(LocaleManifest.load(), "en")));
+
+    @AfterEach
+    void resetLocale() {
+        LocaleContextHolder.resetLocaleContext();
+    }
 
     @Test
     void containerPageListsChildrenAndOffersUploadForms() {
@@ -71,9 +83,52 @@ class HtmlViewTest {
 
     @Test
     void formatsSizes() {
-        assertThat(HtmlView.humanSize(10)).isEqualTo("10 B");
-        assertThat(HtmlView.humanSize(1536)).isEqualTo("1.5 KB");
-        assertThat(HtmlView.humanSize(5L * 1024 * 1024 * 1024)).isEqualTo("5.0 GB");
+        assertThat(HtmlView.humanSize(10, Locale.ENGLISH)).isEqualTo("10 B");
+        assertThat(HtmlView.humanSize(1536, Locale.ENGLISH)).isEqualTo("1.5 KB");
+        assertThat(HtmlView.humanSize(5L * 1024 * 1024 * 1024, Locale.ENGLISH)).isEqualTo("5.0 GB");
+        assertThat(HtmlView.humanSize(1536, Locale.GERMAN)).isEqualTo("1,5 KB");
+    }
+
+    @Test
+    void rendersInTheRequestLocale() {
+        LocaleContextHolder.setLocale(Locale.GERMAN);
+        final LdpResource container = new LdpResource("books", InteractionModel.BASIC_CONTAINER);
+
+        final String html = view.render(new ResolvedTarget(container, false), ModelFactory.createDefaultModel(), BASE);
+
+        assertThat(html).startsWith("<!doctype html><html lang=\"de\" dir=\"ltr\">");
+        assertThat(html).contains("Datei hochladen").doesNotContain("Upload a file");
+        assertThat(view.language()).isEqualTo("de");
+    }
+
+    @Test
+    void prefersTitlesInTheReaderLanguage() {
+        LocaleContextHolder.setLocale(Locale.GERMAN);
+        final LdpResource resource = new LdpResource("x", InteractionModel.RDF_SOURCE);
+        final Model model = ModelFactory.createDefaultModel();
+        model.createResource(BASE + "/x")
+            .addProperty(model.createProperty(Rdf.RDFS_LABEL), "Whale", "en")
+            .addProperty(model.createProperty(Rdf.RDFS_LABEL), "Wal", "de");
+
+        final String html = view.render(new ResolvedTarget(resource, false), model, BASE);
+
+        assertThat(html).contains("<h1>Wal</h1>").contains("<span lang=\"en\">Whale</span>");
+    }
+
+    @Test
+    void writesRightToLeftLocalesRightToLeft() {
+        LocaleContextHolder.setLocale(Locale.forLanguageTag("ar"));
+        final String html = view.render(new ResolvedTarget(new LdpResource("x", InteractionModel.RDF_SOURCE), false),
+            ModelFactory.createDefaultModel(), BASE);
+        assertThat(html).startsWith("<!doctype html><html lang=\"ar\" dir=\"rtl\">");
+    }
+
+    @Test
+    void fallsBackToTheDefaultLocale() {
+        LocaleContextHolder.setLocale(Locale.forLanguageTag("sv"));
+        final String html = view.render(new ResolvedTarget(new LdpResource("x", InteractionModel.RDF_SOURCE), false),
+            ModelFactory.createDefaultModel(), BASE);
+        assertThat(html).startsWith("<!doctype html><html lang=\"en\" dir=\"ltr\">").contains("No triples.");
     }
 
 }

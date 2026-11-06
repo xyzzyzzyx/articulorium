@@ -1,4 +1,3 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -12,12 +11,14 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 
+import { LocalizedDatePipe, LocalizedNumberPipe, PluralPipe } from '../core/i18n/format.pipes';
 import { LdpService } from '../core/ldp/ldp.service';
 import { SEARCH_FIELDS, SEARCH_OPERATORS, SearchCondition, SearchItem, SearchQuery } from '../core/ldp/models';
 import { pathOf, routeTo } from '../core/ldp/paths';
-import { errorMessage } from '../core/ldp/problem';
 import { compact } from '../core/rdf/graph';
+import { Notifier } from '../shared/notifier.service';
 import { paramsFromQuery, queryFromParams } from './search-query';
 
 /** An editable search condition. */
@@ -34,9 +35,9 @@ interface ConditionRow {
 @Component({
   selector: 'ui-search-page',
   imports: [
-    DatePipe,
-    DecimalPipe,
     FormsModule,
+    LocalizedDatePipe,
+    LocalizedNumberPipe,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -46,7 +47,9 @@ interface ConditionRow {
     MatProgressBarModule,
     MatSelectModule,
     MatTableModule,
+    PluralPipe,
     RouterLink,
+    TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './search-page.component.html',
@@ -57,6 +60,8 @@ export class SearchPageComponent {
   private readonly router = inject(Router);
 
   private readonly route = inject(ActivatedRoute);
+
+  private readonly notifier = inject(Notifier);
 
   protected readonly fields = SEARCH_FIELDS;
 
@@ -84,7 +89,7 @@ export class SearchPageComponent {
 
   protected readonly error = computed(() => {
     const error = this.results.error();
-    return error ? errorMessage(error) : undefined;
+    return error ? this.notifier.message(error) : undefined;
   });
 
   constructor() {

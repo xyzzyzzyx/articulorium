@@ -16,12 +16,16 @@ import com.articulorium.domain.vocabulary.Ldp;
 import com.articulorium.domain.vocabulary.Pcdm;
 import com.articulorium.domain.vocabulary.Premis;
 import com.articulorium.domain.vocabulary.Rdf;
+import com.articulorium.i18n.LocaleManifest;
+import com.articulorium.i18n.Messages;
+import com.articulorium.i18n.SupportedLocales;
 
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -45,6 +49,13 @@ import org.springframework.stereotype.Service;
  *       resource ({@code seeAlso}) and to its page in the user interface ({@code homepage}).</li>
  * </ul>
  *
+ * <p>Languages: every language-tagged literal keeps its language in the IIIF language maps
+ * ({@code {"de": ["Titel"], "en": ["Title"]}}), untagged literals are {@code none}, so viewers
+ * choose the text matching their user. Labels Articulorium writes itself ({@code Rights},
+ * {@code homepage}, {@code seeAlso}) are in the request's locale ({@code Accept-Language}, which
+ * the user interface sends), tagged with it; metadata labels derived from property names are
+ * English.</p>
+ *
  * @see <a href="https://iiif.io/api/presentation/3.0/">IIIF Presentation API 3.0</a>
  */
 @Service
@@ -57,6 +68,9 @@ public class IiifPresentationService {
     public static final String MEDIA_TYPE = "application/ld+json;profile=\"" + CONTEXT + "\"";
 
     static final String DCTERMS = "http://purl.org/dc/terms/";
+
+    /** The IIIF language key of values without a language. */
+    static final String NONE = "none";
 
     static final String DC = "http://purl.org/dc/elements/1.1/";
 
@@ -73,15 +87,31 @@ public class IiifPresentationService {
 
     private final IiifProperties properties;
 
+    private final Messages messages;
+
     /**
-     * Creates the service.
+     * Creates the service with English labels.
      *
      * @param reader     reads resources from the platform
      * @param properties IIIF settings
      */
     public IiifPresentationService(final IiifPlatformReader reader, final IiifProperties properties) {
+        this(reader, properties, Messages.of(new SupportedLocales(LocaleManifest.load(), "en")));
+    }
+
+    /**
+     * Creates the service.
+     *
+     * @param reader     reads resources from the platform
+     * @param properties IIIF settings
+     * @param messages   the labels in the request's locale
+     */
+    @Autowired
+    public IiifPresentationService(final IiifPlatformReader reader, final IiifProperties properties,
+            final Messages messages) {
         this.reader = reader;
         this.properties = properties;
+        this.messages = messages;
     }
 
     /**
@@ -145,6 +175,36 @@ public class IiifPresentationService {
                 }
             }
             return Optional.empty();
+        }
+
+        /**
+         * Every literal of the first predicate that has any, as a IIIF language map.
+         *
+         * @param predicates the predicates, in order of preference
+         * @return {@code {"<language>": [values]}}, {@code none} for untagged values
+         */
+        Optional<Map<String, Object>> languageMap(final String... predicates) {
+            for (final String predicate : predicates) {
+                final Map<String, List<String>> values = new LinkedHashMap<>();
+                subject.listProperties(model.createProperty(predicate)).forEachRemaining(statement -> {
+                    if (statement.getObject().isLiteral()) {
+                        final Literal literal = statement.getObject().asLiteral();
+                        values.computeIfAbsent(languageKey(literal), key -> new ArrayList<>())
+                            .add(literal.getLexicalForm());
+                    }
+                });
+                if (!values.isEmpty()) {
+                    final Map<String, Object> map = new LinkedHashMap<>();
+                    values.forEach((language, list) -> map.put(language, List.copyOf(list)));
+                    return Optional.of(map);
+                }
+            }
+            return Optional.empty();
+        }
+
+        Map<String, Object> labelMap() {
+            return languageMap(DCTERMS + "title", DC + "title", "http://www.w3.org/2000/01/rdf-schema#label")
+                .orElseGet(() -> language(label()));
         }
 
         List<String> iris(final String predicate) {
@@ -282,7 +342,7 @@ public class IiifPresentationService {
                     final Map<String, Object> item = new LinkedHashMap<>();
                     item.put("id", context.iiifUrl(child.path()));
                     item.put("type", child.isCollectionLike() ? "Collection" : "Manifest");
-                    item.put("label", language(child.label()));
+                    item.put("label", child.labelMap());
                     items.add(item);
                 }
             }
@@ -333,7 +393,7 @@ public class IiifPresentationService {
             final Map<String, Object> range = new LinkedHashMap<>();
             range.put("id", manifestId + "/range/" + (++rangeCount));
             range.put("type", "Range");
-            range.put("label", language(node.label()));
+            range.put("label", node.labelMap());
             range.put("items", new ArrayList<Map<String, Object>>());
             if (parentRange == null) {
                 structures.add(range);
@@ -394,7 +454,7 @@ public class IiifPresentationService {
             final Map<String, Object> canvas = new LinkedHashMap<>();
             canvas.put("id", canvasId);
             canvas.put("type", "Canvas");
-            canvas.put("label", language(node.label()));
+            canvas.put("label", node.labelMap());
             final List<Map<String, Object>> metadata = metadata(node);
             if (!metadata.isEmpty()) {
                 canvas.put("metadata", metadata);
@@ -483,15 +543,15 @@ public class IiifPresentationService {
             document.put("@context", CONTEXT);
             document.put("id", id);
             document.put("type", type);
-            document.put("label", language(view.label()));
-            view.literal(DCTERMS + "description", DCTERMS + "abstract", DC + "description")
-                .ifPresent(summary -> document.put("summary", language(summary)));
+            document.put("label", view.labelMap());
+            view.languageMap(DCTERMS + "description", DCTERMS + "abstract", DC + "description")
+                .ifPresent(summary -> document.put("summary", summary));
             final List<Map<String, Object>> metadata = metadata(view);
             if (!metadata.isEmpty()) {
                 document.put("metadata", metadata);
             }
-            view.literal(DCTERMS + "rights", DC + "rights").ifPresent(rights -> document.put("requiredStatement",
-                Map.of("label", Map.of("en", List.of("Rights")), "value", language(rights))));
+            view.languageMap(DCTERMS + "rights", DC + "rights").ifPresent(rights -> document.put("requiredStatement",
+                Map.of("label", localized("iiif.rights"), "value", rights)));
             view.iris(DCTERMS + "license").stream()
                 .filter(license -> license.startsWith("http://creativecommons.org/")
                     || license.startsWith("https://creativecommons.org/")
@@ -501,7 +561,7 @@ public class IiifPresentationService {
             final Map<String, Object> homepage = new LinkedHashMap<>();
             homepage.put("id", context.uiUrl(view.path()));
             homepage.put("type", "Text");
-            homepage.put("label", Map.of("en", List.of("View in Articulorium")));
+            homepage.put("label", localized("iiif.homepage"));
             homepage.put("format", "text/html");
             document.put("homepage", List.of(homepage));
             document.put("seeAlso", List.of(seeAlso(view)));
@@ -512,7 +572,7 @@ public class IiifPresentationService {
             final Map<String, Object> seeAlso = new LinkedHashMap<>();
             seeAlso.put("id", view.iri());
             seeAlso.put("type", "Dataset");
-            seeAlso.put("label", Map.of("en", List.of("Linked Data Platform resource")));
+            seeAlso.put("label", localized("iiif.see-also"));
             seeAlso.put("format", "text/turtle");
             return seeAlso;
         }
@@ -552,7 +612,7 @@ public class IiifPresentationService {
      * @return the entries
      */
     static List<Map<String, Object>> metadata(final View view) {
-        final Map<String, List<String>> values = new LinkedHashMap<>();
+        final Map<String, Map<String, List<String>>> values = new LinkedHashMap<>();
         final List<Statement> statements = view.subject().listProperties().toList();
         statements.sort(Comparator.comparing(statement -> statement.getPredicate().getURI()));
         for (final Statement statement : statements) {
@@ -565,13 +625,18 @@ public class IiifPresentationService {
             final String value = object.isLiteral() ? object.asLiteral().getLexicalForm()
                 : object.isURIResource() ? object.asResource().getURI() : null;
             if (value != null && !value.isBlank()) {
-                values.computeIfAbsent(predicate, key -> new ArrayList<>()).add(value);
+                values.computeIfAbsent(predicate, key -> new LinkedHashMap<>())
+                    .computeIfAbsent(object.isLiteral() ? languageKey(object.asLiteral()) : NONE,
+                        key -> new ArrayList<>())
+                    .add(value);
             }
         }
         final List<Map<String, Object>> metadata = new ArrayList<>();
-        values.forEach((predicate, list) -> metadata.add(Map.of(
-            "label", Map.of("en", List.of(humanize(localName(predicate)))),
-            "value", Map.of("none", List.copyOf(list)))));
+        values.forEach((predicate, byLanguage) -> {
+            final Map<String, Object> value = new LinkedHashMap<>();
+            byLanguage.forEach((language, list) -> value.put(language, List.copyOf(list)));
+            metadata.add(Map.of("label", Map.of("en", List.of(humanize(localName(predicate)))), "value", value));
+        });
         return metadata;
     }
 
@@ -596,7 +661,29 @@ public class IiifPresentationService {
      * @return {@code {"none": [value]}}
      */
     static Map<String, Object> language(final String value) {
-        return Map.of("none", List.of(value));
+        return Map.of(NONE, List.of(value));
+    }
+
+    /**
+     * The IIIF language key of a literal.
+     *
+     * @param literal the literal
+     * @return its language tag (BCP 47 case), or {@code none}
+     */
+    static String languageKey(final Literal literal) {
+        final String language = literal.getLanguage();
+        return language == null || language.isEmpty() ? NONE : Locale.forLanguageTag(language).toLanguageTag();
+    }
+
+    /**
+     * A label Articulorium writes itself, in the request's locale.
+     *
+     * @param code the message code
+     * @return {@code {"<locale>": [text]}}
+     */
+    private Map<String, Object> localized(final String code) {
+        final Locale locale = messages.locale();
+        return Map.of(locale.toLanguageTag(), List.of(messages.get(locale, code)));
     }
 
     /**

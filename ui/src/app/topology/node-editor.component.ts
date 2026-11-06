@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -6,7 +6,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { TranslatePipe } from '@ngx-translate/core';
 
+import { I18nService } from '../core/i18n/i18n.service';
 import { FILE_USES, splitList } from '../core/topology/topology';
 
 /** A metadata field as edited. */
@@ -52,114 +54,123 @@ export interface EditableNode {
  */
 @Component({
   selector: 'ui-node-editor',
-  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule],
+  imports: [
+    FormsModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatSelectModule,
+    TranslatePipe,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @let n = node();
     <fieldset class="ui-node-editor" [disabled]="readonly()" [attr.data-node]="n.key">
       <div class="ui-inline-fields">
         <mat-form-field>
-          <mat-label>Key</mat-label>
+          <mat-label>{{ 'node.key' | translate }}</mat-label>
           <input matInput [name]="prefix() + 'key'" [(ngModel)]="n.key" required />
         </mat-form-field>
         <mat-form-field>
-          <mat-label>Label</mat-label>
+          <mat-label>{{ 'node.label' | translate }}</mat-label>
           <input matInput [name]="prefix() + 'label'" [(ngModel)]="n.label" required />
         </mat-form-field>
         <mat-form-field class="ui-narrow">
-          <mat-label>PCDM type</mat-label>
+          <mat-label>{{ 'node.pcdmType' | translate }}</mat-label>
           <mat-select [name]="prefix() + 'pcdm'" [(ngModel)]="n.pcdmType" [disabled]="readonly()">
-            <mat-option value="Collection">Collection</mat-option>
-            <mat-option value="Object">Object</mat-option>
+            <mat-option value="Collection">{{ 'node.collection' | translate }}</mat-option>
+            <mat-option value="Object">{{ 'node.object' | translate }}</mat-option>
           </mat-select>
         </mat-form-field>
       </div>
       <mat-form-field class="ui-full">
-        <mat-label>Additional types (IRIs, comma separated)</mat-label>
+        <mat-label>{{ 'node.types' | translate }}</mat-label>
         <input matInput [name]="prefix() + 'types'" [ngModel]="n.types.join(', ')" (ngModelChange)="n.types = split($event)" />
       </mat-form-field>
 
-      <h4>Metadata fields</h4>
+      <h4>{{ 'node.metadata' | translate }}</h4>
       @for (field of n.metadata; track $index) {
         <div class="ui-inline-fields">
           <mat-form-field>
-            <mat-label>Predicate IRI</mat-label>
+            <mat-label>{{ 'node.predicate' | translate }}</mat-label>
             <input matInput [name]="prefix() + 'mp' + $index" [(ngModel)]="field.predicate" />
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Label</mat-label>
+            <mat-label>{{ 'node.label' | translate }}</mat-label>
             <input matInput [name]="prefix() + 'ml' + $index" [(ngModel)]="field.label" />
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Default</mat-label>
+            <mat-label>{{ 'node.default' | translate }}</mat-label>
             <input matInput [name]="prefix() + 'md' + $index" [(ngModel)]="field.defaultValue" />
           </mat-form-field>
-          <mat-checkbox [name]="prefix() + 'mr' + $index" [(ngModel)]="field.required">Required</mat-checkbox>
-          <mat-checkbox [name]="prefix() + 'mm' + $index" [(ngModel)]="field.repeatable">Repeatable</mat-checkbox>
+          <mat-checkbox [name]="prefix() + 'mr' + $index" [(ngModel)]="field.required">{{ 'node.required' | translate }}</mat-checkbox>
+          <mat-checkbox [name]="prefix() + 'mm' + $index" [(ngModel)]="field.repeatable">{{ 'node.repeatable' | translate }}</mat-checkbox>
           @if (!readonly()) {
-            <button mat-icon-button type="button" aria-label="Remove field" (click)="n.metadata.splice($index, 1)">
-              <mat-icon>delete</mat-icon>
+            <button mat-icon-button type="button" [attr.aria-label]="'node.removeField' | translate" (click)="n.metadata.splice($index, 1)">
+              <mat-icon aria-hidden="true">delete</mat-icon>
             </button>
           }
         </div>
       }
       @if (!readonly()) {
-        <button mat-button type="button" class="ui-add-field" (click)="addField()"><mat-icon>add</mat-icon> Field</button>
+        <button mat-button type="button" class="ui-add-field" (click)="addField()"><mat-icon aria-hidden="true">add</mat-icon> {{ 'node.field' | translate }}</button>
       }
 
-      <h4>Files</h4>
+      <h4>{{ 'node.files' | translate }}</h4>
       @for (file of n.files; track $index) {
         <div class="ui-inline-fields">
           <mat-form-field>
-            <mat-label>Use</mat-label>
+            <mat-label>{{ 'node.use' | translate }}</mat-label>
             <mat-select [name]="prefix() + 'fu' + $index" [(ngModel)]="file.use" [disabled]="readonly()">
               @for (use of uses; track use.iri) {
-                <mat-option [value]="use.iri">{{ use.label }}</mat-option>
+                <mat-option [value]="use.iri">{{ useLabel(use) }}</mat-option>
               }
             </mat-select>
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Label</mat-label>
+            <mat-label>{{ 'node.label' | translate }}</mat-label>
             <input matInput [name]="prefix() + 'fl' + $index" [(ngModel)]="file.label" />
           </mat-form-field>
           <mat-form-field>
-            <mat-label>Media types</mat-label>
+            <mat-label>{{ 'node.mediaTypes' | translate }}</mat-label>
             <input matInput [name]="prefix() + 'fm' + $index" [ngModel]="file.mediaTypes.join(', ')" (ngModelChange)="file.mediaTypes = split($event)" />
           </mat-form-field>
           @if (!readonly()) {
-            <button mat-icon-button type="button" aria-label="Remove file" (click)="n.files.splice($index, 1)">
-              <mat-icon>delete</mat-icon>
+            <button mat-icon-button type="button" [attr.aria-label]="'node.removeFile' | translate" (click)="n.files.splice($index, 1)">
+              <mat-icon aria-hidden="true">delete</mat-icon>
             </button>
           }
         </div>
       }
       @if (!readonly()) {
-        <button mat-button type="button" class="ui-add-file" (click)="addFile()"><mat-icon>add</mat-icon> File</button>
+        <button mat-button type="button" class="ui-add-file" (click)="addFile()"><mat-icon aria-hidden="true">add</mat-icon> {{ 'node.file' | translate }}</button>
       }
 
-      <h4>Children</h4>
+      <h4>{{ 'node.children' | translate }}</h4>
       @for (rule of n.children; track $index) {
         <div class="ui-child-rule">
           <div class="ui-inline-fields">
             <mat-form-field class="ui-narrow">
-              <mat-label>Min</mat-label>
+              <mat-label>{{ 'node.min' | translate }}</mat-label>
               <input matInput type="number" min="0" [name]="prefix() + 'cmin' + $index" [(ngModel)]="rule.min" />
             </mat-form-field>
             <mat-form-field class="ui-narrow">
-              <mat-label>Max (-1: ∞)</mat-label>
+              <mat-label>{{ 'node.max' | translate }}</mat-label>
               <input matInput type="number" min="-1" [name]="prefix() + 'cmax' + $index" [(ngModel)]="rule.max" />
             </mat-form-field>
             <mat-form-field class="ui-narrow">
-              <mat-label>Initial</mat-label>
+              <mat-label>{{ 'node.initial' | translate }}</mat-label>
               <input matInput type="number" min="0" [name]="prefix() + 'cini' + $index" [(ngModel)]="rule.initial" />
             </mat-form-field>
             <mat-form-field>
-              <mat-label>Name pattern</mat-label>
+              <mat-label>{{ 'node.namePattern' | translate }}</mat-label>
               <input matInput [name]="prefix() + 'cslug' + $index" [(ngModel)]="rule.slugPattern" placeholder="page-{n}" />
             </mat-form-field>
             @if (!readonly()) {
-              <button mat-icon-button type="button" aria-label="Remove child" (click)="n.children.splice($index, 1)">
-                <mat-icon>delete</mat-icon>
+              <button mat-icon-button type="button" [attr.aria-label]="'node.removeChild' | translate" (click)="n.children.splice($index, 1)">
+                <mat-icon aria-hidden="true">delete</mat-icon>
               </button>
             }
           </div>
@@ -167,7 +178,7 @@ export interface EditableNode {
         </div>
       }
       @if (!readonly()) {
-        <button mat-button type="button" class="ui-add-child" (click)="addChild()"><mat-icon>add</mat-icon> Child level</button>
+        <button mat-button type="button" class="ui-add-child" (click)="addChild()"><mat-icon aria-hidden="true">add</mat-icon> {{ 'node.childLevel' | translate }}</button>
       }
     </fieldset>
   `,
@@ -192,6 +203,20 @@ export class NodeEditorComponent {
 
   protected readonly uses = FILE_USES;
 
+  private readonly i18n = inject(I18nService);
+
+  /**
+   * The translated name of a PCDM file use.
+   *
+   * @param use - the use
+   * @returns its label in the interface language
+   */
+  protected useLabel(use: (typeof FILE_USES)[number]): string {
+    const key = `node.fileUse.${use.iri.substring(use.iri.indexOf('#') + 1)}`;
+    const text = this.i18n.t(key);
+    return text === key ? use.label : text;
+  }
+
   protected split(value: string): string[] {
     return splitList(value);
   }
@@ -201,7 +226,7 @@ export class NodeEditorComponent {
   }
 
   protected addFile(): void {
-    this.node().files.push({ use: FILE_USES[0].iri, label: 'Original file', mediaTypes: [] });
+    this.node().files.push({ use: FILE_USES[0].iri, label: this.useLabel(FILE_USES[0]), mediaTypes: [] });
   }
 
   protected addChild(): void {
@@ -214,10 +239,17 @@ export class NodeEditorComponent {
       slugPattern: `${key}-{n}`,
       node: {
         key,
-        label: 'Child',
+        label: this.i18n.t('node.childLabel'),
         pcdmType: 'Object',
         types: [],
-        metadata: [{ predicate: 'http://purl.org/dc/terms/title', label: 'Title', required: true, repeatable: false }],
+        metadata: [
+          {
+            predicate: 'http://purl.org/dc/terms/title',
+            label: this.i18n.t('topology.titleLabel'),
+            required: true,
+            repeatable: false,
+          },
+        ],
         files: [],
         children: [],
       },

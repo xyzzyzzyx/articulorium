@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Internationalization Spring Boot starter: the one place where Articulorium's locale support
+  lives on the server.
+
+  It ships the manifest of supported locales (src/main/resources/articulorium/locales.properties,
+  which the Angular build checks its translations against too), and auto-configures for every
+  servlet service that depends on it:
+
+    * articulorium.i18n.* settings (default locale, enabled locales, cookie and parameter names)
+    * a LocaleResolver: ?lang= parameter, then the articulorium-locale cookie, then
+      Accept-Language negotiated against the enabled locales, then the default locale
+    * a MessageSource over i18n/common (this starter) and i18n/messages (the service's own)
+    * an HTTP client interceptor passing the request's locale to downstream services
+    * a start-up check that logs translations missing from the message bundles
+    * GraalVM native image hints for the bundles
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.articulorium</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>i18n-spring-boot-starter</artifactId>
+  <packaging>jar</packaging>
+
+  <name>Articulorium I18n Spring Boot Starter</name>
+  <description>Supported locales, locale resolution, message bundles and locale propagation for Articulorium services.</description>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+    </dependency>
+
+    <!-- the locale resolver is only configured in servlet (Spring MVC) applications -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <configLocation>${project.basedir}/../agent/checkstyles.xml</configLocation>
+          <consoleOutput>true</consoleOutput>
+          <violationSeverity>warning</violationSeverity>
+          <failOnViolation>true</failOnViolation>
+          <linkXRef>false</linkXRef>
+        </configuration>
+        <executions>
+          <execution>
+            <id>validate</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>

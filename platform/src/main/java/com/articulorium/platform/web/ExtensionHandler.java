@@ -554,6 +554,8 @@ public class ExtensionHandler {
         final Model model = mementoModel(memento, base);
         if (AcceptPreferences.prefersHtml(accept)) {
             headers.setContentType(new MediaType(MediaType.TEXT_HTML, StandardCharsets.UTF_8));
+            headers.set(HttpHeaders.CONTENT_LANGUAGE, htmlView.language());
+            headers.add(HttpHeaders.VARY, HttpHeaders.ACCEPT_LANGUAGE);
             return ResponseEntity.ok().headers(headers).body(htmlView.render(new ResolvedTarget(resource, false), model,
                 base));
         }

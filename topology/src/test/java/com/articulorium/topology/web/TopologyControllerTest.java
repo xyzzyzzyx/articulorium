@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -54,6 +55,36 @@ class TopologyControllerTest {
             .andExpect(jsonPath("$.builtIn").value(true));
         when(platform.bytes(eq("topologies/nope"), any())).thenReturn(Optional.empty());
         mvc.perform(get("/topologies/nope")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void translatesBuiltInTopologiesIntoTheRequestLocale() throws Exception {
+        when(platform.rdf(eq("topologies"), any())).thenReturn(Optional.empty());
+
+        mvc.perform(get("/topologies/book").header("Accept-Language", "de-DE, en;q=0.5"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("Buch"))
+            .andExpect(jsonPath("$.root.metadata[0].label").value("Titel"))
+            .andExpect(jsonPath("$.root.key").value("book"));
+        mvc.perform(get("/topologies").param("lang", "fr"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.id == 'book')].name", hasItem("Livre")));
+        // unsupported locales get the default locale
+        mvc.perform(get("/topologies/book").header("Accept-Language", "sv"))
+            .andExpect(jsonPath("$.name").value("Book"));
+    }
+
+    @Test
+    void reportsErrorsInTheRequestLocale() throws Exception {
+        when(platform.bytes(eq("topologies/nope"), any())).thenReturn(Optional.empty());
+        mvc.perform(get("/topologies/nope").header("Accept-Language", "de"))
+            .andExpect(status().isNotFound())
+            .andExpect(header().string("Content-Language", "de"))
+            .andExpect(jsonPath("$.detail").value("Keine Topologie nope"));
+        mvc.perform(delete("/topologies/book").header("Accept-Language", "de"))
+            .andExpect(status().isBadRequest())
+            .andExpect(header().string("Content-Language", "en"))
+            .andExpect(jsonPath("$.title").value("Ungültige Topologie-Anfrage"));
     }
 
     @Test

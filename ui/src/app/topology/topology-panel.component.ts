@@ -8,8 +8,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin, map, of, switchMap } from 'rxjs';
 
+import { I18nService } from '../core/i18n/i18n.service';
 import { LdpService } from '../core/ldp/ldp.service';
 import { ResourceView } from '../core/ldp/models';
 import { childPath, parentPath, pathOf, routeTo } from '../core/ldp/paths';
@@ -50,22 +52,23 @@ interface FileEntry extends Entry {
     MatProgressBarModule,
     MatSelectModule,
     RouterLink,
+    TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (topologyId(); as id) {
       @if (topology.value(); as t) {
         @if (node(); as n) {
-          <section class="ui-topology" aria-label="Topology">
+          <section class="ui-topology" [attr.aria-label]="'resource.topology' | translate">
             <p class="ui-chip-row">
-              <a class="ui-pill" [routerLink]="['/topologies', t.id]"><mat-icon inline>schema</mat-icon> {{ t.name }}</a>
-              <span class="ui-pill">{{ n.label }} · {{ n.pcdmType }}</span>
+              <a class="ui-pill" [routerLink]="['/topologies', t.id]"><mat-icon inline aria-hidden="true">schema</mat-icon> {{ t.name }}</a>
+              <span class="ui-pill">{{ n.label }} · {{ (n.pcdmType === 'Collection' ? 'node.collection' : 'node.object') | translate }}</span>
             </p>
             @if (parentRoute(); as up) {
-              <a mat-button [routerLink]="up"><mat-icon>arrow_upward</mat-icon> Parent</a>
+              <a mat-button [routerLink]="up"><mat-icon aria-hidden="true">arrow_upward</mat-icon> {{ 'panel.parent' | translate }}</a>
             }
             @if (n.children.length > 0) {
-              <h3>Members <span class="ui-badge">{{ members().length }}</span></h3>
+              <h3>{{ 'panel.members' | translate }} <span class="ui-badge">{{ members().length }}</span></h3>
               @if (members().length > 0) {
                 <ol class="ui-tree ui-topology-members">
                   @for (member of members(); track member.path) {
@@ -76,33 +79,41 @@ interface FileEntry extends Entry {
               <div class="ui-row">
                 @for (rule of n.children; track rule.node.key) {
                   <button mat-stroked-button type="button" [disabled]="busy() || !canAdd(rule)" (click)="addMember(rule)">
-                    <mat-icon>add</mat-icon> Add {{ rule.node.label }}
+                    <mat-icon aria-hidden="true">add</mat-icon> {{ 'panel.add' | translate: { label: rule.node.label } }}
                   </button>
                   <span class="ui-muted">({{ cardinalityOf(rule) }})</span>
                 }
               </div>
             }
             @if (n.metadata.length > 0) {
-              <h3>Metadata</h3>
+              <h3>{{ 'panel.metadata' | translate }}</h3>
               <form class="ui-form ui-topology-metadata" (ngSubmit)="saveMetadata(n)">
                 @for (field of n.metadata; track field.predicate) {
                   <mat-form-field>
-                    <mat-label>{{ field.label }}{{ field.required ? ' *' : '' }}</mat-label>
+                    <mat-label>{{ field.label }}</mat-label>
                     @if (field.repeatable) {
-                      <textarea matInput rows="2" [name]="field.predicate" [(ngModel)]="metadata[field.predicate]"></textarea>
+                      <textarea
+                        matInput
+                        rows="2"
+                        [name]="field.predicate"
+                        [required]="field.required"
+                        [(ngModel)]="metadata[field.predicate]"
+                      ></textarea>
                     } @else {
-                      <input matInput [name]="field.predicate" [(ngModel)]="metadata[field.predicate]" />
+                      <input matInput [name]="field.predicate" [required]="field.required" [(ngModel)]="metadata[field.predicate]" />
                     }
                     @if (field.repeatable) {
-                      <mat-hint>One value per line</mat-hint>
+                      <mat-hint>{{ 'panel.onePerLine' | translate }}</mat-hint>
                     }
                   </mat-form-field>
                 }
-                <button mat-flat-button color="primary" type="submit" [disabled]="busy() || !writable()">Save metadata</button>
+                <button mat-flat-button color="primary" type="submit" [disabled]="busy() || !writable()">
+                  {{ 'panel.saveMetadata' | translate }}
+                </button>
               </form>
             }
             @if (n.files.length > 0) {
-              <h3>Files</h3>
+              <h3>{{ 'node.files' | translate }}</h3>
               @for (use of n.files; track use.use) {
                 <div class="ui-topology-file">
                   <strong>{{ use.label }}</strong>
@@ -113,34 +124,39 @@ interface FileEntry extends Entry {
                     @for (file of filesOf(use); track file.path) {
                       <li><a [routerLink]="file.route">{{ file.name }}</a></li>
                     } @empty {
-                      <li class="ui-muted">None yet</li>
+                      <li class="ui-muted">{{ 'communities.noneYet' | translate }}</li>
                     }
                   </ul>
                   @if (writable()) {
-                    <input type="file" [attr.aria-label]="'Upload ' + use.label" (change)="upload(use, $event)" [disabled]="busy()" />
+                    <input
+                      type="file"
+                      [attr.aria-label]="'panel.upload' | translate: { label: use.label }"
+                      (change)="upload(use, $event)"
+                      [disabled]="busy()"
+                    />
                   }
                 </div>
               }
             }
           </section>
         } @else {
-          <p class="ui-muted">The topology {{ t.name }} has no node {{ nodeKey() }}.</p>
+          <p class="ui-muted">{{ 'panel.noNode' | translate: { topology: t.name, node: nodeKey() } }}</p>
         }
       } @else if (topology.error()) {
-        <p class="ui-error-text">Topology {{ id }} is not available.</p>
+        <p class="ui-error-text" role="alert">{{ 'panel.unavailable' | translate: { id: id } }}</p>
       } @else {
-        <mat-progress-bar mode="indeterminate" />
+        <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
       }
     } @else if (canBuild() && !building() && !expanded()) {
       <button mat-stroked-button type="button" class="ui-topology-start" (click)="building.set(true)">
-        <mat-icon>auto_awesome</mat-icon> Build from a topology…
+        <mat-icon aria-hidden="true">auto_awesome</mat-icon> {{ 'panel.buildFrom' | translate }}
       </button>
     } @else if (canBuild()) {
       <form class="ui-form ui-topology-build" (ngSubmit)="build()">
-        <p>Create the PCDM structure of a book, newspaper, journal, postcards or a custom topology in this container.</p>
+        <p>{{ 'panel.buildIntro' | translate }}</p>
         @if (summaries.value(); as list) {
           <mat-form-field>
-            <mat-label>Topology</mat-label>
+            <mat-label>{{ 'resource.topology' | translate }}</mat-label>
             <mat-select name="topology" [ngModel]="selectedId()" (ngModelChange)="selectedId.set($event)">
               @for (summary of list; track summary.id) {
                 <mat-option [value]="summary.id">{{ summary.name }}</mat-option>
@@ -148,27 +164,27 @@ interface FileEntry extends Entry {
             </mat-select>
           </mat-form-field>
         } @else if (summaries.error()) {
-          <p class="ui-error-text">The topology service is not available.</p>
+          <p class="ui-error-text" role="alert">{{ 'panel.serviceUnavailable' | translate }}</p>
         } @else {
-          <mat-progress-bar mode="indeterminate" />
+          <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
         }
         <mat-form-field>
-          <mat-label>Title</mat-label>
+          <mat-label>{{ 'topology.titleLabel' | translate }}</mat-label>
           <input matInput name="title" required [(ngModel)]="title" />
         </mat-form-field>
         @if (selected.value(); as chosen) {
           @for (entry of countable(chosen); track entry.node.key) {
             <mat-form-field>
-              <mat-label>Number of {{ entry.node.label }} per {{ entry.parent }}</mat-label>
+              <mat-label>{{ 'panel.count' | translate: { label: entry.node.label, parent: entry.parent } }}</mat-label>
               <input matInput type="number" min="0" [name]="'count-' + entry.node.key" [(ngModel)]="counts[entry.node.key]" />
             </mat-form-field>
           }
         }
         @if (busy()) {
-          <mat-progress-bar mode="indeterminate" />
+          <mat-progress-bar mode="indeterminate" [attr.aria-label]="'common.loading' | translate" />
         }
         <button mat-flat-button color="primary" type="submit" [disabled]="busy() || !selectedId() || !title.trim()">
-          <mat-icon>auto_awesome</mat-icon> Build
+          <mat-icon aria-hidden="true">auto_awesome</mat-icon> {{ 'panel.build' | translate }}
         </button>
       </form>
     }
@@ -184,6 +200,8 @@ export class TopologyPanelComponent {
   private readonly topologies = inject(TopologyService);
 
   private readonly notifier = inject(Notifier);
+
+  private readonly i18n = inject(I18nService);
 
   private readonly router = inject(Router);
 
@@ -350,7 +368,7 @@ export class TopologyPanelComponent {
    * @returns for example `1 – ∞`
    */
   protected cardinalityOf(rule: ChildRule): string {
-    return cardinality(rule);
+    return cardinality(rule, (key, params) => this.i18n.t(key, params));
   }
 
   /**
@@ -392,12 +410,12 @@ export class TopologyPanelComponent {
     this.topologies.addMember(id, this.view().path, rule.node.key).subscribe({
       next: (result) => {
         this.busy.set(false);
-        this.notifier.success(`${rule.node.label} added`);
+        this.notifier.success(this.i18n.t('panel.added', { label: rule.node.label }));
         void this.router.navigate(routeTo('browse', result.path));
       },
       error: (error: unknown) => {
         this.busy.set(false);
-        this.notifier.error(`Add ${rule.node.label}`, error);
+        this.notifier.error(this.i18n.t('panel.add', { label: rule.node.label }), error);
       },
     });
   }
@@ -421,12 +439,12 @@ export class TopologyPanelComponent {
     this.ldp.patch(view.url, update, view.etag).subscribe({
       next: () => {
         this.busy.set(false);
-        this.notifier.success('Metadata saved');
+        this.notifier.success(this.i18n.t('panel.metadataSaved'));
         this.changed.emit();
       },
       error: (error: unknown) => {
         this.busy.set(false);
-        this.notifier.error('Save metadata', error);
+        this.notifier.error(this.i18n.t('panel.saveMetadata'), error);
       },
     });
   }
@@ -456,12 +474,12 @@ export class TopologyPanelComponent {
         next: () => {
           this.busy.set(false);
           input.value = '';
-          this.notifier.success(`${use.label} uploaded`);
+          this.notifier.success(this.i18n.t('panel.uploaded', { label: use.label }));
           this.changed.emit();
         },
         error: (error: unknown) => {
           this.busy.set(false);
-          this.notifier.error(`Upload ${use.label}`, error);
+          this.notifier.error(this.i18n.t('panel.upload', { label: use.label }), error);
         },
       });
   }
@@ -476,12 +494,12 @@ export class TopologyPanelComponent {
     this.topologies.build(id, { parent: this.view().path, title: this.title.trim(), counts: this.counts }).subscribe({
       next: (result) => {
         this.busy.set(false);
-        this.notifier.success(`Built ${result.resources.length} resources`);
+        this.notifier.success(this.i18n.plural('panel.built', result.resources.length));
         void this.router.navigate(routeTo('browse', result.path));
       },
       error: (error: unknown) => {
         this.busy.set(false);
-        this.notifier.error('Build', error);
+        this.notifier.error(this.i18n.t('panel.build'), error);
       },
     });
   }

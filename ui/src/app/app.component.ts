@@ -2,22 +2,34 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 
 import { AuthService } from './core/auth/auth.service';
 import { ConfigService } from './core/config.service';
+import { I18nService } from './core/i18n/i18n.service';
 import { WebAcService } from './core/webac/webac.service';
 import { Notifier } from './shared/notifier.service';
 import { SignInDialogComponent } from './shared/sign-in-dialog.component';
 
 /**
  * Application shell: the navigation bar (Browse, Communities, Topologies, Search, API, About),
- * the signed-in agent, the current view and the footer.
+ * the language menu, the signed-in agent, the current view and the footer.
  */
 @Component({
   selector: 'ui-root',
-  imports: [MatButtonModule, MatIconModule, MatToolbarModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatToolbarModule,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    TranslatePipe,
+  ],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './app.component.scss',
@@ -26,6 +38,8 @@ export class AppComponent {
   private readonly config = inject(ConfigService);
 
   protected readonly auth = inject(AuthService);
+
+  protected readonly i18n = inject(I18nService);
 
   private readonly webac = inject(WebAcService);
 
@@ -55,7 +69,7 @@ export class AppComponent {
   constructor() {
     const failure = this.auth.error();
     if (failure) {
-      this.notifier.error('Signing in', failure);
+      this.notifier.error(this.i18n.t('auth.signingIn'), failure);
     }
     if (this.auth.signedIn()) {
       this.webac.access('').subscribe({
@@ -69,7 +83,7 @@ export class AppComponent {
   /** Leaves for the identity provider's login page, or asks for a token. */
   protected signIn(): void {
     if (this.auth.redirects()) {
-      this.auth.signIn().catch((error: unknown) => this.notifier.error('Signing in', error));
+      this.auth.signIn().catch((error: unknown) => this.notifier.error(this.i18n.t('auth.signingIn'), error));
       return;
     }
     this.dialog
@@ -78,7 +92,7 @@ export class AppComponent {
       .subscribe((agent?: string) => {
         if (agent) {
           this.agent.set(agent);
-          this.notifier.success('Signed in');
+          this.notifier.success(this.i18n.t('auth.signedIn'));
         }
       });
   }
@@ -90,10 +104,29 @@ export class AppComponent {
       () => {
         this.agent.set(undefined);
         if (!redirects) {
-          this.notifier.success('Signed out');
+          this.notifier.success(this.i18n.t('auth.signedOut'));
         }
       },
-      (error: unknown) => this.notifier.error('Signing out', error),
+      (error: unknown) => this.notifier.error(this.i18n.t('auth.signingOut'), error),
     );
+  }
+
+  /**
+   * Switches the language of the interface (and of every service's answers).
+   *
+   * @param tag - the chosen locale
+   */
+  protected chooseLanguage(tag: string): void {
+    this.i18n.use(tag).catch((error: unknown) => this.notifier.error(this.i18n.t('nav.changingLanguage'), error));
+  }
+
+  /**
+   * Moves the focus to the main content (the skip link), without changing the route.
+   *
+   * @param event - the click
+   */
+  protected skipToMain(event: Event): void {
+    event.preventDefault();
+    document.getElementById('ui-main')?.focus();
   }
 }

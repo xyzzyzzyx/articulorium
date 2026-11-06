@@ -7,6 +7,7 @@ import { ACL } from '../core/rdf/vocabulary';
 import { AccessInfo } from '../core/webac/webac';
 import { TEST_BASE, provideTestConfig } from '../testing/test-config';
 import { PermissionsPageComponent } from './permissions-page.component';
+import { provideTestI18n } from '../testing/test-i18n';
 
 const ACCESS: AccessInfo = {
   agent: { webId: 'info:consul/agent/jane', groups: [], authenticated: true },
@@ -43,7 +44,7 @@ describe('PermissionsPageComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [PermissionsPageComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), provideTestConfig()],
+      providers: [...provideTestI18n(), provideHttpClient(), provideHttpClientTesting(), provideRouter([]), provideTestConfig()],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(PermissionsPageComponent);

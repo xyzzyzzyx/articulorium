@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import com.articulorium.domain.rdf.ResourcePaths;
+import com.articulorium.i18n.AcceptLanguageInterceptor;
 import com.articulorium.oai.config.OaiProperties;
 
 import org.apache.jena.rdf.model.Model;
@@ -62,7 +63,8 @@ public class PlatformClient {
      * @param properties OAI-PMH settings
      */
     public PlatformClient(final RestClient.Builder builder, final OaiProperties properties) {
-        this.client = builder.build();
+        // the user's locale travels with every call, so the platform answers in it
+        this.client = builder.clone().requestInterceptor(new AcceptLanguageInterceptor()).build();
         this.platformUrl = properties.getPlatformUrl().endsWith("/")
             ? properties.getPlatformUrl()
             : properties.getPlatformUrl() + "/";
