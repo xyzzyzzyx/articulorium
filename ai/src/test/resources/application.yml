@@ -15,8 +15,17 @@ spring:
   application:
     name: ai
   ai:
+    # this file replaces the main application.yml in tests: turn off the same model kinds, or the
+    # OpenAI starter (profile ai-openai) builds audio, image, embedding and moderation clients that
+    # need an API key
     model:
       chat: none
+      embedding: none
+      image: none
+      audio:
+        speech: none
+        transcription: none
+      moderation: none
   cloud:
     consul:
       enabled: false
