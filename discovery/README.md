@@ -205,6 +205,13 @@ filters and sort orders are chosen by identifier, so visitors cannot address oth
 Facets on `topology_str` and preview images (`thumbnail`) need the transform service's
 `topology` and `thumbnail` field mappings (shipped).
 
+Solr's `_default` config set creates a field only when the first document carrying it is indexed,
+and sorting or range faceting on a field that does not exist yet fails (`sort param field can't be
+found`). The index service therefore declares `created`, `lastModified` (`pdate`) and `date`
+(`pdates`) on every start when they are missing (`articulorium.solr.fields`); `*_str` fields are
+dynamic fields of the config set and always exist. Fields your own facets or sorts use that are not
+in this list must be declared there too.
+
 ### Search engines
 
 | Setting (`seo.*`) | Default | Meaning |

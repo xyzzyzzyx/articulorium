@@ -1,6 +1,7 @@
 package com.articulorium.index.listener;
 
 import java.time.Duration;
+import java.util.List;
 
 import com.articulorium.index.config.SolrProperties;
 import com.articulorium.index.solr.SolrIndexClient;
@@ -8,6 +9,7 @@ import com.articulorium.index.solr.SolrIndexClient;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +66,7 @@ public class SolrCollectionInitializer implements ApplicationListener<Applicatio
                 } else {
                     log.info("Solr collection {} is available", properties.getCollection());
                 }
+                declareFields();
                 return true;
             } catch (RestClientException e) {
                 log.info("Solr not ready (attempt {}/{}): {}", attempt, attempts, e.getMessage());
@@ -74,6 +77,23 @@ public class SolrCollectionInitializer implements ApplicationListener<Applicatio
         }
         log.warn("Giving up preparing Solr collection {}", properties.getCollection());
         return false;
+    }
+
+    /**
+     * Declares the configured fields. Solr refusing a declaration (an unknown field type, for
+     * example) is a configuration problem that retrying does not solve: it is logged, and the
+     * collection is used as it is.
+     */
+    private void declareFields() {
+        try {
+            final List<String> added = solr.ensureFields(properties.getFields());
+            if (!added.isEmpty()) {
+                log.info("Declared fields {} in Solr collection {}", added, properties.getCollection());
+            }
+        } catch (HttpClientErrorException e) {
+            log.warn("Solr refused to declare the fields {} in collection {}: {}", properties.getFields().keySet(),
+                properties.getCollection(), e.getMessage());
+        }
     }
 
     private static boolean sleep(final Duration delay) {

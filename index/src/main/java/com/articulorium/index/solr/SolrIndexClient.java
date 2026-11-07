@@ -2,9 +2,11 @@ package com.articulorium.index.solr;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.articulorium.index.config.SolrProperties;
 
@@ -79,6 +81,50 @@ public class SolrIndexClient {
             .retrieve()
             .toBodilessEntity();
         return true;
+    }
+
+    /**
+     * Declares fields in the collection's schema unless they exist (Schema API).
+     *
+     * @param fields field types by field name
+     * @return the names of the fields that were added
+     */
+    public List<String> ensureFields(final Map<String, String> fields) {
+        if (fields.isEmpty()) {
+            return List.of();
+        }
+        final Map<String, Object> response = client.get()
+            .uri(uri -> uri.path("/{collection}/schema/fields").queryParam("wt", "json").build(properties.getCollection()))
+            .retrieve()
+            .body(JSON_OBJECT);
+        final Set<String> existing = new HashSet<>();
+        if (response != null && response.get("fields") instanceof Collection<?> declared) {
+            for (final Object field : declared) {
+                if (field instanceof Map<?, ?> map && map.get("name") != null) {
+                    existing.add(String.valueOf(map.get("name")));
+                }
+            }
+        }
+        final List<Map<String, Object>> additions = new ArrayList<>();
+        fields.forEach((name, type) -> {
+            if (!existing.contains(name)) {
+                final Map<String, Object> field = new LinkedHashMap<>();
+                field.put("name", name);
+                field.put("type", type);
+                field.put("stored", true);
+                additions.add(field);
+            }
+        });
+        if (additions.isEmpty()) {
+            return List.of();
+        }
+        client.post()
+            .uri(uri -> uri.path("/{collection}/schema").queryParam("wt", "json").build(properties.getCollection()))
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(Map.of("add-field", additions))
+            .retrieve()
+            .toBodilessEntity();
+        return additions.stream().map(field -> String.valueOf(field.get("name"))).toList();
     }
 
     /**
