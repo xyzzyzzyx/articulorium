@@ -33,7 +33,8 @@ class GatewayApplicationTest {
 
         assertThat(routes).extracting(Route::getId)
             .contains("articulorium-platform", "articulorium-transform", "articulorium-topology", "articulorium-service",
-                "articulorium-root", "articulorium-ui-slash", "articulorium-auth", "articulorium-oai");
+                "articulorium-root", "articulorium-ui-slash", "articulorium-auth", "articulorium-oai",
+                "articulorium-harvest");
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-platform"))
             .singleElement()
             .satisfies(route -> {
@@ -55,6 +56,13 @@ class GatewayApplicationTest {
             .satisfies(route -> {
                 assertThat(route.getUri().toString()).isEqualTo("lb://articulorium-oai");
                 assertThat(route.getFilters()).isNotEmpty();
+            });
+        // the harvest API only: the service's actuator endpoint stays on its management port
+        assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-harvest"))
+            .singleElement()
+            .satisfies(route -> {
+                assertThat(route.getUri().toString()).isEqualTo("lb://articulorium-harvest");
+                assertThat(route.getFilters()).anyMatch(filter -> filter.toString().contains("StripPrefix"));
             });
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-service"))
             .singleElement()

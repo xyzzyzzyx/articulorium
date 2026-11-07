@@ -6,6 +6,7 @@
     "communities": "Gemeenschappen",
     "profiles": "Profielen",
     "topologies": "Topologieën",
+    "harvest": "Harvesten",
     "search": "Zoeken",
     "api": "API",
     "about": "Over",
@@ -97,6 +98,7 @@
     "editProfile": "Profiel bewerken",
     "topologies": "Topologieën",
     "topology": "Topologie",
+    "harvest": "Harvesten",
     "search": "Zoeken",
     "about": "Over"
   },
@@ -552,6 +554,91 @@
     "built": {
       "one": "{{formatted}} bron gebouwd",
       "other": "{{formatted}} bronnen gebouwd"
+    }
+  },
+  "harvest": {
+    "heading": "Harvesten",
+    "intro": "Harvesten kopieert records uit andere repositories (OAI-PMH-dataproviders, DSpace, Fedora en VIVO) naar het platform. Een incrementele harvest leest wat sinds de laatste volledige harvest is gewijzigd; een volledige harvest leest alle records opnieuw.",
+    "refresh": "Vernieuwen",
+    "readOnly": "U kunt de harvests hier volgen. Voor starten en annuleren is schrijftoegang tot de geharveste records nodig.",
+    "none": "Er zijn geen harvestbronnen geconfigureerd. Beheerders voegen ze toe in de instellingen van de harvestdienst (articulorium.harvest.sources).",
+    "never": "Niet geharvest sinds de harvestdienst is gestart.",
+    "last": "Laatste harvest",
+    "earlier": "Eerdere harvests ({{count}})",
+    "started": "Harvest van {{source}} gestart",
+    "stopping": "Harvest van {{source}} wordt gestopt",
+    "capability": {
+      "incremental": "Incrementele harvests",
+      "fullOnly": "Alleen volledige harvests",
+      "deletions": "Meldt verwijderingen",
+      "noDeletions": "Meldt geen verwijderingen",
+      "scheduled": "Gepland: {{schedule}}",
+      "onDemand": "Alleen op verzoek",
+      "disabled": "Uitgeschakeld"
+    },
+    "action": {
+      "incremental": "Incrementele harvest",
+      "full": "Volledige harvest",
+      "cancel": "Harvest annuleren"
+    },
+    "why": {
+      "permission": "Voor het starten van harvests is schrijftoegang tot de geharveste records nodig.",
+      "disabled": "Deze bron is uitgeschakeld in de instellingen van de harvestdienst.",
+      "running": "Er loopt een harvest van deze bron.",
+      "notIncremental": "Deze bron kan niet alleen wijzigingen opsommen: elke harvest is volledig.",
+      "stopping": "De harvest wordt gestopt."
+    },
+    "confirmFull": {
+      "title": "Volledige harvest starten?",
+      "message": "Een volledige harvest leest alle records van {{source}} opnieuw en vervangt hun kopieën. Dit kan lang duren en verwijdert geen kopieën van records die de bron niet meer opsomt."
+    },
+    "confirmCancel": {
+      "title": "Harvest annuleren?",
+      "message": "De harvest van {{source}} stopt na het huidige record. Al opgeslagen records blijven; het checkpoint schuift niet op, dus de volgende incrementele harvest leest dezelfde wijzigingen opnieuw."
+    },
+    "running": {
+      "FULL": "Volledige harvest bezig",
+      "INCREMENTAL": "Incrementele harvest bezig",
+      "since": "gestart {{time}}",
+      "stopping": "Stopt na het huidige record…"
+    },
+    "outcome": {
+      "COMPLETED": "Voltooid",
+      "COMPLETED_WITH_ERRORS": "Voltooid met fouten",
+      "FAILED": "Mislukt",
+      "CANCELLED": "Geannuleerd"
+    },
+    "mode": {
+      "FULL": "Volledig",
+      "INCREMENTAL": "Incrementeel"
+    },
+    "field": {
+      "outcome": "Resultaat",
+      "mode": "Modus",
+      "started": "Gestart",
+      "duration": "Duur",
+      "window": "Wijzigingen sinds",
+      "listed": "Opgesomd",
+      "created": "Aangemaakt",
+      "updated": "Bijgewerkt",
+      "deleted": "Verwijderd",
+      "skipped": "Overgeslagen",
+      "failed": "Mislukt",
+      "pages": "Pagina’s",
+      "reason": "Reden"
+    },
+    "checkpoint": {
+      "moved": "Checkpoint opgeslagen: de volgende incrementele harvest leest wijzigingen sinds {{time}}.",
+      "kept": "Checkpoint niet verschoven: de volgende incrementele harvest leest dezelfde wijzigingen opnieuw."
+    },
+    "failures": {
+      "heading": "Mislukte records ({{count}})",
+      "partial": "De eerste {{shown}} van {{count}} mislukte records worden getoond."
+    },
+    "error": {
+      "signIn": "Meld u aan om de harvests te zien.",
+      "forbidden": "U kunt de harvests niet zien: daarvoor is leestoegang tot de geharveste records nodig.",
+      "unavailable": "De harvestdienst is niet bereikbaar. Mogelijk is hij gestopt of niet geïnstalleerd."
     }
   }
 }

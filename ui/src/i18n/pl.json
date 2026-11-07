@@ -6,6 +6,7 @@
     "communities": "Społeczności",
     "profiles": "Profile",
     "topologies": "Topologie",
+    "harvest": "Harwestowanie",
     "search": "Szukaj",
     "api": "API",
     "about": "O aplikacji",
@@ -97,6 +98,7 @@
     "editProfile": "Edycja profilu",
     "topologies": "Topologie",
     "topology": "Topologia",
+    "harvest": "Harwestowanie",
     "search": "Szukaj",
     "about": "O aplikacji"
   },
@@ -558,6 +560,91 @@
       "few": "Utworzono {{formatted}} zasoby",
       "many": "Utworzono {{formatted}} zasobów",
       "other": "Utworzono {{formatted}} zasobu"
+    }
+  },
+  "harvest": {
+    "heading": "Harwestowanie",
+    "intro": "Harwestowanie kopiuje do platformy rekordy z innych repozytoriów (dostawców danych OAI-PMH, DSpace, Fedora i VIVO). Harwestowanie przyrostowe odczytuje zmiany od ostatniego pełnego harwestowania; pełne harwestowanie ponownie odczytuje wszystkie rekordy.",
+    "refresh": "Odśwież",
+    "readOnly": "Tutaj możesz śledzić harwestowanie. Uruchamianie i anulowanie wymaga uprawnień do zapisu zebranych rekordów.",
+    "none": "Nie skonfigurowano żadnych źródeł harwestowania. Operatorzy dodają je w ustawieniach usługi harwestowania (articulorium.harvest.sources).",
+    "never": "Brak harwestowania od uruchomienia usługi harwestowania.",
+    "last": "Ostatnie harwestowanie",
+    "earlier": "Wcześniejsze harwestowania ({{count}})",
+    "started": "Uruchomiono harwestowanie źródła {{source}}",
+    "stopping": "Harwestowanie źródła {{source}} jest zatrzymywane",
+    "capability": {
+      "incremental": "Harwestowanie przyrostowe",
+      "fullOnly": "Tylko pełne harwestowanie",
+      "deletions": "Zgłasza usunięcia",
+      "noDeletions": "Nie zgłasza usunięć",
+      "scheduled": "Zaplanowane: {{schedule}}",
+      "onDemand": "Tylko na żądanie",
+      "disabled": "Wyłączone"
+    },
+    "action": {
+      "incremental": "Harwestowanie przyrostowe",
+      "full": "Pełne harwestowanie",
+      "cancel": "Anuluj harwestowanie"
+    },
+    "why": {
+      "permission": "Uruchamianie harwestowania wymaga uprawnień do zapisu zebranych rekordów.",
+      "disabled": "To źródło jest wyłączone w ustawieniach usługi harwestowania.",
+      "running": "Trwa harwestowanie tego źródła.",
+      "notIncremental": "To źródło nie potrafi wyliczyć samych zmian: każde harwestowanie jest pełne.",
+      "stopping": "Harwestowanie jest zatrzymywane."
+    },
+    "confirmFull": {
+      "title": "Uruchomić pełne harwestowanie?",
+      "message": "Pełne harwestowanie ponownie odczytuje wszystkie rekordy źródła {{source}} i zastępuje ich kopie. Może trwać długo i nie usuwa kopii rekordów, których źródło już nie wymienia."
+    },
+    "confirmCancel": {
+      "title": "Anulować harwestowanie?",
+      "message": "Harwestowanie źródła {{source}} zatrzyma się po bieżącym rekordzie. Zapisane już rekordy pozostaną; punkt kontrolny nie zostanie przesunięty, więc następne harwestowanie przyrostowe ponownie odczyta te same zmiany."
+    },
+    "running": {
+      "FULL": "Trwa pełne harwestowanie",
+      "INCREMENTAL": "Trwa harwestowanie przyrostowe",
+      "since": "rozpoczęte {{time}}",
+      "stopping": "Zatrzymanie po bieżącym rekordzie…"
+    },
+    "outcome": {
+      "COMPLETED": "Zakończone",
+      "COMPLETED_WITH_ERRORS": "Zakończone z błędami",
+      "FAILED": "Nieudane",
+      "CANCELLED": "Anulowane"
+    },
+    "mode": {
+      "FULL": "Pełne",
+      "INCREMENTAL": "Przyrostowe"
+    },
+    "field": {
+      "outcome": "Wynik",
+      "mode": "Tryb",
+      "started": "Rozpoczęcie",
+      "duration": "Czas trwania",
+      "window": "Zmiany od",
+      "listed": "Wyliczone",
+      "created": "Utworzone",
+      "updated": "Zaktualizowane",
+      "deleted": "Usunięte",
+      "skipped": "Pominięte",
+      "failed": "Nieudane",
+      "pages": "Strony",
+      "reason": "Przyczyna"
+    },
+    "checkpoint": {
+      "moved": "Zapisano punkt kontrolny: następne harwestowanie przyrostowe odczyta zmiany od {{time}}.",
+      "kept": "Punkt kontrolny bez zmian: następne harwestowanie przyrostowe ponownie odczyta te same zmiany."
+    },
+    "failures": {
+      "heading": "Nieudane rekordy ({{count}})",
+      "partial": "Wyświetlono pierwsze {{shown}} z {{count}} nieudanych rekordów."
+    },
+    "error": {
+      "signIn": "Zaloguj się, aby zobaczyć harwestowanie.",
+      "forbidden": "Nie możesz zobaczyć harwestowania: wymaga ono uprawnień do odczytu zebranych rekordów.",
+      "unavailable": "Usługa harwestowania jest nieosiągalna. Może być zatrzymana lub niewdrożona."
     }
   }
 }

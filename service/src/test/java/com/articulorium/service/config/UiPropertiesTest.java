@@ -19,6 +19,7 @@ class UiPropertiesTest {
         assertThat(properties.title()).isEqualTo(UiProperties.DEFAULT_TITLE);
         assertThat(properties.apiDocsUrl()).isEqualTo("../swagger-ui.html");
         assertThat(properties.topologyUrl()).isEqualTo("../topology/");
+        assertThat(properties.harvestUrl()).isEqualTo("../harvest/");
         assertThat(properties.transformUrl()).isEqualTo("../transform/");
         assertThat(properties.communitiesPath()).isEqualTo("communities");
         assertThat(properties.profilesPath()).isEqualTo("profiles");
@@ -27,8 +28,15 @@ class UiPropertiesTest {
     @Test
     void keepsAConfiguredProfileContainer() {
         final UiProperties properties =
-            new UiProperties(null, null, null, null, null, null, " people ", null);
+            new UiProperties(null, null, null, null, null, null, " people ", null, null);
         assertThat(properties.profilesPath()).isEqualTo("people");
+    }
+
+    @Test
+    void keepsAConfiguredHarvestService() {
+        final UiProperties properties =
+            new UiProperties(null, null, null, null, null, null, null, null, " https://harvest.example.org/ ");
+        assertThat(properties.harvestUrl()).isEqualTo("https://harvest.example.org/");
     }
 
     @Test

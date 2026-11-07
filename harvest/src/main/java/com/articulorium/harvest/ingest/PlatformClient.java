@@ -187,7 +187,7 @@ public class PlatformClient {
      * @param base the base URL
      * @return the headers
      */
-    static HttpHeaders forwardedHeaders(final URI base) {
+    public static HttpHeaders forwardedHeaders(final URI base) {
         final HttpHeaders headers = new HttpHeaders();
         final String scheme = base.getScheme() == null ? "http" : base.getScheme();
         final int port = base.getPort() >= 0 ? base.getPort() : ("https".equals(scheme) ? 443 : 80);

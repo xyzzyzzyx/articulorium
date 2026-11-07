@@ -90,6 +90,11 @@ export const routes: Routes = [
     loadComponent: () => import('./topology/topology-editor-page.component').then((m) => m.TopologyEditorPageComponent),
   },
   {
+    path: 'harvest',
+    title: 'route.harvest',
+    loadComponent: () => import('./harvest/harvest-page.component').then((m) => m.HarvestPageComponent),
+  },
+  {
     path: 'search',
     title: 'route.search',
     loadComponent: () => import('./search/search-page.component').then((m) => m.SearchPageComponent),

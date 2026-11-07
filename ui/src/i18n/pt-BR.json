@@ -6,6 +6,7 @@
     "communities": "Comunidades",
     "profiles": "Perfis",
     "topologies": "Topologias",
+    "harvest": "Coleta",
     "search": "Pesquisar",
     "api": "API",
     "about": "Sobre",
@@ -97,6 +98,7 @@
     "editProfile": "Editar perfil",
     "topologies": "Topologias",
     "topology": "Topologia",
+    "harvest": "Coleta",
     "search": "Pesquisar",
     "about": "Sobre"
   },
@@ -555,6 +557,91 @@
       "one": "{{formatted}} recurso criado",
       "many": "{{formatted}} de recursos criados",
       "other": "{{formatted}} recursos criados"
+    }
+  },
+  "harvest": {
+    "heading": "Coleta",
+    "intro": "A coleta copia registros de outros repositórios (provedores de dados OAI-PMH, DSpace, Fedora e VIVO) para a plataforma. Uma coleta incremental lê o que mudou desde a última coleta completa; uma coleta completa lê todos os registros novamente.",
+    "refresh": "Atualizar",
+    "readOnly": "Você pode acompanhar as coletas aqui. Para iniciá-las e cancelá-las é preciso acesso de escrita aos registros coletados.",
+    "none": "Nenhuma fonte de coleta está configurada. Os operadores as adicionam às configurações do serviço de coleta (articulorium.harvest.sources).",
+    "never": "Nenhuma coleta desde que o serviço de coleta foi iniciado.",
+    "last": "Última coleta",
+    "earlier": "Coletas anteriores ({{count}})",
+    "started": "Coleta de {{source}} iniciada",
+    "stopping": "A coleta de {{source}} está sendo interrompida",
+    "capability": {
+      "incremental": "Coletas incrementais",
+      "fullOnly": "Somente coletas completas",
+      "deletions": "Informa exclusões",
+      "noDeletions": "Não informa exclusões",
+      "scheduled": "Agendada: {{schedule}}",
+      "onDemand": "Somente sob demanda",
+      "disabled": "Desativada"
+    },
+    "action": {
+      "incremental": "Coleta incremental",
+      "full": "Coleta completa",
+      "cancel": "Cancelar coleta"
+    },
+    "why": {
+      "permission": "Para iniciar coletas é preciso acesso de escrita aos registros coletados.",
+      "disabled": "Esta fonte está desativada nas configurações do serviço de coleta.",
+      "running": "Há uma coleta desta fonte em andamento.",
+      "notIncremental": "Esta fonte não consegue listar apenas as mudanças: toda coleta dela é completa.",
+      "stopping": "A coleta está sendo interrompida."
+    },
+    "confirmFull": {
+      "title": "Iniciar uma coleta completa?",
+      "message": "Uma coleta completa lê novamente todos os registros de {{source}} e substitui suas cópias. Pode demorar muito e não remove cópias de registros que a fonte não lista mais."
+    },
+    "confirmCancel": {
+      "title": "Cancelar a coleta?",
+      "message": "A coleta de {{source}} para após o registro em andamento. Os registros já armazenados permanecem; o ponto de controle não avança, então a próxima coleta incremental lê as mesmas mudanças novamente."
+    },
+    "running": {
+      "FULL": "Coleta completa em andamento",
+      "INCREMENTAL": "Coleta incremental em andamento",
+      "since": "iniciada {{time}}",
+      "stopping": "Parando após o registro em andamento…"
+    },
+    "outcome": {
+      "COMPLETED": "Concluída",
+      "COMPLETED_WITH_ERRORS": "Concluída com erros",
+      "FAILED": "Falhou",
+      "CANCELLED": "Cancelada"
+    },
+    "mode": {
+      "FULL": "Completa",
+      "INCREMENTAL": "Incremental"
+    },
+    "field": {
+      "outcome": "Resultado",
+      "mode": "Modo",
+      "started": "Início",
+      "duration": "Duração",
+      "window": "Mudanças desde",
+      "listed": "Listados",
+      "created": "Criados",
+      "updated": "Atualizados",
+      "deleted": "Excluídos",
+      "skipped": "Ignorados",
+      "failed": "Com falha",
+      "pages": "Páginas",
+      "reason": "Motivo"
+    },
+    "checkpoint": {
+      "moved": "Ponto de controle salvo: a próxima coleta incremental lê as mudanças desde {{time}}.",
+      "kept": "Ponto de controle mantido: a próxima coleta incremental lê as mesmas mudanças novamente."
+    },
+    "failures": {
+      "heading": "Registros com falha ({{count}})",
+      "partial": "Mostrando os primeiros {{shown}} de {{count}} registros com falha."
+    },
+    "error": {
+      "signIn": "Entre para ver as coletas.",
+      "forbidden": "Você não pode ver as coletas: elas exigem acesso de leitura aos registros coletados.",
+      "unavailable": "O serviço de coleta não está acessível. Ele pode estar parado ou não implantado."
     }
   }
 }

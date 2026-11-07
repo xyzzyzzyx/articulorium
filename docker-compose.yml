@@ -30,7 +30,9 @@
 #                                     IIIF Presentation 3 manifest / collection of a PCDM resource
 #   http://localhost:8000/platform/harvested/
 #                                     records harvested from other repositories (harvest service;
-#                                     run harvests with its actuator endpoint, see harvest/README.md)
+#                                     run harvests from the UI's Harvest page, see harvest/README.md)
+#   http://localhost:8000/harvest/sources
+#                                     harvest API of the user interface
 #
 # Credentials can be overridden with environment variables or an .env file next to this file.
 # docker-compose.acl.yml turns on Consul ACLs and accepts Consul tokens as WebAC identities.
@@ -230,7 +232,8 @@ services:
 
   harvest:
     # Harvests external repositories (Fedora Commons, DSpace, VIVO, any OAI-PMH data provider) into
-    # the platform under /harvested. It has no public API: operators list and run harvests with the
+    # the platform under /harvested. Users with write access to /harvested run harvests from the
+    # user interface (Harvest page; API at /harvest on the gateway). Operators can also use the
     # actuator endpoint on its management port (harvest/README.md), e.g.
     #   docker compose exec harvest curl -s localhost:8000/actuator/harvest
     #   docker compose exec harvest curl -s -X POST -H 'Content-Type: application/json' \

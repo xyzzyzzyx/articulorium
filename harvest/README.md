@@ -5,9 +5,10 @@ Harvests records from external repositories and ingests them into the platform: 
 is configured with an identifier, a type and an endpoint; its records are mapped to one shared
 representation and stored as resources below `/harvested/<source>/`, replaced on every harvest.
 
-Harvests run on a schedule per source (incremental) or on demand through the `harvest` actuator
-endpoint. The service has no public API: the endpoint is on the management port, which the gateway
-does not expose.
+Harvests run on a schedule per source (incremental) or on demand: from the user interface's
+**Harvest** page (the [harvest API](#the-harvest-api-and-the-user-interface), `/harvest/sources` on
+the gateway, protected by the platform's Web Access Control), or through the `harvest` actuator
+endpoint on the management port, which the gateway does not expose.
 
 ```bash
 # in the compose stack (the demo sources harvest this repository itself)
@@ -176,6 +177,55 @@ carries the source's checkpoint (`art:harvestCheckpoint`). The containers are cr
 Metrics: `harvest.runs{source,outcome}`, `harvest.duration{source,outcome}`,
 `harvest.records{source,action}` (`CREATED`, `UPDATED`, `DELETED`, `SKIPPED`, `FAILED`).
 
+## The harvest API and the user interface
+
+The user interface's **Harvest** page (`/ui/harvest`, in the main navigation) lists every source
+with what it supports (incremental or full harvests only, deletions reported or not, its schedule,
+whether it is disabled), starts incremental and full harvests (a full harvest is confirmed first),
+cancels a running harvest (confirmed; it stops after the record in progress), follows a running
+harvest's progress (the page reads the sources again every 3 seconds while one runs) and shows the
+latest reports: outcome, mode, start, duration, window, the counts, the checkpoint, the reason of a
+failed or cancelled harvest and the failed records. Only `COMPLETED` is shown as a success;
+`COMPLETED_WITH_ERRORS`, `FAILED` and `CANCELLED` say that the checkpoint did not move.
+
+The page uses the harvest API, served on the service port (`server.port`, 9000) and routed by the
+gateway under `/harvest` (`articulorium.ui.harvest-url` tells the user interface where, default
+`../harvest/`):
+
+| Request                                         | Effect                                                     | Needs |
+|-------------------------------------------------|------------------------------------------------------------|-------|
+| `GET /sources`                                  | `{"sources": [...], "operate": true}`: every source (as the actuator endpoint shows it) and whether the caller may start and cancel harvests | `read` |
+| `GET /sources/{source}`                         | one source (404 when unknown)                              | `read` |
+| `POST /sources/{source}/harvests` `{"mode": "full"}` | starts a harvest (202); `mode` is `incremental` (default) or `full`; 409 when the source is disabled or already being harvested, 400 for another mode | `write` |
+| `DELETE /sources/{source}/harvests/running`     | stops the running harvest after the record in progress (202; 409 when none) | `write` |
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8000/harvest/sources
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"mode":"incremental"}' http://localhost:8000/harvest/sources/self-oai/harvests
+```
+
+**Permissions.** The service decides nothing itself: it presents the caller's own `Authorization`
+header (an OpenID Connect token, a Consul token, whatever the platform accepts) to the platform's
+`/.well-known/webac?resource=<container>` and requires `read` on the container of the harvested
+records (`/harvested` by default) to view sources and reports, and `write` on it to start and
+cancel harvests. The harvester's own platform credentials are never used for this. Refusals are RFC
+9457 problem documents: 401 (with `WWW-Authenticate: Bearer`) for an anonymous caller without the
+mode or credentials the platform refuses, 403 for a known caller without the mode, 503 when the
+platform cannot answer. The service logs who started or cancelled each harvest.
+
+With the default root ACL everyone may read and write, so everyone may run harvests. To give
+harvesting to a group, set an ACL on `/harvested` (Permissions page, or `fcr:acl`) that grants
+`acl:Read` to those who may follow harvests and `acl:Write` to those who may run them, inherited by
+the records (`acl:default`), and keep the harvester's own agent (`platform-auth`) able to write
+there. Readers see the page without its actions.
+
+Sources are shown without credentials: `username`, `password` and `token` never leave the service
+(and a source URL with user information is refused at startup). Failure reasons are
+diagnostics written for operators (they name the record and the HTTP status) and contain no
+credentials. Set `articulorium.harvest.api.enabled=false` to turn the API off (the page then says
+the harvest service cannot be reached); the actuator endpoint stays.
+
 ## The `harvest` actuator endpoint
 
 | Request                                   | Effect                                                         |
@@ -203,6 +253,7 @@ Actuator write operations need `Content-Type: application/json`, even with an em
 | `policy.overlap`                 | `5m`                           | how far before a harvest the next incremental one starts      |
 | `http.connect-timeout`, `http.read-timeout`, `http.user-agent` | `10s`, `2m`, `Articulorium-Harvester/1.0 (…)` | requests to the sources |
 | `history`                        | `10`                           | reports kept per source                                       |
+| `api.enabled`                    | `true`                         | serve the harvest API of the user interface (`/sources`)      |
 | `concurrency`                    | `2`                            | harvests running at once (others wait)                        |
 | `sources.<id>.type`              |                                | `oai-pmh`, `dspace`, `fedora` or `vivo`                       |
 | `sources.<id>.url`               |                                | the endpoint (no credentials in it)                           |
@@ -279,7 +330,8 @@ Another OAI-PMH metadata format only needs an `OaiMetadataMapper` bean for its p
   (removing copies of records a full harvest no longer lists) is not implemented.
 * Reports are kept in memory per instance. Every instance runs the schedules: run one instance of
   the service.
-* No user interface: harvests are run with the actuator endpoint.
+* Reports are in memory: after a restart the page shows no history until the next harvest.
+* Access to harvests is per container (`/harvested`), not per source.
 * The native image of this service has not been built.
 
 ```bash

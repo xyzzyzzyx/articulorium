@@ -84,6 +84,7 @@ class ServiceApplicationTest {
             .andExpect(jsonPath("$.title").value("Articulorium"))
             .andExpect(jsonPath("$.apiDocsUrl").value("../swagger-ui.html"))
             .andExpect(jsonPath("$.topologyUrl").value("../topology/"))
+            .andExpect(jsonPath("$.harvestUrl").value("../harvest/"))
             .andExpect(jsonPath("$.transformUrl").value("../transform/"))
             .andExpect(jsonPath("$.communitiesPath").value("communities"))
             .andExpect(jsonPath("$.profilesPath").value("profiles"))

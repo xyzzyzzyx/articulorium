@@ -6,6 +6,7 @@
     "communities": "Communities",
     "profiles": "Profiles",
     "topologies": "Topologies",
+    "harvest": "Harvest",
     "search": "Search",
     "api": "API",
     "about": "About",
@@ -97,6 +98,7 @@
     "editProfile": "Edit profile",
     "topologies": "Topologies",
     "topology": "Topology",
+    "harvest": "Harvest",
     "search": "Search",
     "about": "About"
   },
@@ -552,6 +554,91 @@
     "built": {
       "one": "Built {{formatted}} resource",
       "other": "Built {{formatted}} resources"
+    }
+  },
+  "harvest": {
+    "heading": "Harvest",
+    "intro": "Harvesting copies records from other repositories (OAI-PMH data providers, DSpace, Fedora and VIVO) into the platform. An incremental harvest reads what changed since the last complete harvest; a full harvest reads every record again.",
+    "refresh": "Refresh",
+    "readOnly": "You can follow harvests here. Starting and cancelling them needs write access to the harvested records.",
+    "none": "No harvest sources are configured. Operators add them to the harvest service’s settings (articulorium.harvest.sources).",
+    "never": "Not harvested since the harvest service started.",
+    "last": "Last harvest",
+    "earlier": "Earlier harvests ({{count}})",
+    "started": "Harvest of {{source}} started",
+    "stopping": "Harvest of {{source}} is stopping",
+    "capability": {
+      "incremental": "Incremental harvests",
+      "fullOnly": "Full harvests only",
+      "deletions": "Reports deletions",
+      "noDeletions": "Deletions not reported",
+      "scheduled": "Scheduled: {{schedule}}",
+      "onDemand": "On demand only",
+      "disabled": "Disabled"
+    },
+    "action": {
+      "incremental": "Incremental harvest",
+      "full": "Full harvest",
+      "cancel": "Cancel harvest"
+    },
+    "why": {
+      "permission": "Starting harvests needs write access to the harvested records.",
+      "disabled": "This source is disabled in the harvest service’s settings.",
+      "running": "A harvest of this source is running.",
+      "notIncremental": "This source cannot list only what changed: every harvest of it is a full harvest.",
+      "stopping": "The harvest is stopping."
+    },
+    "confirmFull": {
+      "title": "Start a full harvest?",
+      "message": "A full harvest reads every record of {{source}} again and replaces their copies. It can take a long time, and it does not remove copies of records the source no longer lists."
+    },
+    "confirmCancel": {
+      "title": "Cancel the harvest?",
+      "message": "The harvest of {{source}} stops after the record in progress. Records already stored stay; the checkpoint does not move, so the next incremental harvest reads the same changes again."
+    },
+    "running": {
+      "FULL": "Full harvest running",
+      "INCREMENTAL": "Incremental harvest running",
+      "since": "started {{time}}",
+      "stopping": "Stopping after the record in progress…"
+    },
+    "outcome": {
+      "COMPLETED": "Completed",
+      "COMPLETED_WITH_ERRORS": "Completed with errors",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
+    },
+    "mode": {
+      "FULL": "Full",
+      "INCREMENTAL": "Incremental"
+    },
+    "field": {
+      "outcome": "Outcome",
+      "mode": "Mode",
+      "started": "Started",
+      "duration": "Duration",
+      "window": "Changes since",
+      "listed": "Listed",
+      "created": "Created",
+      "updated": "Updated",
+      "deleted": "Deleted",
+      "skipped": "Skipped",
+      "failed": "Failed",
+      "pages": "Pages",
+      "reason": "Reason"
+    },
+    "checkpoint": {
+      "moved": "Checkpoint saved: the next incremental harvest reads changes since {{time}}.",
+      "kept": "Checkpoint not moved: the next incremental harvest reads the same changes again."
+    },
+    "failures": {
+      "heading": "Failed records ({{count}})",
+      "partial": "Showing the first {{shown}} of {{count}} failed records."
+    },
+    "error": {
+      "signIn": "Sign in to see the harvests.",
+      "forbidden": "You cannot see the harvests: they need read access to the harvested records.",
+      "unavailable": "The harvest service cannot be reached. It may be stopped or not deployed."
     }
   }
 }

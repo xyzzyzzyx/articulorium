@@ -433,8 +433,13 @@ metadata, sets, file references) and stored at `/harvested/<source>/<record>` wi
 provenance, replaced on every harvest. Paging, incremental harvests from a checkpoint kept on the
 source's container, retries and failure reports are common to every source; a checkpoint only moves
 after a harvest without failures, so no record is skipped. Harvests run on per-source schedules or
-on demand through the `harvest` actuator endpoint on the service's management port (not exposed by
-the gateway). The compose stack configures two demo sources that harvest the repository itself.
+on demand from the user interface's **Harvest** page, which lists the sources and what they support,
+starts incremental and full harvests, cancels them, follows their progress and shows their reports
+and failed records. Viewing needs read and running harvests write access to `/harvested`, as the
+platform's Web Access Control decides for the signed-in user (see
+[harvest/README.md](harvest/README.md#the-harvest-api-and-the-user-interface)). Operators can also
+use the `harvest` actuator endpoint on the service's management port (not exposed by the gateway).
+The compose stack configures two demo sources that harvest the repository itself.
 
 ```bash
 docker compose exec harvest curl -s -X POST -H 'Content-Type: application/json' \
