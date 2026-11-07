@@ -19,6 +19,11 @@
     "secure": false,
     "xfwd": true
   },
+  "/ai/": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "xfwd": true
+  },
   "/auth": {
     "target": "http://localhost:8000",
     "secure": false,

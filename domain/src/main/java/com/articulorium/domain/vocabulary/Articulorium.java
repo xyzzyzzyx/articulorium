@@ -79,6 +79,49 @@ public final class Articulorium {
      */
     public static final String HARVEST_CHECKPOINT = NAMESPACE + "harvestCheckpoint";
 
+    /**
+     * An agent's suggestion of where a harvested record belongs (its collection and topology),
+     * stored below the record's copy and reviewed by a person.
+     */
+    public static final String CLASSIFICATION = NAMESPACE + "Classification";
+
+    /** Type of a {@link #CLASSIFICATION} that waits for a person (pending, or failed and to retry). */
+    public static final String REVIEW_PENDING = NAMESPACE + "ReviewPending";
+
+    /** Where a classification stands: {@code PENDING}, {@code PLACING}, {@code ACCEPTED}, {@code REJECTED}, {@code FAILED}. */
+    public static final String CLASSIFICATION_STATUS = NAMESPACE + "classificationStatus";
+
+    /** The suggestion of a classification, as the agent's JSON document (a literal). */
+    public static final String CLASSIFICATION_SUGGESTION = NAMESPACE + "classificationSuggestion";
+
+    /** How sure the agent was of a classification ({@code xsd:decimal} from 0 to 1). */
+    public static final String CLASSIFICATION_CONFIDENCE = NAMESPACE + "classificationConfidence";
+
+    /** Why a classification failed (a reason code such as {@code MODEL_UNAVAILABLE}). */
+    public static final String CLASSIFICATION_FAILURE = NAMESPACE + "classificationFailure";
+
+    /** When a record was classified ({@code xsd:dateTime}). */
+    public static final String CLASSIFIED_AT = NAMESPACE + "classifiedAt";
+
+    /** Who accepted or rejected a classification (a WebID, or {@code auto}). */
+    public static final String DECIDED_BY = NAMESPACE + "decidedBy";
+
+    /** When a classification was accepted or rejected ({@code xsd:dateTime}). */
+    public static final String DECIDED_AT = NAMESPACE + "decidedAt";
+
+    /**
+     * Where an accepted harvested record was placed: its item in a collection. On the record's
+     * classification and on its {@link #HARVEST_PLACEMENT}.
+     */
+    public static final String PLACED_AT = NAMESPACE + "placedAt";
+
+    /**
+     * What is left where a harvested record was ingested once it has been placed in a collection:
+     * a pointer to its item ({@link #PLACED_AT}), so later harvests update the item and nothing is
+     * held twice.
+     */
+    public static final String HARVEST_PLACEMENT = NAMESPACE + "HarvestPlacement";
+
     private Articulorium() {
         // constants holder
     }

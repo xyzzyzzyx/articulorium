@@ -44,6 +44,40 @@ public final class ResourcePaths {
     }
 
     /**
+     * Tells whether a path taken from a request can be used to address a resource as it is: no
+     * {@code .} or {@code ..} segment (which a server resolves to another resource than the one
+     * whose access was checked), no query, fragment, back slash, white space, control character or
+     * character URIs do not allow, and percent signs only as escapes ({@code %20}).
+     *
+     * @param path a raw path, possibly {@code null}
+     * @return {@code true} when the path is safe to use
+     */
+    public static boolean isSafe(final String path) {
+        if (path == null) {
+            return false;
+        }
+        for (final String segment : path.split(SLASH)) {
+            if (".".equals(segment) || "..".equals(segment)) {
+                return false;
+            }
+        }
+        for (int i = 0; i < path.length(); i++) {
+            final char c = path.charAt(i);
+            if (c <= ' ' || c == 0x7f || "?#\\<>\"{}|^`".indexOf(c) >= 0) {
+                return false;
+            }
+            if (c == '%' && (i + 2 >= path.length() || !hex(path.charAt(i + 1)) || !hex(path.charAt(i + 2)))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean hex(final char c) {
+        return c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F';
+    }
+
+    /**
      * Returns the parent of a path.
      *
      * @param path a normalised path

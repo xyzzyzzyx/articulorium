@@ -15,10 +15,11 @@ Actuator is optional (see below).
 
 ## Declaring agents
 
-Agents come from two places, combined in this order:
+Agents come from three places, combined in this order:
 
 1. every `Agent` bean in the context, in `@Order` order;
-2. the agents declared under `articulorium.agents.definitions`, keyed by name, in declaration order.
+2. the agents of every `AgentContributor` bean that is turned on, in `@Order` order;
+3. the agents declared under `articulorium.agents.definitions`, keyed by name, in declaration order.
 
 ```yaml
 articulorium:
@@ -28,6 +29,25 @@ articulorium:
         description: read owl
       "[ocr.v2]":            # names with dots or other special characters need brackets
         description: read scanned pages
+```
+
+Components that act as an agent only while they are turned on (an AI capability, an optional
+ingest step) implement `AgentContributor` from the agent library instead of declaring an `Agent`
+bean: their agents come between the `Agent` beans and the configured definitions, and a component
+that answers `Optional.empty()` is left out, so the registry lists what the application really runs.
+
+```java
+@Service
+class OcrStep implements AgentContributor {
+
+    private final OcrProperties properties;
+
+    @Override
+    public Optional<Agent> agent() {
+        return properties.isEnabled() ? Optional.of(new Agent("ocr", "read scanned pages")) : Optional.empty();
+    }
+
+}
 ```
 
 Because definitions are keyed by name, a single agent can be added or changed from any property

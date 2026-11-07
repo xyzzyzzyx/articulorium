@@ -1,6 +1,7 @@
 package com.articulorium.agent.autoconfigure;
 
 import com.articulorium.agent.Agent;
+import com.articulorium.agent.AgentContributor;
 import com.articulorium.agent.AgentRegistry;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +21,8 @@ import org.springframework.context.annotation.Configuration;
  * Auto-configuration of the agent library.
  *
  * <p>Contributes an {@link AgentRegistry} holding every {@link Agent} bean of the context (in
- * {@code @Order} order) followed by the agents declared under
+ * {@code @Order} order), then the agents of the {@link AgentContributor} beans that are turned on
+ * (in {@code @Order} order), then the agents declared under
  * {@code articulorium.agents.definitions}. Two agents with the same name stop the application
  * from starting. An application that defines its own {@link AgentRegistry} bean keeps it.</p>
  *
@@ -40,15 +42,18 @@ public class AgentAutoConfiguration {
     /**
      * The registry of every known agent.
      *
-     * @param properties the agents declared in configuration
-     * @param beans      the agents defined as beans
+     * @param properties   the agents declared in configuration
+     * @param beans        the agents defined as beans
+     * @param contributors the components that act as agents while they are turned on
      * @return the registry
      */
     @Bean
     @ConditionalOnMissingBean
     public AgentRegistry agentRegistry(final AgentProperties properties,
-            final ObjectProvider<Agent> beans) {
+            final ObjectProvider<Agent> beans,
+            final ObjectProvider<AgentContributor> contributors) {
         final List<Agent> agents = new ArrayList<>(beans.orderedStream().toList());
+        agents.addAll(AgentContributor.agentsOf(contributors.orderedStream().toList()));
         agents.addAll(properties.toAgents());
         final AgentRegistry registry = new AgentRegistry(agents);
         LOG.info("Registered " + registry.size() + " agent(s): " + registry.getNames());

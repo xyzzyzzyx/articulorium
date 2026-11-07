@@ -58,7 +58,8 @@
     "none": "Nenhum",
     "loading": "Carregando…",
     "noValue": "—",
-    "backToResource": "Voltar ao recurso"
+    "backToResource": "Voltar ao recurso",
+    "close": "Fechar"
   },
   "breadcrumb": {
     "label": "Trilha de navegação",
@@ -642,6 +643,184 @@
       "signIn": "Entre para ver as coletas.",
       "forbidden": "Você não pode ver as coletas: elas exigem acesso de leitura aos registros coletados.",
       "unavailable": "O serviço de coleta não está acessível. Ele pode estar parado ou não implantado."
+    }
+  },
+  "ai": {
+    "thinking": "Consultando o agente de IA…",
+    "discard": "Descartar",
+    "review": "Confira cada sugestão antes de mantê-la: o agente de IA pode errar.",
+    "fromFile": "Do arquivo",
+    "suggested": "Sugerido",
+    "confidence": "Confiança {{percent}} %",
+    "reason": {
+      "INVALID_REQUEST": "O agente de IA não conseguiu usar esta solicitação.",
+      "UNAUTHENTICATED": "Entre para usar o agente de IA.",
+      "FORBIDDEN": "O agente de IA só ajuda quem pode alterar este recurso.",
+      "NOT_FOUND": "O agente de IA não encontrou este recurso.",
+      "TOO_LARGE": "Este arquivo é grande demais para o agente de IA.",
+      "UNSUPPORTED": "O agente de IA não sabe descrever este tipo de arquivo.",
+      "BUSY": "O agente de IA está ocupado. Tente de novo em instantes.",
+      "MODEL_ERROR": "O modelo de IA falhou. Tente de novo mais tarde.",
+      "INVALID_OUTPUT": "O modelo de IA deu uma resposta inutilizável. Tente de novo.",
+      "DISABLED": "O agente de IA está desativado.",
+      "CAPABILITY_DISABLED": "Este recurso de IA está desativado.",
+      "MODEL_UNAVAILABLE": "Nenhum modelo de IA está disponível.",
+      "PLATFORM_UNAVAILABLE": "O agente de IA não conseguiu acessar o repositório. Tente de novo mais tarde.",
+      "UNREACHABLE": "Não é possível acessar o agente de IA."
+    },
+    "media": {
+      "heading": "Metadados sugeridos por IA",
+      "intro": "O agente de IA lê os metadados incorporados no arquivo e sugere uma descrição.",
+      "suggest": "Sugerir metadados",
+      "nothing": "O agente de IA não tem nada a sugerir para este arquivo.",
+      "apply": {
+        "one": "Adicionar {{formatted}} declaração",
+        "many": "Adicionar {{formatted}} de declarações",
+        "other": "Adicionar {{formatted}} declarações"
+      },
+      "applied": {
+        "one": "{{formatted}} declaração adicionada",
+        "many": "{{formatted}} de declarações adicionadas",
+        "other": "{{formatted}} declarações adicionadas"
+      },
+      "note": {
+        "IMAGE_FORMAT_NOT_SHOWN": "O modelo não viu a imagem (formato não suportado); usou os metadados.",
+        "IMAGE_TOO_LARGE_TO_SHOW": "O modelo não viu a imagem (grande demais); usou os metadados.",
+        "IMAGE_NOT_SHOWN": "O modelo não viu a imagem; usou os metadados.",
+        "VIDEO_NOT_SHOWN": "O modelo não assistiu ao vídeo; usou os metadados e o contexto.",
+        "FILE_NOT_READ": "O arquivo é grande demais para ser lido; a sugestão se baseia apenas no contexto.",
+        "TEXT_FROM_FIRST_PAGES": "Apenas as primeiras páginas do PDF foram lidas.",
+        "TEXT_SHORTENED": "O texto foi encurtado antes de ser enviado ao modelo.",
+        "NO_TEXT": "O PDF não tem texto.",
+        "TEXT_NOT_EXTRACTABLE": "Não foi possível extrair o texto do PDF.",
+        "ENCRYPTED": "O PDF está criptografado; o texto não pôde ser lido.",
+        "UNREADABLE_METADATA": "Alguns metadados do arquivo não puderam ser lidos."
+      }
+    },
+    "term": {
+      "abstract": "Resumo",
+      "alternative": "Título alternativo",
+      "contributor": "Colaborador",
+      "created": "Criado",
+      "creator": "Autor",
+      "date": "Data",
+      "description": "Descrição",
+      "extent": "Extensão",
+      "issued": "Publicado",
+      "language": "Idioma",
+      "rights": "Direitos",
+      "spatial": "Local",
+      "subject": "Assunto",
+      "temporal": "Período",
+      "title": "Título",
+      "type": "Tipo",
+      "width": "Largura",
+      "height": "Altura",
+      "duration": "Duração",
+      "frameRate": "Taxa de quadros"
+    },
+    "topics": {
+      "heading": "Temas sugeridos por IA",
+      "intro": "O agente de IA lê os itens daqui e sugere seus temas e um resumo.",
+      "suggest": "Sugerir temas",
+      "noItems": "Não há itens aqui para analisar.",
+      "analysed": {
+        "one": "Com base em {{formatted}} item.",
+        "many": "Com base em {{formatted}} de itens.",
+        "other": "Com base em {{formatted}} itens."
+      },
+      "truncated": "Há mais itens do que o agente leu.",
+      "summary": "Resumo",
+      "items": {
+        "one": "{{formatted}} item",
+        "many": "{{formatted}} de itens",
+        "other": "{{formatted}} itens"
+      },
+      "apply": "Adicionar os temas selecionados",
+      "applied": {
+        "one": "{{formatted}} tema adicionado",
+        "many": "{{formatted}} de temas adicionados",
+        "other": "{{formatted}} temas adicionados"
+      },
+      "appliedSummary": "Resumo adicionado"
+    },
+    "profiles": {
+      "heading": "Sugestões de IA para o perfil",
+      "intro": "O agente de IA lê os cargos, títulos e publicações deste perfil e sugere uma apresentação, áreas de pesquisa e palavras-chave.",
+      "suggest": "Sugerir dados do perfil",
+      "noMaterial": "Adicione primeiro cargos, títulos ou publicações ao perfil: o agente de IA sugere a partir deles.",
+      "nothing": "O agente de IA não encontrou nada para adicionar a este perfil.",
+      "overview": "Apresentação",
+      "replacesOverview": "Mantê-la substitui a apresentação atual.",
+      "researchAreas": "Áreas de pesquisa",
+      "keywords": "Palavras-chave",
+      "apply": "Adicionar ao perfil",
+      "applied": "Perfil atualizado"
+    },
+    "topology": {
+      "open": "Sugerir uma topologia",
+      "heading": "Sugerir uma topologia",
+      "intro": "Descreva o material: o agente de IA recomenda uma topologia existente ou esboça uma nova para você revisar.",
+      "description": "Material",
+      "placeholder": "Por exemplo: cartas digitalizadas, cada uma com várias páginas escaneadas e uma transcrição",
+      "sample": "Contêiner de exemplo (opcional)",
+      "samplePlaceholder": "collections/cartas/carta-1",
+      "sampleHint": "O caminho de um contêiner que já tem um exemplo",
+      "suggest": "Sugerir",
+      "existing": "Usar a topologia existente “{{name}}”",
+      "new": "Uma nova topologia: “{{name}}”",
+      "errors": "Corrija estes problemas no editor antes de salvar:",
+      "view": "Abrir a topologia",
+      "edit": "Revisar no editor"
+    }
+  },
+  "review": {
+    "heading": "Revisar registros coletados",
+    "intro": "O agente de IA sugere onde cada registro coletado deve ficar. Nada é movido até você aceitar.",
+    "source": "Fonte",
+    "allSources": "Todas as fontes",
+    "status": "Quais registros",
+    "open": "A revisar",
+    "all": "Todos",
+    "readOnly": "Você vê as sugestões, mas não pode decidir sobre elas.",
+    "uncertain": "Incerto",
+    "failed": "A classificação falhou: {{reason}}",
+    "placement": "Vai em:",
+    "topology": "Topologia:",
+    "alternatives": "Outras coleções possíveis:",
+    "useThis": "Usar esta",
+    "placedAt": "Colocado em",
+    "decidedBy": "Decidido por {{agent}}",
+    "collectionPath": "Caminho da coleção",
+    "collectionHint": "Por exemplo communities/biblioteca/obras-raras",
+    "noTopology": "Sem topologia",
+    "place": "Colocar",
+    "accept": "Aceitar",
+    "createAndAccept": "Criar e aceitar",
+    "choose": "Colocar em outro lugar",
+    "reject": "Rejeitar",
+    "retry": "Classificar de novo",
+    "emptyOpen": "Nenhum registro aguarda revisão.",
+    "empty": "Nenhum registro foi classificado.",
+    "previous": "Anterior",
+    "next": "Próximo",
+    "range": "{{from}}–{{to}} de {{total}}",
+    "newCollection": "Uma nova coleção “{{title}}” em {{community}}",
+    "newCommunity": "Uma nova comunidade “{{title}}” com a coleção “{{collection}}”",
+    "newSubCommunity": "Uma nova comunidade “{{title}}” em {{community}}, com a coleção “{{collection}}”",
+    "newTopology": "Uma nova topologia “{{name}}”: {{description}}",
+    "noPlacement": "Nenhuma coleção serve",
+    "confirmCreate": "Criar e colocar o registro lá? {{placement}}",
+    "confirmReject": "Rejeitar a sugestão para “{{title}}”? O registro fica onde foi coletado.",
+    "accepted": "“{{title}}” foi colocado",
+    "rejected": "Sugestão para “{{title}}” rejeitada",
+    "retried": "“{{title}}” foi classificado de novo",
+    "state": {
+      "PENDING": "Aguardando",
+      "PLACING": "Colocando",
+      "ACCEPTED": "Aceito",
+      "REJECTED": "Rejeitado",
+      "FAILED": "Falhou"
     }
   }
 }

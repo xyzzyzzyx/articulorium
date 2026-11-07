@@ -34,6 +34,15 @@
 #   http://localhost:8000/harvest/sources
 #                                     harvest API of the user interface
 #
+# Optional AI agent (Spring AI with a local Ollama model; ai/README.md):
+#   docker compose --profile ai up --build
+#                                        also start the agent, Ollama and pull its model (several GB
+#                                        on first start); the UI then offers topology, metadata and
+#                                        topic suggestions. ARTICULORIUM_HARVEST_CLASSIFICATION=true
+#                                        also has harvested records classified for review.
+#   http://localhost:8000/ai/capabilities
+#                                     what the agent offers (the UI hides it without the profile)
+#
 # Credentials can be overridden with environment variables or an .env file next to this file.
 # docker-compose.acl.yml turns on Consul ACLs and accepts Consul tokens as WebAC identities.
 # The demo users and passwords of keycloak/articulorium-realm.json are for local use only.
@@ -250,6 +259,9 @@ services:
       # the harvester's credentials towards the platform (a fixed Authorization header); the
       # default root ACL lets anyone write, so none are needed locally
       HARVEST_PLATFORM_AUTHORIZATION: ${HARVEST_PLATFORM_AUTHORIZATION:-}
+      # classification of harvested records by the AI agent (needs the "ai" profile); records are
+      # still harvested as before, suggestions wait in the Harvest page's review queue
+      ARTICULORIUM_HARVEST_CLASSIFICATION_ENABLED: ${ARTICULORIUM_HARVEST_CLASSIFICATION:-false}
       # demo sources, harvested on demand only: this repository's own OAI-PMH data provider, and
       # its LDP API (as a Fedora repository) below /harvest-source. Add real sources here or in
       # Consul (config/harvest/articulorium/harvest/sources/...).
@@ -264,6 +276,69 @@ services:
         condition: service_healthy
       oai:
         condition: service_healthy
+
+  ai:
+    # Optional AI agent (profile "ai"): suggests topologies, metadata of images, videos and PDFs,
+    # topics of communities and collections, and the collections of harvested records. It reads
+    # the repository with each caller's credentials and never writes: people review and apply.
+    # The model runs in the ollama service below, so repository content stays in the deployment;
+    # for a hosted or OpenAI-compatible model set ARTICULORIUM_AI_PROVIDER=openai and
+    # SPRING_AI_OPENAI_API_KEY / SPRING_AI_OPENAI_BASE_URL / SPRING_AI_OPENAI_CHAT_MODEL (in an .env
+    # file, never in source control).
+    <<: *service
+    profiles:
+      - ai
+    image: articulorium/ai:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: ai
+    environment:
+      <<: *spring-env
+      ARTICULORIUM_AI_ENABLED: "true"
+      ARTICULORIUM_AI_PROVIDER: ${ARTICULORIUM_AI_PROVIDER:-ollama}
+      SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
+      SPRING_AI_OLLAMA_CHAT_MODEL: ${ARTICULORIUM_AI_MODEL:-qwen2.5vl:3b}
+    depends_on:
+      consul:
+        condition: service_healthy
+      platform:
+        condition: service_healthy
+      topology:
+        condition: service_healthy
+      ollama-model:
+        condition: service_completed_successfully
+
+  ollama:
+    # Local model server of the AI agent (profile "ai"); models are kept in a volume
+    image: ollama/ollama:0.12.6
+    restart: unless-stopped
+    profiles:
+      - ai
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks:
+      - cloud
+
+  ollama-model:
+    # Pulls the agent's model once (a vision model, so images can be described)
+    image: ollama/ollama:0.12.6
+    profiles:
+      - ai
+    entrypoint: ["ollama", "pull", "${ARTICULORIUM_AI_MODEL:-qwen2.5vl:3b}"]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - cloud
 
   service:
     # Angular user interface and its support API (agents, media type detection, UI settings);
@@ -542,6 +617,7 @@ networks:
 
 volumes:
   e2e-node-modules:
+  ollama-models:
   platform-data:
   postgres-data:
   minio-data:

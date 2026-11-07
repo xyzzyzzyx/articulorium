@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.articulorium.agent.Agent;
+import com.articulorium.agent.AgentContributor;
 import com.articulorium.agent.AgentRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.info.Info;
@@ -72,6 +74,22 @@ class AgentAutoConfigurationTest {
             .withPropertyValues("articulorium.agents.definitions.crow.description=count")
             .run(context -> assertThat(context.getBean(AgentRegistry.class).getNames())
                 .containsExactly("lark", "owl", "crow"));
+    }
+
+    @Test
+    void registersTheAgentsOfContributorsThatAreTurnedOn() {
+        runner.withUserConfiguration(AgentBeans.class, Contributors.class)
+            .withPropertyValues("articulorium.agents.definitions.crow.description=count")
+            .run(context -> assertThat(context.getBean(AgentRegistry.class).getNames())
+                .containsExactly("lark", "owl", "wren", "crow"));
+    }
+
+    @Test
+    void failsToStartWhenAContributorRepeatsAName() {
+        runner.withUserConfiguration(Contributors.class)
+            .withPropertyValues("articulorium.agents.definitions.wren.description=again")
+            .run(context -> assertThat(context).hasFailed()
+                .getFailure().rootCause().hasMessageContaining("'wren'"));
     }
 
     @Test
@@ -155,6 +173,22 @@ class AgentAutoConfigurationTest {
         @Order(1)
         Agent lark() {
             return new Agent("lark", "sing");
+        }
+
+    }
+
+    /** Components acting as agents, one of them turned off. */
+    @Configuration(proxyBeanMethods = false)
+    static class Contributors {
+
+        @Bean
+        AgentContributor wren() {
+            return () -> Optional.of(new Agent("wren", "wake early"));
+        }
+
+        @Bean
+        AgentContributor dormouse() {
+            return Optional::empty;
         }
 
     }

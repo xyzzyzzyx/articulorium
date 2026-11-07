@@ -1,9 +1,9 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ConfigService } from '../config.service';
-import { HarvestSource, HarvestSources } from './harvest';
+import { Classification, ClassificationQueue, HarvestSource, HarvestSources } from './harvest';
 
 /**
  * Client of the harvest service's API (`/harvest/sources` on the gateway): sources, harvests in
@@ -58,5 +58,67 @@ export class HarvestService {
    */
   cancel(id: string): Observable<HarvestSource> {
     return this.http.delete<HarvestSource>(this.url(id, 'harvests', 'running'));
+  }
+
+  /**
+   * Reads a page of the review queue: the AI agent's classifications of harvested records.
+   *
+   * @param options - only one source's, only those waiting for a person (`open`, the default) or
+   *   every one (`all`), and the page
+   * @returns the page
+   */
+  classifications(options: {
+    readonly source?: string;
+    readonly status?: 'open' | 'all';
+    readonly offset?: number;
+    readonly limit?: number;
+  } = {}): Observable<ClassificationQueue> {
+    let params = new HttpParams()
+      .set('status', options.status ?? 'open')
+      .set('offset', String(options.offset ?? 0))
+      .set('limit', String(options.limit ?? 25));
+    if (options.source) {
+      params = params.set('source', options.source);
+    }
+    return this.http.get<ClassificationQueue>(`${this.config.harvestBase()}classifications`, { params });
+  }
+
+  /**
+   * Accepts a classification: the record is placed in a collection, with the suggested topology
+   * unless another (or `none`) is given.
+   *
+   * @param source - the source
+   * @param record - the record's name
+   * @param choice - the collection and topology, when not the suggested ones
+   * @returns the accepted classification
+   */
+  accept(source: string, record: string, choice: { collection?: string; topology?: string } = {}): Observable<Classification> {
+    return this.http.post<Classification>(this.review(source, record, 'acceptance'), choice);
+  }
+
+  /**
+   * Rejects a classification: the record stays where it was harvested.
+   *
+   * @param source - the source
+   * @param record - the record's name
+   * @returns the rejected classification
+   */
+  reject(source: string, record: string): Observable<Classification> {
+    return this.http.post<Classification>(this.review(source, record, 'rejection'), null);
+  }
+
+  /**
+   * Classifies a record again.
+   *
+   * @param source - the source
+   * @param record - the record's name
+   * @returns the new classification
+   */
+  retry(source: string, record: string): Observable<Classification> {
+    return this.http.post<Classification>(this.review(source, record, 'retry'), null);
+  }
+
+  private review(source: string, record: string, action: string): string {
+    return `${this.config.harvestBase()}classifications/${encodeURIComponent(source)}/${encodeURIComponent(record)}/${action}`;
   }
 }

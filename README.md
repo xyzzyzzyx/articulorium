@@ -15,7 +15,9 @@ and collections; PCDM *topologies* (Book, Newspaper, Journal, Postcards, ... and
 build and navigate the resources of a digital object; IIIF Presentation 3.0 export of those
 structures; [COAR Notify](https://coar-notify.net/) inboxes for every container; and an
 [OAI-PMH 2.0](https://www.openarchives.org/OAI/openarchivesprotocol.html) data provider for
-harvesters.
+harvesters. An optional AI agent ([Spring AI](https://docs.spring.io/spring-ai/reference/)) suggests
+topologies, metadata, topics and profile details, and classifies harvested records, for people to
+review.
 
 Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 
@@ -24,7 +26,7 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 | `domain`      | LDP resource model, vocabularies, IRI and N-Triples helpers (no framework dependencies) |
 | `event`       | Spring Cloud Bus events (`ResourceEvent`, `DocumentEvent`) and the Spring Integration flows that dispatch them ([Event dispatch](#event-dispatch-spring-integration)) |
 | `activitystreams` | W3C Activity Streams 2.0 types, object model, JSON serialization and validation, plain Java + Jackson ([activitystreams/README.md](activitystreams/README.md)) |
-| `agent`       | Agent library: `Agent` and `AgentRegistry`, plain Java ([agent/README.md](agent/README.md)) |
+| `agent`       | Agent library: `Agent`, `AgentRegistry` and `AgentContributor` (components that act as agents while turned on), plain Java ([agent/README.md](agent/README.md)) |
 | `agent-spring-boot-starter` | Spring Boot auto-configuration for the agent library: `AgentRegistry` bean, `articulorium.agents.*` settings, `/actuator/info` ([README](agent-spring-boot-starter/README.md)) |
 | `i18n-spring-boot-starter` | Shipped locales, `articulorium.i18n.*` settings, locale resolution, message bundles and locale propagation for every service ([README](i18n-spring-boot-starter/README.md), [Internationalization](#internationalization)) |
 | `ui`          | Angular single page application, packaged as static resources ([ui/README.md](ui/README.md)) |
@@ -35,6 +37,7 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 | `topology`    | PCDM topologies and building their resources in the platform ([topology/README.md](topology/README.md)) |
 | `oai`         | OAI-PMH 2.0 data provider: records as Dublin Core, communities and collections as sets ([oai/README.md](oai/README.md)) |
 | `harvest`     | Harvests OAI-PMH, DSpace, Fedora Commons and VIVO repositories into the platform; source-independent harvest and ingest abstractions ([harvest/README.md](harvest/README.md)) |
+| `ai`          | Optional Spring AI agent: topology suggestions, metadata of images, videos and PDFs, topic models of communities and collections, academic profile suggestions, classification of harvested records, all reviewed before they are applied; each capability is an `AgentContributor` of the agent registry ([ai/README.md](ai/README.md)) |
 | `index`       | Keeps a Solr collection in sync                                                         |
 | `triplestore` | Mirrors every resource into a SPARQL 1.1 store ([QLever](https://github.com/ad-freiburg/qlever)), one named graph each |
 
@@ -447,6 +450,28 @@ docker compose exec harvest curl -s -X POST -H 'Content-Type: application/json' 
 docker compose exec harvest curl -s localhost:8000/actuator/harvest/self-oai
 ```
 
+## AI agent (optional)
+
+The `ai` service ([ai/README.md](ai/README.md)) is an optional agent built on Spring AI. It
+suggests a topology for some material (an existing one, or a draft opened in the topology editor),
+metadata for images, videos and PDFs (read from the file and suggested by a model), the topics and a
+summary of a community or collection, the overview, research areas and keywords of an academic
+profile, and the collection and topology of harvested records. Each capability is an agent of the
+[agent library](agent/README.md) while it is turned on, so the agent registry and
+`/actuator/info` list exactly what runs. It
+never writes: people review every suggestion and apply what they keep with the existing APIs, and
+harvested records wait in a review queue on the **Harvest** page
+(`articulorium.harvest.classification.enabled=true`). Asking about a resource needs write access to
+it, and the agent reads only what the caller may read. The model is chosen with Spring AI's
+settings: Ollama inside the deployment by default, or any OpenAI-compatible endpoint, with its key
+outside source control. Without the agent (the default) the user interface shows no AI action and
+harvesting is unchanged.
+
+```bash
+docker compose --profile ai up --build          # the agent, Ollama and its model
+curl -s http://localhost:8000/ai/capabilities
+```
+
 ## Database
 
 PostgreSQL is the default (`POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`,
@@ -614,7 +639,10 @@ and triplestore shows the flows.
 
 The agent library ([agent/](agent/README.md)) is plain Java; Spring Boot services add
 [agent-spring-boot-starter](agent-spring-boot-starter/README.md), which auto-configures an
-`AgentRegistry` from `Agent` beans and `articulorium.agents.definitions`. The service declares its
+`AgentRegistry` from `Agent` beans, `AgentContributor` beans (components that act as an agent only
+while they are turned on, such as the AI capabilities of the `ai` service, whose `/actuator/info`
+lists `ai-topology-assistant`, `ai-media-describer`, `ai-topic-modeler`, `ai-profile-enhancer` and
+`ai-harvest-classifier` when they are on) and `articulorium.agents.definitions`. The service declares its
 agents in [application.yml](service/src/main/resources/application.yml) and serves them at
 `/ui/api/agents` and `/ui/api/agents/<name>`; add one without a rebuild with, for example,
 `ARTICULORIUM_AGENTS_DEFINITIONS_LARK_DESCRIPTION=sing` or a Consul key.

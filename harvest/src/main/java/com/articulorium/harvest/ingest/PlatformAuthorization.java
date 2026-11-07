@@ -57,6 +57,18 @@ public class PlatformAuthorization {
     }
 
     /**
+     * Credentials made of a fixed header: a caller's own credentials, passed on unchanged.
+     *
+     * @param header the {@code Authorization} header, {@code null} for anonymous requests
+     * @return the credentials
+     */
+    public static PlatformAuthorization fixed(final String header) {
+        final HarvestProperties.PlatformAuth settings = new HarvestProperties.PlatformAuth();
+        settings.setAuthorization(header);
+        return new PlatformAuthorization(settings, null, Clock.systemUTC());
+    }
+
+    /**
      * Returns the header value.
      *
      * @return the value, or {@code null} for anonymous requests

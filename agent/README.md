@@ -10,6 +10,10 @@ AgentRegistry agents = AgentRegistry.of(new Agent("owl", "read owl"), new Agent(
 agents.find("owl").ifPresent(owl -> System.out.println(owl.getDescription()));
 ```
 
+Components that act as an agent while they are turned on implement `AgentContributor`, which
+answers their `Agent` or nothing; `AgentContributor.agentsOf(components)` collects the agents of
+those that are on.
+
 Spring Boot applications use [agent-spring-boot-starter](../agent-spring-boot-starter/README.md)
 instead, which builds the registry from configuration and `Agent` beans.
 

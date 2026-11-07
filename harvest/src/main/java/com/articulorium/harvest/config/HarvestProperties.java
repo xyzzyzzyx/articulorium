@@ -48,6 +48,41 @@ public class HarvestProperties {
     /** The sources, by identifier. */
     private Map<String, Source> sources = new LinkedHashMap<>();
 
+    /** Classification of harvested records by the AI agent (the {@code ai} service). */
+    private Classification classification = new Classification();
+
+    /**
+     * Classification of harvested records: the AI agent suggests the collection and topology of
+     * every new record, and a person reviews the suggestion (the harvest API's review queue) before
+     * the record is placed in the community structure.
+     */
+    @Getter
+    @Setter
+    public static class Classification {
+
+        /** Whether new records are classified; off by default, harvests then work as without the agent. */
+        private boolean enabled;
+
+        /** Where the AI agent is reached (a Consul service name when load balanced). */
+        private String aiUrl = "http://articulorium-ai/";
+
+        /** Where the topology API is reached, to build the items of accepted records. */
+        private String topologyUrl = "http://articulorium-topology/";
+
+        /** How long a classification may take before it is recorded as failed (and can be retried). */
+        private Duration timeout = Duration.ofMinutes(2);
+
+        /**
+         * Confidence from which a placement in an existing collection, with an existing topology or
+         * none, is accepted without a person; unset (the default) to review every record.
+         */
+        private Double autoAcceptThreshold;
+
+        /** Confidence below which a suggestion is flagged as uncertain in the review queue. */
+        private double reviewThreshold = 0.5;
+
+    }
+
     /**
      * Credentials of the harvester towards the platform: a fixed {@code Authorization} header, or an
      * OAuth 2.0 client credentials grant (a Keycloak service account), or none when the platform's
@@ -148,6 +183,12 @@ public class HarvestProperties {
 
         /** Type-specific options (see the module README). */
         private Map<String, String> options = new LinkedHashMap<>();
+
+        /**
+         * Whether the source's records are classified when classification is enabled; {@code false}
+         * for sources whose records do not belong in collections (VIVO profiles).
+         */
+        private boolean classify = true;
 
     }
 

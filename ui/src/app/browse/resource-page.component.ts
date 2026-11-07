@@ -20,6 +20,8 @@ import { normalizePath, parentPath, pathOf, routeTo } from '../core/ldp/paths';
 import { compact } from '../core/rdf/graph';
 import { ART, FEDORA, LDP, PCDM } from '../core/rdf/vocabulary';
 import { allows } from '../core/webac/webac';
+import { MediaSuggestionComponent } from '../ai/media-suggestion.component';
+import { AiService } from '../core/ai/ai.service';
 import { ConfigService } from '../core/config.service';
 import { TopologyPanelComponent } from '../topology/topology-panel.component';
 import { BreadcrumbComponent } from '../shared/breadcrumb.component';
@@ -60,6 +62,7 @@ interface Child {
     MatIconModule,
     MatProgressBarModule,
     MatTooltipModule,
+    MediaSuggestionComponent,
     PropertyTableComponent,
     RouterLink,
     SparqlUpdateFormComponent,
@@ -82,6 +85,9 @@ export class ResourcePageComponent {
   private readonly config = inject(ConfigService);
 
   private readonly i18n = inject(I18nService);
+
+  /** Whether the AI agent suggests metadata of images, videos and PDFs. */
+  protected readonly mediaSuggestions = inject(AiService).offers('media');
 
   /** Path of the resource (bound from the route); empty for the root container. */
   readonly path = input('');

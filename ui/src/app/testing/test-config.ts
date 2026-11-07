@@ -14,6 +14,9 @@ export const TEST_TRANSFORM = 'http://host/transform/';
 /** Harvest service base used by the tests. */
 export const TEST_HARVEST = 'http://host/harvest/';
 
+/** AI agent base used by the tests. */
+export const TEST_AI = 'http://host/ai/';
+
 /** Sign-in settings used by the tests unless they pass others: a pasted token. */
 export const TEST_AUTH: AuthConfig = {
   provider: 'token',
@@ -37,6 +40,7 @@ export function provideTestConfig(auth: AuthConfig = TEST_AUTH): Provider {
       topologyBase: () => TEST_TOPOLOGY,
       transformBase: () => TEST_TRANSFORM,
       harvestBase: () => TEST_HARVEST,
+      aiBase: () => TEST_AI,
       communitiesPath: () => 'communities',
       profilesPath: () => 'profiles',
       auth: () => auth,

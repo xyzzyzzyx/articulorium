@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AI module: an optional agent built on Spring AI that assists people working with the repository.
+
+  It suggests PCDM topologies (an existing one, or a draft of a new one), describes binaries
+  (images, PDFs, videos) with technical metadata read from the file and descriptive metadata from
+  a model, models the topics of communities and collections, and classifies harvested records
+  against the community structure and the topologies. It never writes to the repository: every
+  suggestion goes back to the caller, who reviews it and applies it with the existing APIs (the
+  platform's LDP API, the topology API, the harvest review API).
+
+  The agent is off unless articulorium.ai.enabled=true; the chat model is chosen with
+  spring.ai.model.chat (ollama, openai or none). The OpenAI starter is in the "ai-openai" profile,
+  active unless -Dai.openai.skip is given.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.articulorium</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>ai</artifactId>
+  <packaging>jar</packaging>
+
+  <name>Articulorium AI Module</name>
+  <description>Optional Spring AI agent: topology suggestions, media metadata, topic models and classification of harvested records.</description>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+
+    <!-- HTTP clients towards the platform and the topology service -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-restclient</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <!-- OpenAPI description of the agent API (listed in the gateway's Swagger UI) -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    </dependency>
+
+    <!-- Consul configuration and discovery; discovery brings the load balancer that resolves
+         http://articulorium-platform and http://articulorium-topology -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-consul-config</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-consul-discovery</artifactId>
+    </dependency>
+
+    <!-- ChatClient, prompts, multimodal messages and structured output; the chat model itself
+         comes from a provider starter (profile ai-providers) -->
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-client-chat</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-autoconfigure-model-chat-client</artifactId>
+    </dependency>
+
+    <!-- the default provider: models served by Ollama inside the deployment, so repository
+         content never leaves it (spring.ai.model.chat=ollama) -->
+    <dependency>
+      <groupId>org.springframework.ai</groupId>
+      <artifactId>spring-ai-starter-model-ollama</artifactId>
+    </dependency>
+
+    <!-- each capability is an Articulorium agent: AgentRegistry and /actuator/info -->
+    <dependency>
+      <groupId>com.articulorium</groupId>
+      <artifactId>agent-spring-boot-starter</artifactId>
+    </dependency>
+
+    <!-- reading the repository (N-Triples) -->
+    <dependency>
+      <groupId>org.apache.jena</groupId>
+      <artifactId>jena-arq</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.articulorium</groupId>
+      <artifactId>domain</artifactId>
+    </dependency>
+
+    <!-- technical metadata of binaries: EXIF/IPTC/XMP of images, QuickTime/MP4/AVI/WebM
+         containers of videos, and the text and document information of PDFs -->
+    <dependency>
+      <groupId>com.drewnoakes</groupId>
+      <artifactId>metadata-extractor</artifactId>
+      <version>${metadata-extractor.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+      <version>${pdfbox.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!--
+      OpenAI, and any OpenAI-compatible endpoint (vLLM, LM Studio, LiteLLM, a hosted provider)
+      through spring.ai.openai.base-url (spring.ai.model.chat=openai). Active unless
+      -Dai.openai.skip is given, for a build without the OpenAI SDK. Another provider is one more
+      Spring AI starter.
+    -->
+    <profile>
+      <id>ai-openai</id>
+      <activation>
+        <property>
+          <name>!ai.openai.skip</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.springframework.ai</groupId>
+          <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+
+</project>

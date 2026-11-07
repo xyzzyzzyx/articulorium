@@ -226,6 +226,31 @@ diagnostics written for operators (they name the record and the HTTP status) and
 credentials. Set `articulorium.harvest.api.enabled=false` to turn the API off (the page then says
 the harvest service cannot be reached); the actuator endpoint stays.
 
+### Review queue (classification by the AI agent)
+
+With `articulorium.harvest.classification.enabled=true` the optional AI agent
+([ai/README.md](../ai/README.md#classifying-harvested-records)) suggests where every new record
+belongs, `GET /sources` answers `"classification": true`, and the Harvest page shows the review
+queue below the sources. Records are ingested exactly as without the agent; a record the agent
+cannot classify is kept as `FAILED` with the reason and never fails the harvest.
+
+| Request | Effect | Needs |
+|---------|--------|-------|
+| `GET /classifications?source=&status=open\|all&offset=&limit=` | a page of classifications, most recently changed first (`limit` at most 100), with `decide`: whether the caller may act on them | `read` |
+| `GET /classifications/{source}/{record}` | one classification | `read` |
+| `POST /classifications/{source}/{record}/acceptance` `{"collection": "...", "topology": "book"\|"none"}` | places the record in the suggested collection (both fields optional) or another one, as an item of the topology | `write` |
+| `POST /classifications/{source}/{record}/rejection` | the record stays where it was harvested | `write` |
+| `POST /classifications/{source}/{record}/retry` | classifies the record again (with the harvester's credentials) | `write` |
+
+A classification is `PENDING`, `PLACING` (an interrupted placement resumes on the same item),
+`ACCEPTED`, `REJECTED` or `FAILED`; suggestions below `review-threshold` are `uncertain`. Placing
+writes to the collection with the caller's own credentials. Refusals are problem documents with a
+`reason`: `UNKNOWN_SOURCE` and `NOT_FOUND` (404), `DECIDED`, `TARGET_REQUIRED` (the suggestion names
+no existing collection, so the request must) and `TOPOLOGY_REQUIRED` (the suggestion proposes a new
+topology, so the request must name an existing one or `none`) (409), `NOT_PLACED` (422: the
+collection or topology cannot be used, or the platform refused), `REFUSED` (the platform's status) and
+`PLATFORM_UNAVAILABLE` (503).
+
 ## The `harvest` actuator endpoint
 
 | Request                                   | Effect                                                         |

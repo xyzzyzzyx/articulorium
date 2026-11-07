@@ -10,6 +10,8 @@ import { Profile, emptyProfile, profileTurtle } from '../core/profile/profile';
 import { ART, FOAF, LDP, RDF, RDFS_LABEL } from '../core/rdf/vocabulary';
 import { TEST_BASE, provideTestConfig } from '../testing/test-config';
 import { provideTestI18n } from '../testing/test-i18n';
+import { offerAi, provideTestAi } from '../testing/test-ai';
+import { AiService } from '../core/ai/ai.service';
 import { ProfileEditorPageComponent } from './profile-editor-page.component';
 import { ProfileListPageComponent } from './profile-list-page.component';
 import { ProfilePageComponent } from './profile-page.component';
@@ -54,6 +56,7 @@ describe('profile pages', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         provideTestConfig(),
+        provideTestAi(),
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snackBar },
       ],
@@ -143,6 +146,22 @@ describe('profile pages', () => {
       expect(element.querySelector('.ui-profile-education')?.textContent).toContain('Doctor of Science (Physics), University of Paris');
       expect(element.querySelector('.ui-profile-publications a')?.getAttribute('href')).toBe('https://doi.org/10.1000/182');
       expect(element.querySelector('.ui-edit-profile')?.getAttribute('href')).toBe('/profiles/marie-curie/edit');
+    });
+
+    it('offers AI suggestions to those who may change the profile, when the agent does', async () => {
+      offerAi(TestBed.inject(AiService), ['profiles']);
+      const { element } = await open(stored(curie()));
+      expect(element.querySelector('ui-profile-suggestion h2')?.textContent).toContain('AI profile suggestions');
+      expect(element.querySelector('ui-profile-suggestion .ui-ai-suggest')).not.toBeNull();
+    });
+
+    it('offers no AI suggestions to readers, nor without the agent', async () => {
+      const without = await open(stored(curie()));
+      expect(without.element.querySelector('.ui-profile-suggestion')).toBeNull();
+      without.fixture.destroy();
+      offerAi(TestBed.inject(AiService), ['profiles']);
+      const reader = await open(stored(curie()), 'user="read"');
+      expect(reader.element.querySelector('.ui-profile-suggestion')).toBeNull();
     });
 
     it('offers no editing without write access', async () => {

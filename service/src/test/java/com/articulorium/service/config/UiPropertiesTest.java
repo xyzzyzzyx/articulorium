@@ -20,6 +20,7 @@ class UiPropertiesTest {
         assertThat(properties.apiDocsUrl()).isEqualTo("../swagger-ui.html");
         assertThat(properties.topologyUrl()).isEqualTo("../topology/");
         assertThat(properties.harvestUrl()).isEqualTo("../harvest/");
+        assertThat(properties.aiUrl()).isEqualTo("../ai/");
         assertThat(properties.transformUrl()).isEqualTo("../transform/");
         assertThat(properties.communitiesPath()).isEqualTo("communities");
         assertThat(properties.profilesPath()).isEqualTo("profiles");
@@ -28,15 +29,22 @@ class UiPropertiesTest {
     @Test
     void keepsAConfiguredProfileContainer() {
         final UiProperties properties =
-            new UiProperties(null, null, null, null, null, null, " people ", null, null);
+            new UiProperties(null, null, null, null, null, null, " people ", null, null, null);
         assertThat(properties.profilesPath()).isEqualTo("people");
     }
 
     @Test
     void keepsAConfiguredHarvestService() {
         final UiProperties properties =
-            new UiProperties(null, null, null, null, null, null, null, null, " https://harvest.example.org/ ");
+            new UiProperties(null, null, null, null, null, null, null, null, " https://harvest.example.org/ ", null);
         assertThat(properties.harvestUrl()).isEqualTo("https://harvest.example.org/");
+    }
+
+    @Test
+    void keepsAConfiguredAiAgent() {
+        final UiProperties properties =
+            new UiProperties(null, null, null, null, null, null, null, null, null, " https://ai.example.org/ ");
+        assertThat(properties.aiUrl()).isEqualTo("https://ai.example.org/");
     }
 
     @Test

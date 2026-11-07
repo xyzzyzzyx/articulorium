@@ -9,6 +9,10 @@ import { TEST_TOPOLOGY, provideTestConfig } from '../testing/test-config';
 import { TopologyEditorPageComponent } from './topology-editor-page.component';
 import { TopologyListPageComponent } from './topology-list-page.component';
 import { provideTestI18n } from '../testing/test-i18n';
+import { offerAi, provideTestAi } from '../testing/test-ai';
+import { AiService, TopologyDraftStore } from '../core/ai/ai.service';
+import { MatDialog } from '@angular/material/dialog';
+import { TopologySuggestionDialogComponent } from '../ai/topology-suggestion-dialog.component';
 
 const BOOK: Topology = { id: 'book', name: 'Book', builtIn: true, root: emptyNode('book', 'Book') };
 
@@ -18,7 +22,7 @@ describe('topology pages', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TopologyListPageComponent, TopologyEditorPageComponent],
-      providers: [...provideTestI18n(), provideHttpClient(), provideHttpClientTesting(), provideRouter([{ path: '**', children: [] }]), provideTestConfig()],
+      providers: [...provideTestI18n(), provideHttpClient(), provideHttpClientTesting(), provideRouter([{ path: '**', children: [] }]), provideTestConfig(), provideTestAi()],
     });
     http = TestBed.inject(HttpTestingController);
   });
@@ -118,5 +122,49 @@ describe('topology pages', () => {
     component.save(component.draft());
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('.ui-topology-errors')?.textContent).toContain('identifier');
+  });
+
+  describe('with the AI agent', () => {
+    it('offers topology suggestions only when the agent does', async () => {
+      const without = TestBed.createComponent(TopologyListPageComponent);
+      without.detectChanges();
+      TestBed.tick();
+      http.expectOne(`${TEST_TOPOLOGY}topologies`).flush([]);
+      await without.whenStable();
+      without.detectChanges();
+      expect((without.nativeElement as HTMLElement).querySelector('.ui-ai-topology')).toBeNull();
+    });
+
+    it('opens the suggestion dialog from the list', async () => {
+      offerAi(TestBed.inject(AiService), ['topology']);
+      const dialog = TestBed.inject(MatDialog);
+      const open = vi.spyOn(dialog, 'open').mockReturnValue(undefined as never);
+      const fixture = TestBed.createComponent(TopologyListPageComponent);
+      fixture.detectChanges();
+      TestBed.tick();
+      http.expectOne(`${TEST_TOPOLOGY}topologies`).flush([]);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const button = (fixture.nativeElement as HTMLElement).querySelector('.ui-ai-topology') as HTMLButtonElement;
+      expect(button.textContent).toContain('Suggest a topology');
+      button.click();
+      expect(open).toHaveBeenCalledWith(TopologySuggestionDialogComponent, expect.anything());
+    });
+
+    it('starts a new topology from the draft of the agent, once', async () => {
+      TestBed.inject(TopologyDraftStore).offer({ id: 'letters', name: 'Letters', builtIn: false, root: emptyNode('letter', 'Letter') });
+      const fixture = TestBed.createComponent(TopologyEditorPageComponent);
+      fixture.componentRef.setInput('id', 'new');
+      fixture.componentRef.setInput('origin', 'ai');
+      fixture.detectChanges();
+      TestBed.tick();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const component = fixture.componentInstance as unknown as { draft(): Topology };
+      expect(component.draft()).toEqual(expect.objectContaining({ id: 'letters', name: 'Letters', builtIn: false }));
+      expect(TestBed.inject(TopologyDraftStore).take()).toBeUndefined();
+    });
   });
 });

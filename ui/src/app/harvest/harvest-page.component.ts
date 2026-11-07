@@ -29,6 +29,7 @@ import { LocalizedDatePipe, LocalizedNumberPipe } from '../core/i18n/format.pipe
 import { I18nService } from '../core/i18n/i18n.service';
 import { ConfirmData, ConfirmDialogComponent } from '../shared/confirm-dialog.component';
 import { Notifier } from '../shared/notifier.service';
+import { ReviewQueueComponent } from './review-queue.component';
 
 /** How often the page reads the sources again while a harvest runs, in milliseconds. */
 export const HARVEST_POLL_INTERVAL = new InjectionToken<number>('HARVEST_POLL_INTERVAL', {
@@ -53,6 +54,9 @@ const TYPE_NAMES: Readonly<Record<string, string>> = {
  * The harvest service asks the platform's Web Access Control: viewing needs read and operating
  * write access to the harvested records. Only a harvest that ingested every record is shown as a
  * success; any other outcome says that the checkpoint did not move.
+ *
+ * When the harvest service classifies records with the AI agent, the review queue of its
+ * suggestions follows the sources.
  */
 @Component({
   selector: 'ui-harvest-page',
@@ -65,6 +69,7 @@ const TYPE_NAMES: Readonly<Record<string, string>> = {
     MatIconModule,
     MatProgressBarModule,
     NgTemplateOutlet,
+    ReviewQueueComponent,
     TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -338,6 +343,9 @@ const TYPE_NAMES: Readonly<Record<string, string>> = {
           <p class="ui-muted ui-harvest-none">{{ 'harvest.none' | translate }}</p>
         }
       </div>
+      @if (d.classification) {
+        <ui-review-queue [sources]="sourceIds(d)" />
+      }
     }
 
     <ng-template #report let-r>
@@ -453,6 +461,16 @@ export class HarvestPageComponent {
   protected cancel(source: HarvestSource): void {
     const confirmed = this.confirm('harvest.confirmCancel', source, this.i18n.t('harvest.action.cancel'));
     this.act(source, confirmed, () => this.harvests.cancel(source.id), 'harvest.stopping', 'harvest.action.cancel');
+  }
+
+  /**
+   * The identifiers of the sources, to filter the review queue by.
+   *
+   * @param list - the sources
+   * @returns their identifiers, in configuration order
+   */
+  protected sourceIds(list: HarvestSources): readonly string[] {
+    return list.sources.map((source) => source.id);
   }
 
   /**

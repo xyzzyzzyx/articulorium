@@ -1,0 +1,28 @@
+# Test configuration: no Consul, no provider (tests supply a scripted chat model), plain HTTP
+# clients towards a mocked platform and topology service.
+articulorium:
+  ai:
+    enabled: true
+    platform-url: http://platform.test/
+    topology-url: http://topology.test/
+    load-balanced: false
+
+management:
+  server:
+    port: 0
+
+spring:
+  application:
+    name: ai
+  ai:
+    model:
+      chat: none
+  cloud:
+    consul:
+      enabled: false
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+  config:
+    import: ""

@@ -40,4 +40,33 @@ describe('HarvestService', () => {
     service.cancel('repo').subscribe();
     http.expectOne({ method: 'DELETE', url: `${TEST_HARVEST}sources/repo/harvests/running` }).flush({});
   });
+
+  it('reads pages of the review queue', () => {
+    service.classifications().subscribe();
+    http
+      .expectOne((request) => request.method === 'GET' && request.urlWithParams === `${TEST_HARVEST}classifications?status=open&offset=0&limit=25`)
+      .flush({ classifications: [], total: 0, offset: 0, decide: false });
+    service.classifications({ source: 'repo', status: 'all', offset: 50, limit: 10 }).subscribe();
+    http
+      .expectOne((request) => request.urlWithParams === `${TEST_HARVEST}classifications?status=all&offset=50&limit=10&source=repo`)
+      .flush({ classifications: [], total: 0, offset: 50, decide: false });
+  });
+
+  it('accepts, rejects and retries classifications, escaping the source and record', () => {
+    service.accept('a b', 'rec/1').subscribe();
+    const accept = http.expectOne({ method: 'POST', url: `${TEST_HARVEST}classifications/a%20b/rec%2F1/acceptance` });
+    expect(accept.request.body).toEqual({});
+    accept.flush({});
+
+    service.accept('repo', 'r', { collection: 'communities/lib/c', topology: 'none' }).subscribe();
+    expect(http.expectOne(`${TEST_HARVEST}classifications/repo/r/acceptance`).request.body).toEqual({
+      collection: 'communities/lib/c',
+      topology: 'none',
+    });
+
+    service.reject('repo', 'r').subscribe();
+    http.expectOne({ method: 'POST', url: `${TEST_HARVEST}classifications/repo/r/rejection` }).flush({});
+    service.retry('repo', 'r').subscribe();
+    http.expectOne({ method: 'POST', url: `${TEST_HARVEST}classifications/repo/r/retry` }).flush({});
+  });
 });

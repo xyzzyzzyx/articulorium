@@ -10,6 +10,7 @@ import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
+import { TopologyDraftStore } from '../core/ai/ai.service';
 import { I18nService } from '../core/i18n/i18n.service';
 import { Topology, emptyNode, validateTopology } from '../core/topology/topology';
 import { TopologyService } from '../core/topology/topology.service';
@@ -120,6 +121,14 @@ export class TopologyEditorPageComponent {
   /** The topology a new one starts as a copy of (query parameter). */
   readonly from = input<string | undefined>(undefined);
 
+  /** `ai` when a new topology starts from the AI agent's draft (query parameter). */
+  readonly origin = input<string | undefined>(undefined);
+
+  private readonly drafts = inject(TopologyDraftStore);
+
+  /** The AI agent's draft a new topology starts as; `null` until looked for (it is taken once). */
+  private aiDraft: Topology | undefined | null = null;
+
   protected readonly isNew = computed(() => this.id() === 'new');
 
   protected readonly source = rxResource({
@@ -139,7 +148,12 @@ export class TopologyEditorPageComponent {
         return;
       }
       const source = this.source.value();
-      if (this.isNew()) {
+      if (this.aiDraft === null && this.isNew() && this.origin() === 'ai') {
+        this.aiDraft = this.drafts.take();
+      }
+      if (this.isNew() && this.aiDraft) {
+        this.draft.set(clone(this.aiDraft));
+      } else if (this.isNew()) {
         this.draft.set(
           source
             ? {
