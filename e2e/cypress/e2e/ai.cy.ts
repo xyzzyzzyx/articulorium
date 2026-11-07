@@ -43,6 +43,14 @@ function createCommunity(title: string): Cypress.Chainable<string> {
     .then((response) => pathOf(response.headers.location as string));
 }
 
+/**
+ * The Communities page of a community or collection: its route is the path below the community
+ * structure (`communities/lib` is `/ui/communities/lib`).
+ */
+function visitStructure(path: string): void {
+  cy.visitUi(`communities/${path.replace(/^communities\/?/, '')}`);
+}
+
 /** Reads a resource's N-Triples through the LDP API. */
 function ntriples(path: string): Cypress.Chainable<string> {
   return cy
@@ -70,7 +78,7 @@ describe('AI agent', () => {
       );
 
       createCommunity(unique('Library')).then((community) => {
-        cy.visitUi(`communities/${community}`);
+        visitStructure(community);
         cy.get('.ui-structure-kind').should('have.text', 'Community');
         cy.get('.ui-topic-suggestion').should('not.exist');
       });
@@ -154,7 +162,7 @@ describe('AI agent', () => {
           language: 'en',
         }).as('topics');
 
-        cy.visitUi(`communities/${community}`);
+        visitStructure(community);
         cy.get('.ui-topic-suggestion').contains('button', 'Suggest topics').click();
         cy.wait('@topics');
         cy.get('.ui-topic-suggestion').should('contain.text', 'Based on 2 items.');
@@ -233,8 +241,8 @@ describe('AI agent', () => {
               label: 'Letter',
               pcdmType: 'Object',
               metadata: [{ predicate: `${DCTERMS}title`, label: 'Title', required: true }],
-              files: [{ use: 'transcription', label: 'Transcription', mediaTypes: ['text/plain'] }],
-              children: [{ min: 1, max: -1, initial: 1, node: { key: 'page', label: 'Page', files: [{ use: 'scan', label: 'Scan' }] } }],
+              files: [{ use: 'http://pcdm.org/use#Transcript', label: 'Transcription', mediaTypes: ['text/plain'] }],
+              children: [{ min: 1, max: -1, initial: 1, node: { key: 'page', label: 'Page', files: [{ use: 'http://pcdm.org/use#OriginalFile', label: 'Scan' }] } }],
             },
           },
           errors: [],
