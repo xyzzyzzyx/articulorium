@@ -366,8 +366,10 @@ services:
     depends_on:
       consul:
         condition: service_healthy
+      # Solr has no healthcheck (like the index service, wait for it to start; searches answer 503
+      # until it is ready)
       solr:
-        condition: service_healthy
+        condition: service_started
 
   discovery-ui:
     # The public discovery and presentation layer: Angular rendered on the server (Node.js) for
