@@ -21,6 +21,7 @@ import com.articulorium.discovery.config.PublicUrls;
 import com.articulorium.discovery.iiif.IiifSummary;
 import com.articulorium.discovery.iiif.IiifSummaryClient;
 import com.articulorium.discovery.solr.SolrRequests;
+import com.articulorium.discovery.solr.SolrSchema;
 import com.articulorium.discovery.solr.SolrSearchClient;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -68,7 +69,7 @@ class ItemServiceTest {
         final PublicUrls urls = new PublicUrls(properties);
         final SolrSearchClient client = new SolrSearchClient(builder, properties);
         service = new ItemService(client, access, iiif, urls, properties,
-            new SearchService(client, access, urls, properties));
+            new SearchService(client, mock(SolrSchema.class), access, urls, properties));
         // Solr answers by the requested identifier
         solr.expect(manyTimes(), requestTo("http://solr.test/solr/articulorium/select")).andRespond(request -> {
             final MultiValueMap<String, String> form = SolrRequests.form(((MockClientHttpRequest) request).getBodyAsString());

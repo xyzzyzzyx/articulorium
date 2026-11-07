@@ -9,12 +9,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.List;
 
+import com.articulorium.discovery.MutableClock;
 import com.articulorium.discovery.config.DiscoveryProperties;
 import com.articulorium.discovery.config.PublicUrls;
 
@@ -132,36 +131,6 @@ class AccessVerifierTest {
         // concurrent checks reach the platform in any order
         platform = MockRestServiceServer.bindTo(builder).ignoreExpectOrder(true).build();
         return builder;
-    }
-
-    /** A clock tests move forward. */
-    static final class MutableClock extends Clock {
-
-        private Instant now;
-
-        MutableClock(final Instant now) {
-            this.now = now;
-        }
-
-        void advance(final Duration duration) {
-            now = now.plus(duration);
-        }
-
-        @Override
-        public java.time.ZoneId getZone() {
-            return ZoneOffset.UTC;
-        }
-
-        @Override
-        public Clock withZone(final java.time.ZoneId zone) {
-            return this;
-        }
-
-        @Override
-        public Instant instant() {
-            return now;
-        }
-
     }
 
 }

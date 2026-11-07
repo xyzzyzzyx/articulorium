@@ -23,6 +23,7 @@ import com.articulorium.discovery.access.AccessVerifier;
 import com.articulorium.discovery.config.DiscoveryProperties;
 import com.articulorium.discovery.config.PublicUrls;
 import com.articulorium.discovery.solr.SolrRequests;
+import com.articulorium.discovery.solr.SolrSchema;
 import com.articulorium.discovery.solr.SolrSearchClient;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -65,6 +66,8 @@ class SearchServiceTest {
 
     private AccessVerifier access;
 
+    private SolrSchema schema;
+
     private SearchService service;
 
     private final MultiValueMap<String, String> sent = new LinkedMultiValueMap<>();
@@ -80,7 +83,9 @@ class SearchServiceTest {
             readable.removeIf(path -> path.endsWith("secret"));
             return readable;
         });
-        service = new SearchService(new SolrSearchClient(builder, properties), access, new PublicUrls(properties),
+        schema = mock(SolrSchema.class);
+        when(schema.has(any())).thenReturn(true);
+        service = new SearchService(new SolrSearchClient(builder, properties), schema, access, new PublicUrls(properties),
             properties, Clock.fixed(Instant.parse("2026-11-07T12:00:00Z"), ZoneOffset.UTC));
     }
 
@@ -160,6 +165,30 @@ class SearchServiceTest {
         assertThat(SolrRequests.values(sent, "sort")).isEmpty();
         assertThat(sent.get("fl").getFirst().split(",")).contains("id", "type", "title", "title_txt_de", "description",
             "description_txt_de", "date", "thumbnail");
+    }
+
+    @Test
+    void searchesOnlyFieldsTheCollectionHas() {
+        expectSolr();
+        // the collection has no document with a description yet, nor German titles
+        when(schema.has("description")).thenReturn(false);
+        when(schema.has("title_txt_de")).thenReturn(false);
+
+        service.search(request("whale", Map.of(), Set.of(), null));
+
+        assertThat(sent.get("qf")).containsExactly("title^10 _text_");
+        assertThat(sent.get("pf")).containsExactly("title^20");
+    }
+
+    @Test
+    void searchesEverythingWhileNoConfiguredFieldExists() {
+        expectSolr();
+        when(schema.has(any())).thenReturn(false);
+
+        service.search(request("whale", Map.of(), Set.of(), null));
+
+        assertThat(sent.get("qf")).containsExactly("_text_");
+        assertThat(SolrRequests.values(sent, "pf")).isEmpty();
     }
 
     @Test

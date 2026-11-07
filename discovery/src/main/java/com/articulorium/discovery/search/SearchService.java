@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import com.articulorium.discovery.access.AccessVerifier;
 import com.articulorium.discovery.config.DiscoveryProperties;
 import com.articulorium.discovery.config.PublicUrls;
+import com.articulorium.discovery.solr.SolrSchema;
 import com.articulorium.discovery.solr.SolrSearchClient;
 import com.articulorium.discovery.solr.SolrSyntax;
 import com.articulorium.domain.vocabulary.Articulorium;
@@ -58,9 +59,14 @@ public class SearchService {
     /** Longest facet value accepted. */
     static final int MAX_VALUE_LENGTH = 500;
 
+    /** Searched when none of the configured fields exists yet: {@code _default}'s copy of every field. */
+    static final String CATCH_ALL_FIELD = "_text_";
+
     private static final Pattern YEAR_RANGE = Pattern.compile("(-?\\d{1,4})-(-?\\d{1,4})");
 
     private final SolrSearchClient solr;
+
+    private final SolrSchema schema;
 
     private final AccessVerifier access;
 
@@ -74,28 +80,31 @@ public class SearchService {
      * Creates the service.
      *
      * @param solr       the Solr client
+     * @param schema     the fields the collection has
      * @param access     the access checks
      * @param urls       the public addresses
      * @param properties the settings
      */
     @Autowired
-    public SearchService(final SolrSearchClient solr, final AccessVerifier access, final PublicUrls urls,
-            final DiscoveryProperties properties) {
-        this(solr, access, urls, properties, Clock.systemUTC());
+    public SearchService(final SolrSearchClient solr, final SolrSchema schema, final AccessVerifier access,
+            final PublicUrls urls, final DiscoveryProperties properties) {
+        this(solr, schema, access, urls, properties, Clock.systemUTC());
     }
 
     /**
      * Creates the service with a clock (the current year ends year facets by default).
      *
      * @param solr       the Solr client
+     * @param schema     the fields the collection has
      * @param access     the access checks
      * @param urls       the public addresses
      * @param properties the settings
      * @param clock      the clock
      */
-    public SearchService(final SolrSearchClient solr, final AccessVerifier access, final PublicUrls urls,
-            final DiscoveryProperties properties, final Clock clock) {
+    public SearchService(final SolrSearchClient solr, final SolrSchema schema, final AccessVerifier access,
+            final PublicUrls urls, final DiscoveryProperties properties, final Clock clock) {
         this.solr = solr;
+        this.schema = schema;
         this.access = access;
         this.urls = urls;
         this.properties = properties;
@@ -134,9 +143,12 @@ public class SearchService {
         } else {
             params.add("defType", "edismax");
             params.add("q", query);
-            params.add("qf", boosts(settings.getFields(), request.locale()));
-            if (!settings.getPhraseFields().isEmpty()) {
-                params.add("pf", boosts(settings.getPhraseFields(), request.locale()));
+            // only fields the collection has: edismax refuses a search naming a missing field
+            final String queryFields = boosts(settings.getFields(), request.locale());
+            params.add("qf", queryFields.isEmpty() ? CATCH_ALL_FIELD : queryFields);
+            final String phraseFields = boosts(settings.getPhraseFields(), request.locale());
+            if (!phraseFields.isEmpty()) {
+                params.add("pf", phraseFields);
             }
             settings.getBoostQueries().forEach(boost -> params.add("bq", boost));
             if (StringUtils.hasText(settings.getMinimumMatch())) {
@@ -333,13 +345,17 @@ public class SearchService {
         return sorts.isEmpty() || query.isEmpty() ? null : sorts.get(0);
     }
 
-    private static String boosts(final List<DiscoveryProperties.SearchField> fields, @Nullable final String locale) {
+    private String boosts(final List<DiscoveryProperties.SearchField> fields, @Nullable final String locale) {
         final List<String> terms = new ArrayList<>();
         for (final DiscoveryProperties.SearchField field : fields) {
             final String boost = boost(field.getBoost());
-            terms.add(field.getField() + boost);
+            if (schema.has(field.getField())) {
+                terms.add(field.getField() + boost);
+            }
             if (field.isLocalized()) {
-                SolrSyntax.languageSuffix(locale).ifPresent(suffix -> terms.add(field.getField() + "_txt_" + suffix + boost));
+                SolrSyntax.languageSuffix(locale).map(suffix -> field.getField() + "_txt_" + suffix)
+                    .filter(schema::has)
+                    .ifPresent(localized -> terms.add(localized + boost));
             }
         }
         return String.join(" ", terms);

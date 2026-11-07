@@ -1,5 +1,7 @@
 package com.articulorium.discovery.solr;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import com.articulorium.discovery.config.DiscoveryProperties;
@@ -85,6 +87,43 @@ public class SolrSearchClient {
     }
 
     /**
+     * Reads the collection's field names (Schema API).
+     *
+     * @return its explicit fields and dynamic field patterns
+     * @throws SolrUnavailableException when Solr cannot be reached
+     */
+    public Schema schema() {
+        return new Schema(names(schemaList("fields"), "fields"), names(schemaList("dynamicfields"), "dynamicFields"));
+    }
+
+    private JsonNode schemaList(final String list) {
+        try {
+            final JsonNode response = client.get()
+                .uri("{collection}/schema/{list}?wt=json", collection, list)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(JsonNode.class);
+            if (response == null) {
+                throw new SolrUnavailableException("Solr answered without a body");
+            }
+            return response;
+        } catch (RestClientException e) {
+            LOG.warn("Solr schema request failed: {}", e.getMessage());
+            throw new SolrUnavailableException("The search index is unavailable");
+        }
+    }
+
+    private static List<String> names(final JsonNode response, final String key) {
+        final List<String> names = new ArrayList<>();
+        for (final JsonNode field : response.path(key)) {
+            if (field.path("name").isString()) {
+                names.add(field.path("name").asString());
+            }
+        }
+        return names;
+    }
+
+    /**
      * Reads one document by identifier.
      *
      * @param id the document identifier (the resource's public IRI)
@@ -99,6 +138,15 @@ public class SolrSearchClient {
         params.add("fl", fields);
         final JsonNode docs = select(params).path("response").path("docs");
         return docs.isArray() && !docs.isEmpty() ? Optional.of(docs.get(0)) : Optional.empty();
+    }
+
+    /**
+     * The field names of a collection's schema.
+     *
+     * @param fields        explicit fields
+     * @param dynamicFields dynamic field patterns, such as {@code *_str}
+     */
+    public record Schema(List<String> fields, List<String> dynamicFields) {
     }
 
 }
