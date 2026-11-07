@@ -1,0 +1,140 @@
+{
+  "site": {
+    "description": "استكشف المجموعات الرقمية: كتب وصحف ومخطوطات وتسجيلات والمزيد."
+  },
+  "nav": {
+    "skip": "انتقل إلى المحتوى",
+    "landmark": "التنقل الرئيسي",
+    "home": "الرئيسية",
+    "browse": "تصفح",
+    "languageMenu": "اللغة: {{language}}",
+    "footer": "تذييل الصفحة"
+  },
+  "footer": {
+    "iiif": "تُشارك الصور والتسجيلات والوثائق عبر IIIF."
+  },
+  "search": {
+    "landmark": "البحث في المجموعات",
+    "label": "بحث",
+    "submit": "بحث",
+    "refine": "تحسين النتائج",
+    "filters": "عرض فقط",
+    "selected": "(محدد)",
+    "loading": "جارٍ البحث…",
+    "sort": "ترتيب حسب",
+    "active": "التحسينات النشطة",
+    "remove": "إزالة {{value}}",
+    "clear": "مسح كل التحسينات",
+    "empty": "لا توجد نتائج مطابقة لهذا البحث. جرّب كلمات أخرى أو تحسينات أقل.",
+    "pagination": "صفحات النتائج",
+    "previous": "السابق",
+    "next": "التالي",
+    "pageOf": "الصفحة {{page}} من {{pages}}",
+    "titleFor": "نتائج «{{query}}»",
+    "browse": "تصفح المجموعات",
+    "results": "النتائج",
+    "count": {
+      "zero": "لا نتائج",
+      "one": "نتيجة واحدة",
+      "two": "نتيجتان",
+      "few": "{{formatted}} نتائج",
+      "many": "{{formatted}} نتيجة",
+      "other": "{{formatted}} نتيجة"
+    }
+  },
+  "home": {
+    "search": "بحث",
+    "collections": "المجموعات",
+    "recent": "أضيفت مؤخرًا",
+    "browseAll": "تصفح كل شيء"
+  },
+  "kinds": {
+    "community": "مجتمع",
+    "collection": "مجموعة",
+    "object": "مادة",
+    "resource": "مورد"
+  },
+  "types": {
+    "book": "كتاب",
+    "issue": "عدد",
+    "article": "مقال",
+    "journal": "مجلة علمية",
+    "newspaper": "صحيفة",
+    "manuscript": "مخطوطة",
+    "audiovisual": "تسجيل سمعي بصري"
+  },
+  "topologies": {
+    "book": "كتاب",
+    "newspaper": "صحيفة",
+    "journal": "مجلة علمية",
+    "postcards": "بطاقات بريدية",
+    "manuscript": "مخطوطة",
+    "audiovisual": "تسجيل سمعي بصري"
+  },
+  "facets": {
+    "type": "النوع",
+    "topology": "الشكل",
+    "creator": "المؤلف",
+    "subject": "الموضوع",
+    "language": "اللغة",
+    "year": "التاريخ"
+  },
+  "filters": {
+    "digitized": "المواد المرقمنة"
+  },
+  "sorts": {
+    "relevance": "الصلة",
+    "title": "العنوان",
+    "newest": "الأحدث تعديلًا",
+    "date": "التاريخ"
+  },
+  "fields": {
+    "title": "العنوان",
+    "description": "الوصف",
+    "creator": "المؤلف",
+    "contributor": "مساهم",
+    "date": "التاريخ",
+    "publisher": "الناشر",
+    "subject": "الموضوع",
+    "type": "النوع",
+    "language": "اللغة",
+    "format": "الصيغة",
+    "extent": "المدى",
+    "identifier": "المعرّف",
+    "rights": "الحقوق",
+    "license": "الترخيص",
+    "source": "المصدر",
+    "isPartOf": "جزء من",
+    "bibliographicCitation": "الاستشهاد"
+  },
+  "item": {
+    "loading": "جارٍ التحميل…",
+    "breadcrumb": "أنت هنا",
+    "viewer": "العارض",
+    "details": "التفاصيل",
+    "links": "روابط",
+    "iiifManifest": "بيان IIIF",
+    "iiifCollection": "مجموعة IIIF",
+    "repository": "عرض في المستودع",
+    "communityMembers": "في هذا المجتمع",
+    "collectionMembers": "في هذه المجموعة"
+  },
+  "viewer": {
+    "label": "العارض: {{title}}",
+    "preview": "معاينة {{title}}",
+    "loading": "جارٍ تحميل العارض…",
+    "failed": "تعذر تحميل العارض.",
+    "document": "وثيقة: {{title}}",
+    "openPdf": "فتح ملف PDF"
+  },
+  "errors": {
+    "unavailableTitle": "غير متاح مؤقتًا",
+    "unavailable": "تعذر الوصول إلى المجموعات حاليًا. يرجى المحاولة مرة أخرى بعد بضع دقائق.",
+    "search": "البحث غير متاح حاليًا. يرجى المحاولة مرة أخرى بعد بضع دقائق.",
+    "badSearch": "لا يمكن تنفيذ هذا البحث. جرّب كلمات أقصر أو تحسينات أقل.",
+    "item": "لا يمكن عرض هذه المادة حاليًا. يرجى المحاولة مرة أخرى بعد بضع دقائق.",
+    "notFoundTitle": "غير موجود",
+    "notFound": "هذه المادة غير موجودة أو ليست عامة.",
+    "pageNotFound": "لا توجد صفحة بهذا العنوان."
+  }
+}

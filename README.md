@@ -15,7 +15,9 @@ and collections; PCDM *topologies* (Book, Newspaper, Journal, Postcards, ... and
 build and navigate the resources of a digital object; IIIF Presentation 3.0 export of those
 structures; [COAR Notify](https://coar-notify.net/) inboxes for every container; and an
 [OAI-PMH 2.0](https://www.openarchives.org/OAI/openarchivesprotocol.html) data provider for
-harvesters. An optional AI agent ([Spring AI](https://docs.spring.io/spring-ai/reference/)) suggests
+harvesters; and a themeable, server-rendered public **discovery layer** (Angular SSR, Angular
+Material, [Mirador](https://projectmirador.org/)) for searching and presenting the collections.
+An optional AI agent ([Spring AI](https://docs.spring.io/spring-ai/reference/)) suggests
 topologies, metadata, topics and profile details, and classifies harvested records, for people to
 review.
 
@@ -30,6 +32,8 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 | `agent-spring-boot-starter` | Spring Boot auto-configuration for the agent library: `AgentRegistry` bean, `articulorium.agents.*` settings, `/actuator/info` ([README](agent-spring-boot-starter/README.md)) |
 | `i18n-spring-boot-starter` | Shipped locales, `articulorium.i18n.*` settings, locale resolution, message bundles and locale propagation for every service ([README](i18n-spring-boot-starter/README.md), [Internationalization](#internationalization)) |
 | `ui`          | Angular single page application, packaged as static resources ([ui/README.md](ui/README.md)) |
+| `discovery`   | API of the public discovery layer: the deployment's branding, layouts, facets, filters and search precedence (`articulorium.discovery.*`), Solr searches with every hit checked against the platform's WebAC, resource descriptions with IIIF summaries, sitemap entries ([discovery/README.md](discovery/README.md)) |
+| `discovery-ui` | The public discovery and presentation layer: Angular rendered on the server (Node.js) for search engines, themed Angular Material pages in every locale, Mirador for images, audio, video and PDFs ([discovery-ui/README.md](discovery-ui/README.md)) |
 | `platform`    | The LDP server: RDF sources, containers, files, versions, fixity, search, OCFL storage  |
 | `gateway`     | Spring Cloud Gateway; public entry point (`/ui/**`, `/platform/**`, `/transform/**`, `/topology/**`, `/auth/**` for the identity provider) and one Swagger UI for all services |
 | `service`     | Serves the UI and its support API (settings, agents from `articulorium.agents.definitions`, media type detection with Apache Tika) |
@@ -43,6 +47,8 @@ Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
 
 ```
 browser ──> gateway ──> service (UI)
+               ├─────> discovery-ui (/discover: SSR pages) ──> gateway ──> discovery (/discover/api) ──> Solr
+               │                                                              └──(WebAC, IIIF)──> platform, transform
                ├─────> keycloak (/auth: OpenID Connect login, tokens)
                ├─────> topology ───────────────(LDP)──┐
                ├─────> transform (IIIF) ───────(LDP)──┤
@@ -76,6 +82,7 @@ RDF syntax to RDF clients and a simple HTML view to browsers.
 | URL                                  | What                                   |
 |--------------------------------------|----------------------------------------|
 | http://localhost:8000/ui/            | User interface                         |
+| http://localhost:8000/discover/      | Public discovery layer (search, collections, resource pages with Mirador) |
 | http://localhost:8000/platform/      | LDP root through the gateway           |
 | http://localhost:8000/swagger-ui.html | Swagger UI for the platform, transform, topology and service APIs (the UI's "API" link) |
 | http://localhost:8000/auth/          | Keycloak (realm `articulorium`; admin console `/auth/admin/`, `admin` / `admin`) |
@@ -387,6 +394,31 @@ every descriptive property as `metadata`, links to the LDP resource and the UI p
 collection or community as a **Collection** of manifests and collections. The UI links each
 exportable resource's export ("IIIF").
 
+A canvas without an image, audio or video file is painted with its PDF, if it has one, as a `Text`
+body with format `application/pdf` (`articulorium.iiif.paint-documents`, default `true`), so viewers
+that present documents (the discovery layer's Mirador) show it; other files stay renderings.
+
+## Discovery layer
+
+`http://localhost:8000/discover/` is the public face of the repository: search with facets and
+filters, the community structure, and a page per community, collection and object that presents its
+IIIF export in Mirador (deep zoom images, audio, video, PDFs). Pages are rendered on the server
+(Angular SSR) with titles, descriptions, canonical URLs, `hreflang` alternates for every locale,
+Open Graph and Twitter cards and schema.org JSON-LD; `/discover/sitemap.xml` and
+`/discover/robots.txt` are generated from the index. Only resources anonymous visitors may read
+(the platform's WebAC) are listed or shown.
+
+Everything a deployment changes is configuration of the `discovery` service
+(`articulorium.discovery.*`, in `application.yml`, environment variables or Consul): the site's name,
+logo and texts in every language, Material 3 colors, fonts, shape, density and extra CSS, the order
+of the home page's sections, list or grid results, facet position, the viewer's position and size,
+the metadata fields of resource pages, the search fields and their boosts, facets, filters, sort
+orders and search engine directives. See [discovery/README.md](discovery/README.md) for the settings
+and [discovery-ui/README.md](discovery-ui/README.md) for the application.
+
+Set `DISCOVERY_PUBLIC_URL` to the address visitors use (canonical URLs and sitemaps are built from
+it) and `GATEWAY_ROOT_REDIRECT=/discover/` to make the discovery layer the gateway's home page.
+
 ## Notifications (COAR Notify)
 
 Every container (community, collection, ...) has a [Linked Data Notifications](https://www.w3.org/TR/ldn/)
@@ -683,7 +715,7 @@ first start and persists updates. Any store implementing the same protocols work
 ## Building and testing
 
 ```bash
-mvn verify            # all modules, including the Angular build, lint and unit tests
+mvn verify            # all modules, including the Angular builds (ui, discovery-ui), lint and unit tests
 mvn -Dskip.npm verify # skip the npm steps (reuses ui/dist when present)
 ```
 

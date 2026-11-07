@@ -36,7 +36,9 @@ import org.springframework.stereotype.Service;
  *       no members of its own (a page, the front of a postcard, an article) becomes a
  *       <strong>Canvas</strong>, in {@code schema:position} order; its image, audio or video file
  *       (preferring {@code pcdmuse:ServiceFile}, then {@code pcdmuse:OriginalFile}) is painted on
- *       it, and its other files (PDF, OCR text, transcripts) are linked as {@code rendering}.
+ *       it, and its other files (PDF, OCR text, transcripts) are linked as {@code rendering}. A
+ *       canvas without image, audio or video is painted with its PDF, if it has one
+ *       ({@code articulorium.iiif.paint-documents}), as a {@code Text} body.
  *       Intermediate objects (an issue's sections, a folio with recto and verso) become
  *       <strong>Ranges</strong> in {@code structures}.</li>
  *   <li>A PCDM collection, community, sub-community or collection of the community structure
@@ -264,6 +266,10 @@ public class IiifPresentationService {
             return "Dataset";
         }
 
+        boolean document() {
+            return "application/pdf".equalsIgnoreCase(mimeType == null ? "" : mimeType.trim());
+        }
+
         boolean paintable() {
             return switch (kind()) {
                 case "Image", "Sound", "Video" -> true;
@@ -461,7 +467,10 @@ public class IiifPresentationService {
             }
             final Optional<FileInfo> painted = files.stream()
                 .filter(FileInfo::paintable)
-                .min(Comparator.comparingInt(FileInfo::preference));
+                .min(Comparator.comparingInt(FileInfo::preference))
+                .or(() -> properties.isPaintDocuments() ? files.stream()
+                    .filter(FileInfo::document)
+                    .min(Comparator.comparingInt(FileInfo::preference)) : Optional.empty());
             final List<Map<String, Object>> annotationPages = new ArrayList<>();
             if (painted.isPresent()) {
                 final FileInfo file = painted.get();
@@ -471,7 +480,12 @@ public class IiifPresentationService {
                 if (file.mimeType() != null) {
                     body.put("format", file.mimeType());
                 }
-                if ("Image".equals(file.kind())) {
+                if (file.document()) {
+                    // a PDF on a canvas without images or media: viewers that present documents
+                    // (Mirador with a document plugin) show it, others still offer it as the body
+                    canvas.put("width", properties.getDefaultWidth());
+                    canvas.put("height", properties.getDefaultHeight());
+                } else if ("Image".equals(file.kind())) {
                     final ImageDimensions.Size size = size(file);
                     body.put("width", size.width());
                     body.put("height", size.height());

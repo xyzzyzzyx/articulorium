@@ -9,6 +9,9 @@
 #
 # Entry points once healthy (allow a minute or two on first start):
 #   http://localhost:8000/ui/         Articulorium UI (browse, create, upload, edit, versions, search)
+#   http://localhost:8000/discover/   public discovery layer (server-rendered search, collections and
+#                                     resource pages with Mirador; DISCOVERY_PUBLIC_URL sets its public
+#                                     address, GATEWAY_ROOT_REDIRECT=/discover/ makes it the home page)
 #   http://localhost:8000/platform/   LDP root through the gateway
 #   http://localhost:8000/swagger-ui.html
 #                                     Swagger UI for every service's OpenAPI description
@@ -89,6 +92,8 @@ services:
         MODULE: gateway
     environment:
       <<: *spring-env
+      # the bare root: the user interface (/ui/) or the discovery layer (/discover/)
+      ARTICULORIUM_GATEWAY_ROOT_REDIRECT: ${GATEWAY_ROOT_REDIRECT:-/ui/}
     ports:
       - "8000:9000"
     depends_on:
@@ -340,6 +345,59 @@ services:
     networks:
       - cloud
 
+  discovery:
+    # API of the public discovery layer: the deployment's branding, layouts, facets and search
+    # precedence (articulorium.discovery.*, see discovery/README.md), searches of the Solr collection
+    # with every hit checked against the platform's WebAC, resource descriptions; the gateway serves
+    # it under /discover/api/
+    <<: *service
+    image: articulorium/discovery:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: discovery
+    environment:
+      <<: *spring-env
+      ARTICULORIUM_DISCOVERY_PUBLIC_URL: ${DISCOVERY_PUBLIC_URL:-http://localhost:8000/discover/}
+      ARTICULORIUM_DISCOVERY_SOLR_BASE_URL: http://solr:8983/solr
+    ports:
+      - "9008:9000"
+    depends_on:
+      consul:
+        condition: service_healthy
+      solr:
+        condition: service_healthy
+
+  discovery-ui:
+    # The public discovery and presentation layer: Angular rendered on the server (Node.js) for
+    # search engines and fast first pages, Angular Material themed by the discovery service's
+    # settings, Mirador for images, audio, video and PDFs; the gateway serves it under /discover/
+    image: articulorium/discovery-ui:latest
+    build:
+      context: ./discovery-ui
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # the discovery API as this server reaches it (the same path as browsers use)
+      DISCOVERY_API_URL: http://gateway:9000/discover/api/
+      # host names requests may be addressed to: the gateway forwards Host discovery-ui:4000 and
+      # the visitor's host as X-Forwarded-Host (add the public host name in production)
+      NG_ALLOWED_HOSTS: ${DISCOVERY_ALLOWED_HOSTS:-localhost,127.0.0.1,discovery-ui,gateway}
+    ports:
+      - "4000:4000"
+    networks:
+      - cloud
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    depends_on:
+      gateway:
+        condition: service_healthy
+
   service:
     # Angular user interface and its support API (agents, media type detection, UI settings);
     # the gateway serves it under /ui/
@@ -585,6 +643,11 @@ services:
       transform:
         condition: service_healthy
       oai:
+        condition: service_healthy
+      # the discovery spec searches the Solr collection the index service writes
+      discovery:
+        condition: service_healthy
+      discovery-ui:
         condition: service_healthy
       # the harvest spec runs harvests on the harvest service's management port
       harvest:

@@ -1,0 +1,137 @@
+{
+  "site": {
+    "description": "Esplora le collezioni digitalizzate: libri, giornali, manoscritti, registrazioni e altro."
+  },
+  "nav": {
+    "skip": "Vai al contenuto",
+    "landmark": "Navigazione principale",
+    "home": "Home",
+    "browse": "Sfoglia",
+    "languageMenu": "Lingua: {{language}}",
+    "footer": "Piè di pagina"
+  },
+  "footer": {
+    "iiif": "Immagini, registrazioni e documenti sono condivisi tramite IIIF."
+  },
+  "search": {
+    "landmark": "Cerca nelle collezioni",
+    "label": "Cerca",
+    "submit": "Cerca",
+    "refine": "Affina i risultati",
+    "filters": "Mostra solo",
+    "selected": "(selezionato)",
+    "loading": "Ricerca in corso…",
+    "sort": "Ordina per",
+    "active": "Filtri attivi",
+    "remove": "Rimuovi {{value}}",
+    "clear": "Rimuovi tutti i filtri",
+    "empty": "Nessun risultato per questa ricerca. Prova altre parole o meno filtri.",
+    "pagination": "Pagine dei risultati",
+    "previous": "Precedente",
+    "next": "Successiva",
+    "pageOf": "Pagina {{page}} di {{pages}}",
+    "titleFor": "Risultati per «{{query}}»",
+    "browse": "Sfoglia le collezioni",
+    "results": "Risultati",
+    "count": {
+      "one": "{{formatted}} risultato",
+      "many": "{{formatted}} di risultati",
+      "other": "{{formatted}} risultati"
+    }
+  },
+  "home": {
+    "search": "Ricerca",
+    "collections": "Collezioni",
+    "recent": "Aggiunti di recente",
+    "browseAll": "Sfoglia tutto"
+  },
+  "kinds": {
+    "community": "Comunità",
+    "collection": "Collezione",
+    "object": "Oggetto",
+    "resource": "Risorsa"
+  },
+  "types": {
+    "book": "Libro",
+    "issue": "Fascicolo",
+    "article": "Articolo",
+    "journal": "Rivista",
+    "newspaper": "Giornale",
+    "manuscript": "Manoscritto",
+    "audiovisual": "Registrazione audiovisiva"
+  },
+  "topologies": {
+    "book": "Libro",
+    "newspaper": "Giornale",
+    "journal": "Rivista",
+    "postcards": "Cartoline",
+    "manuscript": "Manoscritto",
+    "audiovisual": "Registrazione audiovisiva"
+  },
+  "facets": {
+    "type": "Tipo",
+    "topology": "Formato",
+    "creator": "Autore",
+    "subject": "Soggetto",
+    "language": "Lingua",
+    "year": "Data"
+  },
+  "filters": {
+    "digitized": "Oggetti digitalizzati"
+  },
+  "sorts": {
+    "relevance": "Pertinenza",
+    "title": "Titolo",
+    "newest": "Modificati di recente",
+    "date": "Data"
+  },
+  "fields": {
+    "title": "Titolo",
+    "description": "Descrizione",
+    "creator": "Autore",
+    "contributor": "Collaboratore",
+    "date": "Data",
+    "publisher": "Editore",
+    "subject": "Soggetto",
+    "type": "Tipo",
+    "language": "Lingua",
+    "format": "Formato",
+    "extent": "Estensione",
+    "identifier": "Identificativo",
+    "rights": "Diritti",
+    "license": "Licenza",
+    "source": "Fonte",
+    "isPartOf": "Parte di",
+    "bibliographicCitation": "Citazione"
+  },
+  "item": {
+    "loading": "Caricamento…",
+    "breadcrumb": "Ti trovi qui",
+    "viewer": "Visualizzatore",
+    "details": "Dettagli",
+    "links": "Collegamenti",
+    "iiifManifest": "Manifest IIIF",
+    "iiifCollection": "Collezione IIIF",
+    "repository": "Vedi nel repository",
+    "communityMembers": "In questa comunità",
+    "collectionMembers": "In questa collezione"
+  },
+  "viewer": {
+    "label": "Visualizzatore: {{title}}",
+    "preview": "Anteprima di {{title}}",
+    "loading": "Caricamento del visualizzatore…",
+    "failed": "Impossibile caricare il visualizzatore.",
+    "document": "Documento: {{title}}",
+    "openPdf": "Apri il PDF"
+  },
+  "errors": {
+    "unavailableTitle": "Temporaneamente non disponibile",
+    "unavailable": "Le collezioni non sono raggiungibili al momento. Riprova tra qualche minuto.",
+    "search": "La ricerca non è disponibile al momento. Riprova tra qualche minuto.",
+    "badSearch": "Questa ricerca non può essere eseguita. Prova termini più brevi o meno filtri.",
+    "item": "Questo oggetto non può essere visualizzato al momento. Riprova tra qualche minuto.",
+    "notFoundTitle": "Non trovato",
+    "notFound": "Questo oggetto non esiste o non è pubblico.",
+    "pageNotFound": "Non esiste alcuna pagina a questo indirizzo."
+  }
+}

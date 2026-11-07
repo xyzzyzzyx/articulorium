@@ -34,7 +34,8 @@ class GatewayApplicationTest {
         assertThat(routes).extracting(Route::getId)
             .contains("articulorium-platform", "articulorium-transform", "articulorium-topology", "articulorium-service",
                 "articulorium-root", "articulorium-ui-slash", "articulorium-auth", "articulorium-oai",
-                "articulorium-harvest", "articulorium-ai");
+                "articulorium-harvest", "articulorium-ai", "articulorium-discovery-api", "articulorium-discovery",
+                "articulorium-discovery-slash");
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-platform"))
             .singleElement()
             .satisfies(route -> {
@@ -70,6 +71,22 @@ class GatewayApplicationTest {
                 assertThat(route.getUri().toString()).isEqualTo("lb://articulorium-ai");
                 assertThat(route.getFilters()).anyMatch(filter -> filter.toString().contains("StripPrefix"));
             });
+        // the discovery API is in Consul; the server-rendered pages run on Node.js at a fixed address,
+        // with the path unchanged (their base href is /discover/), and the API's route comes first
+        assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-discovery-api"))
+            .singleElement()
+            .satisfies(route -> {
+                assertThat(route.getUri().toString()).isEqualTo("lb://articulorium-discovery");
+                assertThat(route.getFilters()).anyMatch(filter -> filter.toString().contains("StripPrefix"));
+            });
+        assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-discovery"))
+            .singleElement()
+            .satisfies(route -> {
+                assertThat(route.getUri().toString()).isEqualTo("http://discovery-ui:4000");
+                assertThat(route.getFilters()).noneMatch(filter -> filter.toString().contains("StripPrefix"));
+            });
+        assertThat(routes).extracting(Route::getId).containsSubsequence("articulorium-discovery-api",
+            "articulorium-discovery");
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-service"))
             .singleElement()
             .satisfies(route -> assertThat(route.getUri().toString()).isEqualTo("lb://articulorium-service"));

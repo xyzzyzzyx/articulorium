@@ -15,5 +15,7 @@ node
 **/node_modules
 ui/dist
 ui/.angular
+discovery-ui/dist
+discovery-ui/.angular
 # end-to-end tests run in their own container (cypress/included), not in the service images
 e2e

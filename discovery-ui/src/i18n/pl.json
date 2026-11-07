@@ -1,0 +1,138 @@
+{
+  "site": {
+    "description": "Odkryj zdigitalizowane zbiory: książki, gazety, rękopisy, nagrania i wiele więcej."
+  },
+  "nav": {
+    "skip": "Przejdź do treści",
+    "landmark": "Nawigacja główna",
+    "home": "Strona główna",
+    "browse": "Przeglądaj",
+    "languageMenu": "Język: {{language}}",
+    "footer": "Stopka"
+  },
+  "footer": {
+    "iiif": "Obrazy, nagrania i dokumenty są udostępniane przez IIIF."
+  },
+  "search": {
+    "landmark": "Szukaj w zbiorach",
+    "label": "Szukaj",
+    "submit": "Szukaj",
+    "refine": "Zawęź wyniki",
+    "filters": "Pokaż tylko",
+    "selected": "(wybrano)",
+    "loading": "Wyszukiwanie…",
+    "sort": "Sortuj według",
+    "active": "Aktywne filtry",
+    "remove": "Usuń {{value}}",
+    "clear": "Wyczyść wszystkie filtry",
+    "empty": "Brak wyników. Spróbuj innych słów lub mniejszej liczby filtrów.",
+    "pagination": "Strony wyników",
+    "previous": "Poprzednia",
+    "next": "Następna",
+    "pageOf": "Strona {{page}} z {{pages}}",
+    "titleFor": "Wyniki dla „{{query}}”",
+    "browse": "Przeglądaj zbiory",
+    "results": "Wyniki",
+    "count": {
+      "one": "{{formatted}} wynik",
+      "few": "{{formatted}} wyniki",
+      "many": "{{formatted}} wyników",
+      "other": "{{formatted}} wyniku"
+    }
+  },
+  "home": {
+    "search": "Wyszukiwanie",
+    "collections": "Zbiory",
+    "recent": "Ostatnio dodane",
+    "browseAll": "Przeglądaj wszystko"
+  },
+  "kinds": {
+    "community": "Społeczność",
+    "collection": "Kolekcja",
+    "object": "Obiekt",
+    "resource": "Zasób"
+  },
+  "types": {
+    "book": "Książka",
+    "issue": "Numer",
+    "article": "Artykuł",
+    "journal": "Czasopismo",
+    "newspaper": "Gazeta",
+    "manuscript": "Rękopis",
+    "audiovisual": "Nagranie audiowizualne"
+  },
+  "topologies": {
+    "book": "Książka",
+    "newspaper": "Gazeta",
+    "journal": "Czasopismo",
+    "postcards": "Pocztówki",
+    "manuscript": "Rękopis",
+    "audiovisual": "Nagranie audiowizualne"
+  },
+  "facets": {
+    "type": "Typ",
+    "topology": "Forma",
+    "creator": "Twórca",
+    "subject": "Temat",
+    "language": "Język",
+    "year": "Data"
+  },
+  "filters": {
+    "digitized": "Obiekty zdigitalizowane"
+  },
+  "sorts": {
+    "relevance": "Trafność",
+    "title": "Tytuł",
+    "newest": "Ostatnio zmienione",
+    "date": "Data"
+  },
+  "fields": {
+    "title": "Tytuł",
+    "description": "Opis",
+    "creator": "Twórca",
+    "contributor": "Współtwórca",
+    "date": "Data",
+    "publisher": "Wydawca",
+    "subject": "Temat",
+    "type": "Typ",
+    "language": "Język",
+    "format": "Format",
+    "extent": "Objętość",
+    "identifier": "Identyfikator",
+    "rights": "Prawa",
+    "license": "Licencja",
+    "source": "Źródło",
+    "isPartOf": "Część",
+    "bibliographicCitation": "Cytowanie"
+  },
+  "item": {
+    "loading": "Ładowanie…",
+    "breadcrumb": "Jesteś tutaj",
+    "viewer": "Przeglądarka",
+    "details": "Szczegóły",
+    "links": "Linki",
+    "iiifManifest": "Manifest IIIF",
+    "iiifCollection": "Kolekcja IIIF",
+    "repository": "Zobacz w repozytorium",
+    "communityMembers": "W tej społeczności",
+    "collectionMembers": "W tej kolekcji"
+  },
+  "viewer": {
+    "label": "Przeglądarka: {{title}}",
+    "preview": "Podgląd: {{title}}",
+    "loading": "Ładowanie przeglądarki…",
+    "failed": "Nie udało się wczytać przeglądarki.",
+    "document": "Dokument: {{title}}",
+    "openPdf": "Otwórz PDF"
+  },
+  "errors": {
+    "unavailableTitle": "Chwilowo niedostępne",
+    "unavailable": "Zbiory są chwilowo niedostępne. Spróbuj ponownie za kilka minut.",
+    "search": "Wyszukiwanie jest chwilowo niedostępne. Spróbuj ponownie za kilka minut.",
+    "badSearch": "Nie można wykonać tego wyszukiwania. Spróbuj krótszych słów lub mniejszej liczby filtrów.",
+    "item": "Nie można teraz wyświetlić tego obiektu. Spróbuj ponownie za kilka minut.",
+    "notFoundTitle": "Nie znaleziono",
+    "notFound": "Ten obiekt nie istnieje lub nie jest publiczny.",
+    "pageNotFound": "Pod tym adresem nie ma strony."
+  }
+}

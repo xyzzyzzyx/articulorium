@@ -1,0 +1,135 @@
+{
+  "site": {
+    "description": "デジタル化されたコレクションを探索しましょう：書籍、新聞、写本、録音など。"
+  },
+  "nav": {
+    "skip": "本文へスキップ",
+    "landmark": "メインナビゲーション",
+    "home": "ホーム",
+    "browse": "閲覧",
+    "languageMenu": "言語: {{language}}",
+    "footer": "フッター"
+  },
+  "footer": {
+    "iiif": "画像・録音・文書は IIIF で公開されています。"
+  },
+  "search": {
+    "landmark": "コレクションを検索",
+    "label": "検索",
+    "submit": "検索",
+    "refine": "結果を絞り込む",
+    "filters": "表示を限定",
+    "selected": "（選択中）",
+    "loading": "検索中…",
+    "sort": "並べ替え",
+    "active": "適用中の絞り込み",
+    "remove": "{{value}} を解除",
+    "clear": "絞り込みをすべて解除",
+    "empty": "この検索に一致するものはありません。別の語句を試すか、絞り込みを減らしてください。",
+    "pagination": "結果のページ",
+    "previous": "前へ",
+    "next": "次へ",
+    "pageOf": "{{pages}} ページ中 {{page}} ページ",
+    "titleFor": "「{{query}}」の検索結果",
+    "browse": "コレクションを閲覧",
+    "results": "結果",
+    "count": {
+      "other": "{{formatted}} 件"
+    }
+  },
+  "home": {
+    "search": "検索",
+    "collections": "コレクション",
+    "recent": "最近の追加",
+    "browseAll": "すべて閲覧"
+  },
+  "kinds": {
+    "community": "コミュニティ",
+    "collection": "コレクション",
+    "object": "資料",
+    "resource": "リソース"
+  },
+  "types": {
+    "book": "書籍",
+    "issue": "号",
+    "article": "論文",
+    "journal": "学術雑誌",
+    "newspaper": "新聞",
+    "manuscript": "写本",
+    "audiovisual": "視聴覚資料"
+  },
+  "topologies": {
+    "book": "書籍",
+    "newspaper": "新聞",
+    "journal": "学術雑誌",
+    "postcards": "絵はがき",
+    "manuscript": "写本",
+    "audiovisual": "視聴覚資料"
+  },
+  "facets": {
+    "type": "種類",
+    "topology": "形態",
+    "creator": "作成者",
+    "subject": "主題",
+    "language": "言語",
+    "year": "年代"
+  },
+  "filters": {
+    "digitized": "デジタル化資料"
+  },
+  "sorts": {
+    "relevance": "関連度",
+    "title": "タイトル",
+    "newest": "最近の更新",
+    "date": "日付"
+  },
+  "fields": {
+    "title": "タイトル",
+    "description": "説明",
+    "creator": "作成者",
+    "contributor": "寄与者",
+    "date": "日付",
+    "publisher": "出版者",
+    "subject": "主題",
+    "type": "種類",
+    "language": "言語",
+    "format": "形式",
+    "extent": "数量",
+    "identifier": "識別子",
+    "rights": "権利",
+    "license": "ライセンス",
+    "source": "出典",
+    "isPartOf": "上位資料",
+    "bibliographicCitation": "引用"
+  },
+  "item": {
+    "loading": "読み込み中…",
+    "breadcrumb": "現在の位置",
+    "viewer": "ビューアー",
+    "details": "詳細",
+    "links": "リンク",
+    "iiifManifest": "IIIF マニフェスト",
+    "iiifCollection": "IIIF コレクション",
+    "repository": "リポジトリで表示",
+    "communityMembers": "このコミュニティの内容",
+    "collectionMembers": "このコレクションの内容"
+  },
+  "viewer": {
+    "label": "ビューアー: {{title}}",
+    "preview": "{{title}} のプレビュー",
+    "loading": "ビューアーを読み込み中…",
+    "failed": "ビューアーを読み込めませんでした。",
+    "document": "文書: {{title}}",
+    "openPdf": "PDF を開く"
+  },
+  "errors": {
+    "unavailableTitle": "一時的に利用できません",
+    "unavailable": "現在コレクションにアクセスできません。数分後にもう一度お試しください。",
+    "search": "現在検索を利用できません。数分後にもう一度お試しください。",
+    "badSearch": "この検索は実行できません。短い語句にするか、絞り込みを減らしてください。",
+    "item": "現在この資料を表示できません。数分後にもう一度お試しください。",
+    "notFoundTitle": "見つかりません",
+    "notFound": "この資料は存在しないか、公開されていません。",
+    "pageNotFound": "このアドレスにはページがありません。"
+  }
+}

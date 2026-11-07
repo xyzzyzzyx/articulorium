@@ -188,6 +188,56 @@ class IiifPresentationServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void documentsWithoutImagesArePaintedOnTheirCanvas() {
+        final Model article = ModelFactory.createDefaultModel();
+        resource(article, "c/article", Pcdm.OBJECT, "http://purl.org/ontology/bibo/Article")
+            .addProperty(article.createProperty(DC + "title"), "On whales")
+            .addProperty(article.createProperty(Pcdm.HAS_FILE), article.createResource(P + "c/article/files/article.pdf"))
+            .addProperty(article.createProperty(Pcdm.HAS_FILE), article.createResource(P + "c/article/files/data.csv"));
+        serve("c/article", article);
+        serve("c/article/files/article.pdf/description", file("c/article/files/article.pdf", "application/pdf",
+            "article.pdf", Pcdm.ORIGINAL_FILE));
+        serve("c/article/files/data.csv/description", file("c/article/files/data.csv", "text/csv", "data.csv",
+            Pcdm.ORIGINAL_FILE));
+
+        final Map<String, Object> manifest = service.export("c/article", context);
+
+        final Map<String, Object> canvas = ((List<Map<String, Object>>) manifest.get("items")).getFirst();
+        assertThat(canvas).containsEntry("width", 1000).containsEntry("height", 1000);
+        final Map<String, Object> page = ((List<Map<String, Object>>) canvas.get("items")).getFirst();
+        final Map<String, Object> annotation = ((List<Map<String, Object>>) page.get("items")).getFirst();
+        assertThat((Map<String, Object>) annotation.get("body"))
+            .containsEntry("id", P + "c/article/files/article.pdf")
+            .containsEntry("type", "Text")
+            .containsEntry("format", "application/pdf")
+            .doesNotContainKey("duration");
+        assertThat((List<Map<String, Object>>) canvas.get("rendering")).singleElement()
+            .satisfies(rendering -> assertThat(rendering).containsEntry("format", "text/csv"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void documentsStayRenderingsWhenPaintingThemIsOff() {
+        final IiifProperties properties = new IiifProperties();
+        properties.setPaintDocuments(false);
+        final IiifPresentationService renderingsOnly = new IiifPresentationService(reader, properties);
+        final Model article = ModelFactory.createDefaultModel();
+        resource(article, "c/article", Pcdm.OBJECT)
+            .addProperty(article.createProperty(Pcdm.HAS_FILE), article.createResource(P + "c/article/files/article.pdf"));
+        serve("c/article", article);
+        serve("c/article/files/article.pdf/description", file("c/article/files/article.pdf", "application/pdf",
+            "article.pdf", Pcdm.ORIGINAL_FILE));
+
+        final Map<String, Object> canvas = ((List<Map<String, Object>>) renderingsOnly.export("c/article", context)
+            .get("items")).getFirst();
+
+        assertThat((List<Map<String, Object>>) canvas.get("items")).isEmpty();
+        assertThat((List<Map<String, Object>>) canvas.get("rendering")).singleElement()
+            .satisfies(rendering -> assertThat(rendering).containsEntry("format", "application/pdf"));
+    }
+
+    @Test
     void otherResourcesCannotBeExported() {
         final Model plain = ModelFactory.createDefaultModel();
         resource(plain, "plain", Ldp.RDF_SOURCE);

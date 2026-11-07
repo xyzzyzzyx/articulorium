@@ -44,6 +44,9 @@
     <module>i18n-spring-boot-starter</module>
     <!-- Angular single page application, packaged as a jar of static resources -->
     <module>ui</module>
+    <!-- server-rendered (Angular SSR) discovery and presentation layer; built, linted and tested
+         here, run as its own Node.js image (discovery-ui/Dockerfile) -->
+    <module>discovery-ui</module>
     <!-- services -->
     <module>platform</module>
     <module>transform</module>
@@ -53,6 +56,7 @@
     <module>oai</module>
     <module>harvest</module>
     <module>ai</module>
+    <module>discovery</module>
     <module>service</module>
     <module>gateway</module>
   </modules>

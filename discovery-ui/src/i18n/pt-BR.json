@@ -1,0 +1,137 @@
+{
+  "site": {
+    "description": "Explore os acervos digitalizados: livros, jornais, manuscritos, gravações e muito mais."
+  },
+  "nav": {
+    "skip": "Pular para o conteúdo",
+    "landmark": "Navegação principal",
+    "home": "Início",
+    "browse": "Navegar",
+    "languageMenu": "Idioma: {{language}}",
+    "footer": "Rodapé"
+  },
+  "footer": {
+    "iiif": "Imagens, gravações e documentos são compartilhados via IIIF."
+  },
+  "search": {
+    "landmark": "Pesquisar nos acervos",
+    "label": "Pesquisar",
+    "submit": "Pesquisar",
+    "refine": "Refinar resultados",
+    "filters": "Mostrar apenas",
+    "selected": "(selecionado)",
+    "loading": "Pesquisando…",
+    "sort": "Ordenar por",
+    "active": "Filtros ativos",
+    "remove": "Remover {{value}}",
+    "clear": "Limpar todos os filtros",
+    "empty": "Nada corresponde a esta pesquisa. Tente outras palavras ou menos filtros.",
+    "pagination": "Páginas de resultados",
+    "previous": "Anterior",
+    "next": "Próxima",
+    "pageOf": "Página {{page}} de {{pages}}",
+    "titleFor": "Resultados para “{{query}}”",
+    "browse": "Navegar pelos acervos",
+    "results": "Resultados",
+    "count": {
+      "one": "{{formatted}} resultado",
+      "many": "{{formatted}} de resultados",
+      "other": "{{formatted}} resultados"
+    }
+  },
+  "home": {
+    "search": "Pesquisa",
+    "collections": "Coleções",
+    "recent": "Adicionados recentemente",
+    "browseAll": "Navegar por tudo"
+  },
+  "kinds": {
+    "community": "Comunidade",
+    "collection": "Coleção",
+    "object": "Item",
+    "resource": "Recurso"
+  },
+  "types": {
+    "book": "Livro",
+    "issue": "Edição",
+    "article": "Artigo",
+    "journal": "Periódico",
+    "newspaper": "Jornal",
+    "manuscript": "Manuscrito",
+    "audiovisual": "Gravação audiovisual"
+  },
+  "topologies": {
+    "book": "Livro",
+    "newspaper": "Jornal",
+    "journal": "Periódico",
+    "postcards": "Cartões-postais",
+    "manuscript": "Manuscrito",
+    "audiovisual": "Gravação audiovisual"
+  },
+  "facets": {
+    "type": "Tipo",
+    "topology": "Formato",
+    "creator": "Autor",
+    "subject": "Assunto",
+    "language": "Idioma",
+    "year": "Data"
+  },
+  "filters": {
+    "digitized": "Itens digitalizados"
+  },
+  "sorts": {
+    "relevance": "Relevância",
+    "title": "Título",
+    "newest": "Alterados recentemente",
+    "date": "Data"
+  },
+  "fields": {
+    "title": "Título",
+    "description": "Descrição",
+    "creator": "Autor",
+    "contributor": "Colaborador",
+    "date": "Data",
+    "publisher": "Editora",
+    "subject": "Assunto",
+    "type": "Tipo",
+    "language": "Idioma",
+    "format": "Formato",
+    "extent": "Extensão",
+    "identifier": "Identificador",
+    "rights": "Direitos",
+    "license": "Licença",
+    "source": "Fonte",
+    "isPartOf": "Parte de",
+    "bibliographicCitation": "Citação"
+  },
+  "item": {
+    "loading": "Carregando…",
+    "breadcrumb": "Você está aqui",
+    "viewer": "Visualizador",
+    "details": "Detalhes",
+    "links": "Links",
+    "iiifManifest": "Manifesto IIIF",
+    "iiifCollection": "Coleção IIIF",
+    "repository": "Ver no repositório",
+    "communityMembers": "Nesta comunidade",
+    "collectionMembers": "Nesta coleção"
+  },
+  "viewer": {
+    "label": "Visualizador: {{title}}",
+    "preview": "Prévia de {{title}}",
+    "loading": "Carregando o visualizador…",
+    "failed": "Não foi possível carregar o visualizador.",
+    "document": "Documento: {{title}}",
+    "openPdf": "Abrir o PDF"
+  },
+  "errors": {
+    "unavailableTitle": "Temporariamente indisponível",
+    "unavailable": "Os acervos não podem ser acessados agora. Tente novamente em alguns minutos.",
+    "search": "A pesquisa está indisponível agora. Tente novamente em alguns minutos.",
+    "badSearch": "Esta pesquisa não pode ser executada. Tente termos mais curtos ou menos filtros.",
+    "item": "Este item não pode ser exibido agora. Tente novamente em alguns minutos.",
+    "notFoundTitle": "Não encontrado",
+    "notFound": "Este item não existe ou não é público.",
+    "pageNotFound": "Não há página neste endereço."
+  }
+}

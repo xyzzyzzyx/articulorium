@@ -23,6 +23,9 @@ articulorium:
     default-width: 1000
     default-height: 1000
     max-resources: 2000
+    # paint the PDF of a canvas that has no image, audio or video (a Text body), so viewers that
+    # present documents (the discovery layer's Mirador) show it; otherwise it is a rendering only
+    paint-documents: true
 
 logging:
   level:
