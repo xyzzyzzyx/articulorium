@@ -25,5 +25,6 @@ node docker/wait.mjs --timeout=300 http://localhost:8000/ui/ http://localhost:80
   http://localhost:8000/auth/realms/articulorium/.well-known/openid-configuration \
   http://localhost:8000/discover/api/config http://localhost:8000/discover/en/
 
+echo "starting cypress run (${E2E_BROWSER:-chrome}); its first run verifies the Cypress binary, which can take a minute"
 # shellcheck disable=SC2086
 npx cypress run --browser "${E2E_BROWSER:-chrome}" --config "video=${E2E_VIDEO:-false}" ${E2E_ARGS:-}
