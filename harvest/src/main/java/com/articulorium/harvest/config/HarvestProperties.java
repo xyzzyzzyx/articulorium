@@ -169,6 +169,19 @@ public class HarvestProperties {
         /** A cron expression (seconds first) for incremental harvests, or empty to harvest on demand only. */
         private String schedule;
 
+        /**
+         * Whether an incremental harvest starts as soon as the service is ready (after a restart it
+         * continues from the checkpoint, so nothing is harvested twice).
+         */
+        private boolean harvestOnStartup;
+
+        /**
+         * How far back an incremental harvest reaches while the source has no checkpoint yet (its
+         * first harvest), for example {@code P7D}; unset to harvest every record the first time.
+         * Full harvests are not limited.
+         */
+        private Duration initialWindow;
+
         /** Records asked for per page, where the protocol lets the client choose. */
         private int pageSize = 100;
 

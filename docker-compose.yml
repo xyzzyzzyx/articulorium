@@ -30,7 +30,9 @@
 #                                     IIIF Presentation 3 manifest / collection of a PCDM resource
 #   http://localhost:8000/platform/harvested/
 #                                     records harvested from other repositories (harvest service;
-#                                     run harvests from the UI's Harvest page, see harvest/README.md)
+#                                     run harvests from the UI's Harvest page, see harvest/README.md).
+#                                     The arxiv source (arXiv cs.DL by default, ARXIV_SET) harvests
+#                                     on start: the last 7 days first, then incrementally every day
 #   http://localhost:8000/harvest/sources
 #                                     harvest API of the user interface
 #
@@ -38,8 +40,12 @@
 #   docker compose --profile ai up --build
 #                                        also start the agent, Ollama and pull its model (several GB
 #                                        on first start); the UI then offers topology, metadata and
-#                                        topic suggestions. ARTICULORIUM_HARVEST_CLASSIFICATION=true
-#                                        also has harvested records classified for review.
+#                                        topic suggestions. Harvested records (of arxiv) are
+#                                        classified for review on the Harvest page; the harvest
+#                                        service then waits for the agent before its first harvest.
+#                                        Without the profile classifications are recorded as failed,
+#                                        to retry from the review queue (or set
+#                                        ARTICULORIUM_HARVEST_CLASSIFICATION=false).
 #   http://localhost:8000/ai/capabilities
 #                                     what the agent offers (the UI hides it without the profile)
 #
@@ -259,16 +265,27 @@ services:
       # the harvester's credentials towards the platform (a fixed Authorization header); the
       # default root ACL lets anyone write, so none are needed locally
       HARVEST_PLATFORM_AUTHORIZATION: ${HARVEST_PLATFORM_AUTHORIZATION:-}
-      # classification of harvested records by the AI agent (needs the "ai" profile); records are
-      # still harvested as before, suggestions wait in the Harvest page's review queue
-      ARTICULORIUM_HARVEST_CLASSIFICATION_ENABLED: ${ARTICULORIUM_HARVEST_CLASSIFICATION:-false}
-      # demo sources, harvested on demand only: this repository's own OAI-PMH data provider, and
-      # its LDP API (as a Fedora repository) below /harvest-source. Add real sources here or in
-      # Consul (config/harvest/articulorium/harvest/sources/...).
+      # classification of harvested records by the AI agent (the "ai" profile); records are
+      # still harvested as before, suggestions wait in the Harvest page's review queue. Without the
+      # agent every classification is recorded as failed, to retry once it runs.
+      ARTICULORIUM_HARVEST_CLASSIFICATION_ENABLED: ${ARTICULORIUM_HARVEST_CLASSIFICATION:-true}
+      # Sources (add more here or in Consul, config/harvest/articulorium/harvest/sources/...):
+      # * arxiv: arXiv's OAI-PMH data provider, one set (group:archive:CATEGORY, default cs.DL,
+      #   Digital Libraries: a few dozen records a week). Harvested incrementally on start (the last
+      #   ARXIV_INITIAL_WINDOW the first time, then from the checkpoint) and every night; its
+      #   records are classified. A full harvest from the Harvest page reads the whole set.
+      # * self-oai, self-ldp: demo sources harvested on demand only, this repository's own OAI-PMH
+      #   data provider and its LDP API (as a Fedora repository) below /harvest-source; copies of
+      #   this repository, so not classified.
       SPRING_APPLICATION_JSON: >-
         {"articulorium": {"harvest": {"sources": {
-        "self-oai": {"type": "oai-pmh", "url": "http://oai:9000/"},
-        "self-ldp": {"type": "fedora", "url": "http://platform:9000/", "options": {"root": "harvest-source"}}}}}}
+        "arxiv": {"type": "oai-pmh", "url": "https://oaipmh.arxiv.org/oai",
+        "enabled": "${ARXIV_ENABLED:-true}", "harvest-on-startup": "${ARXIV_HARVEST_ON_STARTUP:-true}",
+        "initial-window": "${ARXIV_INITIAL_WINDOW:-P7D}", "schedule": "${ARXIV_SCHEDULE:-0 30 2 * * *}",
+        "options": {"set": "${ARXIV_SET:-cs:cs:DL}"}},
+        "self-oai": {"type": "oai-pmh", "url": "http://oai:9000/", "classify": false},
+        "self-ldp": {"type": "fedora", "url": "http://platform:9000/", "classify": false,
+        "options": {"root": "harvest-source"}}}}}}
     depends_on:
       consul:
         condition: service_healthy
@@ -276,6 +293,11 @@ services:
         condition: service_healthy
       oai:
         condition: service_healthy
+      # with the "ai" profile the startup harvest waits for the agent, so its records are
+      # classified; without it the agent is not needed (Compose 2.20 or later)
+      ai:
+        condition: service_healthy
+        required: false
 
   ai:
     # Optional AI agent (profile "ai"): suggests topologies, metadata of images, videos and PDFs,

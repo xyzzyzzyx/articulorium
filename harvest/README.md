@@ -284,6 +284,8 @@ Actuator write operations need `Content-Type: application/json`, even with an em
 | `sources.<id>.url`               |                                | the endpoint (no credentials in it)                           |
 | `sources.<id>.enabled`           | `true`                         | whether it may be harvested                                   |
 | `sources.<id>.schedule`          |                                | cron expression (seconds first) of incremental harvests; on demand only when empty |
+| `sources.<id>.harvest-on-startup` | `false`                       | start an incremental harvest when the service is ready (after a restart it continues from the checkpoint) |
+| `sources.<id>.initial-window`    |                                | how far back incremental harvests reach while the source has no checkpoint, e.g. `P7D`; every record when unset (full harvests are never limited) |
 | `sources.<id>.page-size`         | `100`                          | records asked for per page where the protocol lets the client choose |
 | `sources.<id>.username`, `password`, `token` |                    | credentials (see each type)                                   |
 | `sources.<id>.options.*`         |                                | type options (above); unknown options fail the startup       |
@@ -292,12 +294,14 @@ Actuator write operations need `Content-Type: application/json`, even with an em
 articulorium:
   harvest:
     sources:
-      arxiv-cs:
+      arxiv:
         type: oai-pmh
         url: https://oaipmh.arxiv.org/oai
         schedule: "0 30 2 * * *"
+        harvest-on-startup: true
+        initial-window: P7D           # the first harvest reads the last week only
         options:
-          set: cs
+          set: cs:cs:DL               # group:archive:CATEGORY; "cs" is every computer science paper
       demo-dspace:
         type: dspace
         url: https://demo.dspace.org/server/api

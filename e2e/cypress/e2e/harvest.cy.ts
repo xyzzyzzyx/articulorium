@@ -45,6 +45,15 @@ interface Source {
   readonly reports: Report[];
 }
 
+/** A source as configured, with its running harvest. */
+interface ConfiguredSource extends Source {
+  readonly type: string;
+  readonly url: string;
+  readonly enabled: boolean;
+  readonly schedule: string | null;
+  readonly running: { mode: string } | null;
+}
+
 /** Starts a harvest and yields when it was asked for. */
 function startHarvest(source: string, mode: 'full' | 'incremental'): Cypress.Chainable<number> {
   const requested = Date.now();
@@ -114,6 +123,24 @@ describe('Harvesting', () => {
     cy.request<{ sources: Source[] }>(HARVEST).then((response) => {
       expect(response.body.sources.map((source) => source.id)).to.include.members(['self-oai', 'self-ldp']);
     });
+  });
+
+  it('harvests arXiv incrementally on startup, with classification of harvested records turned on', () => {
+    cy.request<{ sources: ConfiguredSource[] }>(HARVEST).then((response) => {
+      const found = response.body.sources.find((source) => source.id === 'arxiv');
+      expect(found, 'the arxiv source').to.exist;
+      const arxiv = found as ConfiguredSource;
+      expect(arxiv.type).to.eq('oai-pmh');
+      expect(arxiv.url).to.eq('https://oaipmh.arxiv.org/oai');
+      expect(arxiv.enabled).to.eq(true);
+      expect(arxiv.schedule).to.eq('0 30 2 * * *');
+      // started when the service was ready, whatever arXiv answered: still running or reported
+      // (the oldest report is the startup harvest's)
+      const startup = arxiv.running ?? arxiv.reports[arxiv.reports.length - 1];
+      expect(startup, 'the startup harvest').to.exist;
+      expect(startup.mode).to.eq('INCREMENTAL');
+    });
+    cy.request<{ classification: boolean }>('/harvest/sources').its('body.classification').should('eq', true);
   });
 
   it('harvests the repository through its own OAI-PMH data provider, then incrementally', () => {

@@ -2,6 +2,7 @@ package com.articulorium.harvest.service;
 
 import java.net.URI;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -146,11 +147,16 @@ public class HarvestService {
             if (StringUtils.hasText(source.getSchedule())) {
                 CronExpression.parse(source.getSchedule());
             }
+            final Duration initialWindow = source.getInitialWindow();
+            if (initialWindow != null && (initialWindow.isNegative() || initialWindow.isZero())) {
+                throw new IllegalArgumentException("initial-window must be positive");
+            }
             final SourceSettings settings = new SourceSettings(id, source.getType(), url, source.getPageSize(),
                 new SourceCredentials(source.getUsername(), source.getPassword(), source.getToken()),
                 source.getOptions());
             return new Configured(id, settings, factory.create(settings), source.isEnabled(),
-                StringUtils.hasText(source.getSchedule()) ? source.getSchedule().trim() : null);
+                StringUtils.hasText(source.getSchedule()) ? source.getSchedule().trim() : null,
+                source.isHarvestOnStartup(), initialWindow);
         } catch (IllegalArgumentException e) {
             throw new IllegalStateException("Invalid harvest source " + id + ": " + e.getMessage(), e);
         }
@@ -165,6 +171,20 @@ public class HarvestService {
             if (source.enabled && source.schedule != null) {
                 scheduler.schedule(() -> scheduled(source.id), new CronTrigger(source.schedule));
                 LOG.info("Harvesting {} on schedule {}", source.id, source.schedule);
+            }
+        }
+    }
+
+    /**
+     * Starts an incremental harvest of every enabled source marked {@code harvest-on-startup} once
+     * the application is ready.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public void harvestOnStartup() {
+        for (final Configured source : sources.values()) {
+            if (source.enabled && source.harvestOnStartup) {
+                LOG.info("Harvesting {} on startup", source.id);
+                scheduled(source.id);
             }
         }
     }
@@ -256,7 +276,7 @@ public class HarvestService {
         final String id = source.id;
         HarvestReport report;
         try {
-            report = harvester.run(source.source, ingestor, checkpoints, run.mode, listener(id, run),
+            report = harvester.run(source.source, ingestor, checkpoints(source, run), run.mode, listener(id, run),
                 run.cancelled::get);
         } catch (RuntimeException e) {
             // the harvester reports its failures; this only guards the bookkeeping below
@@ -276,6 +296,28 @@ public class HarvestService {
             }
             source.running = null;
         }
+    }
+
+    /**
+     * The checkpoint store of one harvest: a source with an initial window and no checkpoint yet
+     * starts that far before the harvest instead of at its first record.
+     */
+    private CheckpointStore checkpoints(final Configured source, final Run run) {
+        if (source.initialWindow == null) {
+            return checkpoints;
+        }
+        final Instant initial = run.startedAt.minus(source.initialWindow);
+        return new CheckpointStore() {
+            @Override
+            public Optional<Instant> load(final String sourceId) {
+                return checkpoints.load(sourceId).or(() -> Optional.of(initial));
+            }
+
+            @Override
+            public void save(final String sourceId, final Instant checkpoint) {
+                checkpoints.save(sourceId, checkpoint);
+            }
+        };
     }
 
     private HarvestListener listener(final String id, final Run run) {
@@ -365,17 +407,23 @@ public class HarvestService {
 
         private final String schedule;
 
+        private final boolean harvestOnStartup;
+
+        private final Duration initialWindow;
+
         private final Deque<HarvestReport> reports = new ArrayDeque<>();
 
         private Run running;
 
         Configured(final String id, final SourceSettings settings, final HarvestSource source, final boolean enabled,
-                final String schedule) {
+                final String schedule, final boolean harvestOnStartup, final Duration initialWindow) {
             this.id = id;
             this.settings = settings;
             this.source = source;
             this.enabled = enabled;
             this.schedule = schedule;
+            this.harvestOnStartup = harvestOnStartup;
+            this.initialWindow = initialWindow;
         }
 
         synchronized SourceStatus status() {

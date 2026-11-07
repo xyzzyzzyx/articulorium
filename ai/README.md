@@ -6,15 +6,18 @@ reviews it and applies what is right with the existing APIs (the platform's LDP 
 API, the harvest review API). The agent never writes to the repository.
 
 ```bash
-# the agent, Ollama and its model (several GB on first start)
+# the agent, Ollama and its model (several GB on first start); the arxiv source harvests on start
+# and its records are classified for review on the Harvest page
 docker compose --profile ai up --build
 curl -s http://localhost:8000/ai/capabilities
-# also classify harvested records for review on the Harvest page
-ARTICULORIUM_HARVEST_CLASSIFICATION=true docker compose --profile ai up --build
+# without classifying harvested records
+ARTICULORIUM_HARVEST_CLASSIFICATION=false docker compose --profile ai up --build
 ```
 
-Without the `ai` profile the service is not deployed: the gateway answers `/ai/**` with 503, the
-user interface hides every AI action and harvests work exactly as before.
+Without the `ai` profile the service is not deployed: the gateway answers `/ai/**` with 503 and the
+user interface hides every AI action. Records are still harvested; with classification enabled
+(the compose default) their classifications are recorded as failed, to retry from the review queue
+once the agent runs.
 
 ## Capabilities
 
@@ -90,8 +93,8 @@ the rest of the page keeps working.
 
 ## Classifying harvested records
 
-With `articulorium.harvest.classification.enabled=true` (compose:
-`ARTICULORIUM_HARVEST_CLASSIFICATION=true`) the harvest service ingests records exactly as before,
+With `articulorium.harvest.classification.enabled=true` (compose: on by default,
+`ARTICULORIUM_HARVEST_CLASSIFICATION=false` turns it off) the harvest service ingests records exactly as before,
 then asks the agent where each new record belongs:
 
 1. The agent compares the record (texts, types, sets, file media types) with the community

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -53,6 +54,11 @@ class HarvestServiceTest {
 
     private final CountDownLatch fetching = new CountDownLatch(1);
 
+    private final InMemoryCheckpointStore checkpoints = new InMemoryCheckpointStore();
+
+    /** The window of the latest fetch. */
+    private volatile HarvestWindow fetched;
+
     private HarvestService service;
 
     @BeforeEach
@@ -83,7 +89,7 @@ class HarvestServiceTest {
         final Harvester harvester = new Harvester(HarvestPolicy.DEFAULT, Clock.systemUTC(), duration -> { });
         return new HarvestService(properties, List.of(new GatedFactory()), harvester,
             (sourceId, record) -> record.identifier().startsWith("bad") ? fail(record) : IngestAction.CREATED,
-            new InMemoryCheckpointStore(), scheduler, meters, Clock.systemUTC());
+            checkpoints, scheduler, meters, Clock.systemUTC());
     }
 
     private static IngestAction fail(final HarvestedRecord record) {
@@ -168,6 +174,61 @@ class HarvestServiceTest {
     }
 
     @Test
+    void harvestsEnabledSourcesMarkedForStartupOnceReady() throws InterruptedException {
+        service.shutdown();
+        final HarvestProperties.Source onStartup = source("gated", true, null);
+        onStartup.setHarvestOnStartup(true);
+        final HarvestProperties.Source disabled = source("gated", false, null);
+        disabled.setHarvestOnStartup(true);
+        service = service(Map.of("eager", onStartup, "off", disabled, "lazy", source("gated", true, null)));
+
+        service.harvestOnStartup();
+
+        assertThat(service.status("eager").orElseThrow().running()).isNotNull()
+            .satisfies(running -> assertThat(running.mode()).isEqualTo(HarvestMode.INCREMENTAL));
+        assertThat(service.status("lazy").orElseThrow().running()).isNull();
+        assertThat(service.status("off").orElseThrow().running()).isNull();
+        release.countDown();
+        assertThat(awaitIdle("eager").reports()).hasSize(1);
+    }
+
+    @Test
+    void startsTheFirstIncrementalHarvestWithinTheInitialWindow() throws InterruptedException {
+        service.shutdown();
+        release.countDown();
+        final HarvestProperties.Source windowed = source("gated", true, null);
+        windowed.setInitialWindow(Duration.ofDays(7));
+        service = service(Map.of("windowed", windowed));
+
+        final Instant before = Instant.now();
+        service.start("windowed", HarvestMode.INCREMENTAL);
+        final SourceStatus first = awaitIdle("windowed");
+        assertThat(fetched.from()).isBetween(before.minus(Duration.ofDays(7)), Instant.now().minus(Duration.ofDays(7)));
+        assertThat(first.reports().get(0).from()).isEqualTo(fetched.from());
+
+        // a checkpoint takes precedence over the initial window
+        final Instant checkpoint = Instant.parse("2026-11-01T00:00:00Z");
+        checkpoints.save("windowed", checkpoint);
+        service.start("windowed", HarvestMode.INCREMENTAL);
+        awaitIdle("windowed");
+        assertThat(fetched.from()).isEqualTo(checkpoint);
+
+        // full harvests are not limited
+        service.start("windowed", HarvestMode.FULL);
+        awaitIdle("windowed");
+        assertThat(fetched).isEqualTo(HarvestWindow.ALL);
+    }
+
+    @Test
+    void harvestsEveryRecordTheFirstTimeWithoutAnInitialWindow() throws InterruptedException {
+        release.countDown();
+        service.start("blocking", HarvestMode.INCREMENTAL);
+        awaitIdle("blocking");
+
+        assertThat(fetched).isEqualTo(HarvestWindow.ALL);
+    }
+
+    @Test
     void failsTheStartupOnMisconfiguredSources() {
         final HarvestProperties.Source unknown = source("gopher", true, null);
         final HarvestProperties.Source noUrl = source("gated", true, null);
@@ -184,6 +245,9 @@ class HarvestServiceTest {
             .hasMessageContaining("credentials").hasMessageNotContaining("pass@");
         assertThatThrownBy(() -> service(Map.of("bad id", source("gated", true, null))))
             .isInstanceOf(IllegalStateException.class);
+        final HarvestProperties.Source negativeWindow = source("gated", true, null);
+        negativeWindow.setInitialWindow(Duration.ofDays(-1));
+        assertThatThrownBy(() -> service(Map.of("x", negativeWindow))).hasMessageContaining("initial-window");
     }
 
     /** Creates sources whose first fetch waits for the test. */
@@ -214,6 +278,7 @@ class HarvestServiceTest {
 
                 @Override
                 public HarvestPage fetch(final HarvestWindow window, final String cursor) {
+                    fetched = window;
                     fetching.countDown();
                     try {
                         if (!release.await(5, TimeUnit.SECONDS)) {
