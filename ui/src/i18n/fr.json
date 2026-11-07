@@ -6,6 +6,7 @@
     "communities": "Communautés",
     "profiles": "Profils",
     "topologies": "Topologies",
+    "harvest": "Moissonnage",
     "search": "Recherche",
     "api": "API",
     "about": "À propos",
@@ -97,6 +98,7 @@
     "editProfile": "Modifier le profil",
     "topologies": "Topologies",
     "topology": "Topologie",
+    "harvest": "Moissonnage",
     "search": "Recherche",
     "about": "À propos"
   },
@@ -555,6 +557,91 @@
       "one": "{{formatted}} ressource construite",
       "many": "{{formatted}} de ressources construites",
       "other": "{{formatted}} ressources construites"
+    }
+  },
+  "harvest": {
+    "heading": "Moissonnage",
+    "intro": "Le moissonnage copie dans la plateforme des notices d’autres entrepôts (fournisseurs de données OAI-PMH, DSpace, Fedora et VIVO). Un moissonnage incrémental lit ce qui a changé depuis le dernier moissonnage complet ; un moissonnage intégral relit toutes les notices.",
+    "refresh": "Actualiser",
+    "readOnly": "Vous pouvez suivre les moissonnages ici. Pour les lancer et les annuler, il faut un accès en écriture aux notices moissonnées.",
+    "none": "Aucune source de moissonnage n’est configurée. Les exploitants les ajoutent aux paramètres du service de moissonnage (articulorium.harvest.sources).",
+    "never": "Aucun moissonnage depuis le démarrage du service de moissonnage.",
+    "last": "Dernier moissonnage",
+    "earlier": "Moissonnages précédents ({{count}})",
+    "started": "Moissonnage de {{source}} lancé",
+    "stopping": "Le moissonnage de {{source}} s’arrête",
+    "capability": {
+      "incremental": "Moissonnages incrémentaux",
+      "fullOnly": "Moissonnages intégraux uniquement",
+      "deletions": "Signale les suppressions",
+      "noDeletions": "Ne signale pas les suppressions",
+      "scheduled": "Planifié : {{schedule}}",
+      "onDemand": "À la demande uniquement",
+      "disabled": "Désactivée"
+    },
+    "action": {
+      "incremental": "Moissonnage incrémental",
+      "full": "Moissonnage intégral",
+      "cancel": "Annuler le moissonnage"
+    },
+    "why": {
+      "permission": "Lancer un moissonnage nécessite un accès en écriture aux notices moissonnées.",
+      "disabled": "Cette source est désactivée dans les paramètres du service de moissonnage.",
+      "running": "Un moissonnage de cette source est en cours.",
+      "notIncremental": "Cette source ne sait pas lister uniquement les changements : chaque moissonnage est intégral.",
+      "stopping": "Le moissonnage s’arrête."
+    },
+    "confirmFull": {
+      "title": "Lancer un moissonnage intégral ?",
+      "message": "Un moissonnage intégral relit toutes les notices de {{source}} et remplace leurs copies. Il peut être long et ne supprime pas les copies des notices que la source ne liste plus."
+    },
+    "confirmCancel": {
+      "title": "Annuler le moissonnage ?",
+      "message": "Le moissonnage de {{source}} s’arrête après la notice en cours. Les notices déjà enregistrées restent ; le point de reprise n’avance pas, donc le prochain moissonnage incrémental relit les mêmes changements."
+    },
+    "running": {
+      "FULL": "Moissonnage intégral en cours",
+      "INCREMENTAL": "Moissonnage incrémental en cours",
+      "since": "lancé {{time}}",
+      "stopping": "Arrêt après la notice en cours…"
+    },
+    "outcome": {
+      "COMPLETED": "Terminé",
+      "COMPLETED_WITH_ERRORS": "Terminé avec des erreurs",
+      "FAILED": "Échec",
+      "CANCELLED": "Annulé"
+    },
+    "mode": {
+      "FULL": "Intégral",
+      "INCREMENTAL": "Incrémental"
+    },
+    "field": {
+      "outcome": "Résultat",
+      "mode": "Mode",
+      "started": "Début",
+      "duration": "Durée",
+      "window": "Changements depuis",
+      "listed": "Listées",
+      "created": "Créées",
+      "updated": "Mises à jour",
+      "deleted": "Supprimées",
+      "skipped": "Ignorées",
+      "failed": "En échec",
+      "pages": "Pages",
+      "reason": "Motif"
+    },
+    "checkpoint": {
+      "moved": "Point de reprise enregistré : le prochain moissonnage incrémental lit les changements depuis {{time}}.",
+      "kept": "Point de reprise inchangé : le prochain moissonnage incrémental relit les mêmes changements."
+    },
+    "failures": {
+      "heading": "Notices en échec ({{count}})",
+      "partial": "Affichage des {{shown}} premières notices en échec sur {{count}}."
+    },
+    "error": {
+      "signIn": "Connectez-vous pour voir les moissonnages.",
+      "forbidden": "Vous ne pouvez pas voir les moissonnages : il faut un accès en lecture aux notices moissonnées.",
+      "unavailable": "Le service de moissonnage est injoignable. Il est peut-être arrêté ou non déployé."
     }
   }
 }

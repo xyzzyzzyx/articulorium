@@ -23,6 +23,11 @@ articulorium:
       read-timeout: 2m
     history: 10
     concurrency: 2
+    # the harvest API of the user interface (/sources on the service port, /harvest on the
+    # gateway); viewing needs read and starting/cancelling write access to the container above,
+    # as the platform's Web Access Control decides for the caller's own credentials
+    api:
+      enabled: true
     # sources by identifier, for example:
     #   sources:
     #     arxiv:

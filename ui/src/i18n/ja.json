@@ -6,6 +6,7 @@
     "communities": "コミュニティ",
     "profiles": "プロフィール",
     "topologies": "トポロジー",
+    "harvest": "ハーベスト",
     "search": "検索",
     "api": "API",
     "about": "概要",
@@ -97,6 +98,7 @@
     "editProfile": "プロフィールの編集",
     "topologies": "トポロジー",
     "topology": "トポロジー",
+    "harvest": "ハーベスト",
     "search": "検索",
     "about": "概要"
   },
@@ -549,6 +551,91 @@
     "uploaded": "{{label}}をアップロードしました",
     "built": {
       "other": "{{formatted}} 件のリソースを構築しました"
+    }
+  },
+  "harvest": {
+    "heading": "ハーベスト",
+    "intro": "ハーベストは、他のリポジトリ（OAI-PMH データプロバイダー、DSpace、Fedora、VIVO）のレコードをプラットフォームにコピーします。増分ハーベストは前回の完全なハーベスト以降の変更を読み取り、フルハーベストはすべてのレコードを読み直します。",
+    "refresh": "更新",
+    "readOnly": "ここでハーベストの状況を確認できます。開始とキャンセルには、ハーベストしたレコードへの書き込みアクセスが必要です。",
+    "none": "ハーベスト元が設定されていません。運用担当者がハーベストサービスの設定（articulorium.harvest.sources）に追加します。",
+    "never": "ハーベストサービスの起動以降、ハーベストされていません。",
+    "last": "前回のハーベスト",
+    "earlier": "以前のハーベスト（{{count}}）",
+    "started": "{{source}} のハーベストを開始しました",
+    "stopping": "{{source}} のハーベストを停止しています",
+    "capability": {
+      "incremental": "増分ハーベスト対応",
+      "fullOnly": "フルハーベストのみ",
+      "deletions": "削除を通知",
+      "noDeletions": "削除を通知しない",
+      "scheduled": "スケジュール: {{schedule}}",
+      "onDemand": "オンデマンドのみ",
+      "disabled": "無効"
+    },
+    "action": {
+      "incremental": "増分ハーベスト",
+      "full": "フルハーベスト",
+      "cancel": "ハーベストをキャンセル"
+    },
+    "why": {
+      "permission": "ハーベストの開始には、ハーベストしたレコードへの書き込みアクセスが必要です。",
+      "disabled": "このハーベスト元はハーベストサービスの設定で無効になっています。",
+      "running": "このハーベスト元のハーベストを実行中です。",
+      "notIncremental": "このハーベスト元は変更分だけを一覧できません。毎回フルハーベストになります。",
+      "stopping": "ハーベストを停止しています。"
+    },
+    "confirmFull": {
+      "title": "フルハーベストを開始しますか？",
+      "message": "フルハーベストは {{source}} のすべてのレコードを読み直し、コピーを置き換えます。時間がかかる場合があり、ハーベスト元が一覧しなくなったレコードのコピーは削除されません。"
+    },
+    "confirmCancel": {
+      "title": "ハーベストをキャンセルしますか？",
+      "message": "{{source}} のハーベストは処理中のレコードの後で停止します。保存済みのレコードは残ります。チェックポイントは進まないため、次の増分ハーベストは同じ変更を再度読み取ります。"
+    },
+    "running": {
+      "FULL": "フルハーベスト実行中",
+      "INCREMENTAL": "増分ハーベスト実行中",
+      "since": "開始: {{time}}",
+      "stopping": "処理中のレコードの後で停止します…"
+    },
+    "outcome": {
+      "COMPLETED": "完了",
+      "COMPLETED_WITH_ERRORS": "エラーありで完了",
+      "FAILED": "失敗",
+      "CANCELLED": "キャンセル"
+    },
+    "mode": {
+      "FULL": "フル",
+      "INCREMENTAL": "増分"
+    },
+    "field": {
+      "outcome": "結果",
+      "mode": "モード",
+      "started": "開始",
+      "duration": "所要時間",
+      "window": "変更の起点",
+      "listed": "一覧",
+      "created": "作成",
+      "updated": "更新",
+      "deleted": "削除",
+      "skipped": "スキップ",
+      "failed": "失敗",
+      "pages": "ページ",
+      "reason": "理由"
+    },
+    "checkpoint": {
+      "moved": "チェックポイントを保存しました。次の増分ハーベストは {{time}} 以降の変更を読み取ります。",
+      "kept": "チェックポイントは進んでいません。次の増分ハーベストは同じ変更を再度読み取ります。"
+    },
+    "failures": {
+      "heading": "失敗したレコード（{{count}}）",
+      "partial": "失敗した {{count}} 件のレコードのうち最初の {{shown}} 件を表示しています。"
+    },
+    "error": {
+      "signIn": "ハーベストを表示するにはサインインしてください。",
+      "forbidden": "ハーベストを表示できません。ハーベストしたレコードへの読み取りアクセスが必要です。",
+      "unavailable": "ハーベストサービスに接続できません。停止しているか、デプロイされていない可能性があります。"
     }
   }
 }

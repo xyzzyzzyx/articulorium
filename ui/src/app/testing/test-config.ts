@@ -11,6 +11,9 @@ export const TEST_TOPOLOGY = 'http://host/topology/';
 /** Transform service base used by the tests. */
 export const TEST_TRANSFORM = 'http://host/transform/';
 
+/** Harvest service base used by the tests. */
+export const TEST_HARVEST = 'http://host/harvest/';
+
 /** Sign-in settings used by the tests unless they pass others: a pasted token. */
 export const TEST_AUTH: AuthConfig = {
   provider: 'token',
@@ -33,6 +36,7 @@ export function provideTestConfig(auth: AuthConfig = TEST_AUTH): Provider {
       apiDocs: () => 'http://host/swagger-ui.html',
       topologyBase: () => TEST_TOPOLOGY,
       transformBase: () => TEST_TRANSFORM,
+      harvestBase: () => TEST_HARVEST,
       communitiesPath: () => 'communities',
       profilesPath: () => 'profiles',
       auth: () => auth,

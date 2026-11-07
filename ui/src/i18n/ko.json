@@ -6,6 +6,7 @@
     "communities": "커뮤니티",
     "profiles": "프로필",
     "topologies": "토폴로지",
+    "harvest": "하베스트",
     "search": "검색",
     "api": "API",
     "about": "정보",
@@ -97,6 +98,7 @@
     "editProfile": "프로필 편집",
     "topologies": "토폴로지",
     "topology": "토폴로지",
+    "harvest": "하베스트",
     "search": "검색",
     "about": "정보"
   },
@@ -549,6 +551,91 @@
     "uploaded": "{{label}}을(를) 업로드했습니다",
     "built": {
       "other": "리소스 {{formatted}}개를 만들었습니다"
+    }
+  },
+  "harvest": {
+    "heading": "하베스트",
+    "intro": "하베스트는 다른 저장소(OAI-PMH 데이터 제공자, DSpace, Fedora, VIVO)의 레코드를 플랫폼으로 복사합니다. 증분 하베스트는 마지막 전체 완료 하베스트 이후 변경된 내용을 읽고, 전체 하베스트는 모든 레코드를 다시 읽습니다.",
+    "refresh": "새로 고침",
+    "readOnly": "여기에서 하베스트를 확인할 수 있습니다. 시작하고 취소하려면 하베스트된 레코드에 대한 쓰기 권한이 필요합니다.",
+    "none": "구성된 하베스트 소스가 없습니다. 운영자가 하베스트 서비스 설정(articulorium.harvest.sources)에 추가합니다.",
+    "never": "하베스트 서비스가 시작된 이후 하베스트되지 않았습니다.",
+    "last": "마지막 하베스트",
+    "earlier": "이전 하베스트({{count}})",
+    "started": "{{source}} 하베스트를 시작했습니다",
+    "stopping": "{{source}} 하베스트를 중지하는 중입니다",
+    "capability": {
+      "incremental": "증분 하베스트",
+      "fullOnly": "전체 하베스트만",
+      "deletions": "삭제 보고",
+      "noDeletions": "삭제 보고 안 함",
+      "scheduled": "예약됨: {{schedule}}",
+      "onDemand": "요청 시에만",
+      "disabled": "비활성화됨"
+    },
+    "action": {
+      "incremental": "증분 하베스트",
+      "full": "전체 하베스트",
+      "cancel": "하베스트 취소"
+    },
+    "why": {
+      "permission": "하베스트를 시작하려면 하베스트된 레코드에 대한 쓰기 권한이 필요합니다.",
+      "disabled": "이 소스는 하베스트 서비스 설정에서 비활성화되어 있습니다.",
+      "running": "이 소스의 하베스트가 실행 중입니다.",
+      "notIncremental": "이 소스는 변경된 내용만 나열할 수 없어 모든 하베스트가 전체 하베스트입니다.",
+      "stopping": "하베스트를 중지하는 중입니다."
+    },
+    "confirmFull": {
+      "title": "전체 하베스트를 시작할까요?",
+      "message": "전체 하베스트는 {{source}}의 모든 레코드를 다시 읽고 사본을 바꿉니다. 시간이 오래 걸릴 수 있으며, 소스에 더 이상 나열되지 않는 레코드의 사본은 삭제하지 않습니다."
+    },
+    "confirmCancel": {
+      "title": "하베스트를 취소할까요?",
+      "message": "{{source}} 하베스트는 처리 중인 레코드 다음에 중지됩니다. 이미 저장된 레코드는 유지되며, 체크포인트가 이동하지 않으므로 다음 증분 하베스트가 같은 변경 내용을 다시 읽습니다."
+    },
+    "running": {
+      "FULL": "전체 하베스트 실행 중",
+      "INCREMENTAL": "증분 하베스트 실행 중",
+      "since": "시작: {{time}}",
+      "stopping": "처리 중인 레코드 다음에 중지합니다…"
+    },
+    "outcome": {
+      "COMPLETED": "완료",
+      "COMPLETED_WITH_ERRORS": "오류와 함께 완료",
+      "FAILED": "실패",
+      "CANCELLED": "취소됨"
+    },
+    "mode": {
+      "FULL": "전체",
+      "INCREMENTAL": "증분"
+    },
+    "field": {
+      "outcome": "결과",
+      "mode": "모드",
+      "started": "시작",
+      "duration": "소요 시간",
+      "window": "변경 기준 시각",
+      "listed": "나열됨",
+      "created": "생성됨",
+      "updated": "업데이트됨",
+      "deleted": "삭제됨",
+      "skipped": "건너뜀",
+      "failed": "실패",
+      "pages": "페이지",
+      "reason": "사유"
+    },
+    "checkpoint": {
+      "moved": "체크포인트가 저장되었습니다. 다음 증분 하베스트는 {{time}} 이후 변경 내용을 읽습니다.",
+      "kept": "체크포인트가 이동하지 않았습니다. 다음 증분 하베스트가 같은 변경 내용을 다시 읽습니다."
+    },
+    "failures": {
+      "heading": "실패한 레코드({{count}})",
+      "partial": "실패한 레코드 {{count}}개 중 처음 {{shown}}개를 표시합니다."
+    },
+    "error": {
+      "signIn": "하베스트를 보려면 로그인하세요.",
+      "forbidden": "하베스트를 볼 수 없습니다. 하베스트된 레코드에 대한 읽기 권한이 필요합니다.",
+      "unavailable": "하베스트 서비스에 연결할 수 없습니다. 중지되었거나 배포되지 않았을 수 있습니다."
     }
   }
 }

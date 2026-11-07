@@ -11,6 +11,8 @@ articulorium:
     # topology service (PCDM structures) and transform service (IIIF exports) on the gateway
     topology-url: ../topology/
     transform-url: ../transform/
+    # harvest service (sources, harvests and their reports) on the gateway
+    harvest-url: ../harvest/
     # container of the community / sub-community / collection structure on the platform
     communities-path: communities
     # container of the academic profiles (VIVO) on the platform

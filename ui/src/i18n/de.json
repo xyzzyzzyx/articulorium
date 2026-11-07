@@ -6,6 +6,7 @@
     "communities": "Gemeinschaften",
     "profiles": "Profile",
     "topologies": "Topologien",
+    "harvest": "Harvesting",
     "search": "Suche",
     "api": "API",
     "about": "Über",
@@ -97,6 +98,7 @@
     "editProfile": "Profil bearbeiten",
     "topologies": "Topologien",
     "topology": "Topologie",
+    "harvest": "Harvesting",
     "search": "Suche",
     "about": "Über"
   },
@@ -552,6 +554,91 @@
     "built": {
       "one": "{{formatted}} Ressource erzeugt",
       "other": "{{formatted}} Ressourcen erzeugt"
+    }
+  },
+  "harvest": {
+    "heading": "Harvesting",
+    "intro": "Beim Harvesting werden Datensätze aus anderen Repositorien (OAI-PMH-Datenanbieter, DSpace, Fedora und VIVO) in die Plattform kopiert. Ein inkrementelles Harvesting liest, was sich seit dem letzten vollständigen Harvesting geändert hat; ein vollständiges Harvesting liest alle Datensätze erneut.",
+    "refresh": "Aktualisieren",
+    "readOnly": "Sie können das Harvesting hier verfolgen. Zum Starten und Abbrechen benötigen Sie Schreibzugriff auf die geharvesteten Datensätze.",
+    "none": "Es sind keine Harvesting-Quellen konfiguriert. Betreiber fügen sie in den Einstellungen des Harvesting-Dienstes hinzu (articulorium.harvest.sources).",
+    "never": "Seit dem Start des Harvesting-Dienstes nicht geharvestet.",
+    "last": "Letztes Harvesting",
+    "earlier": "Frühere Harvestings ({{count}})",
+    "started": "Harvesting von {{source}} gestartet",
+    "stopping": "Harvesting von {{source}} wird beendet",
+    "capability": {
+      "incremental": "Inkrementelles Harvesting",
+      "fullOnly": "Nur vollständiges Harvesting",
+      "deletions": "Meldet Löschungen",
+      "noDeletions": "Meldet keine Löschungen",
+      "scheduled": "Geplant: {{schedule}}",
+      "onDemand": "Nur auf Anforderung",
+      "disabled": "Deaktiviert"
+    },
+    "action": {
+      "incremental": "Inkrementelles Harvesting",
+      "full": "Vollständiges Harvesting",
+      "cancel": "Harvesting abbrechen"
+    },
+    "why": {
+      "permission": "Zum Starten benötigen Sie Schreibzugriff auf die geharvesteten Datensätze.",
+      "disabled": "Diese Quelle ist in den Einstellungen des Harvesting-Dienstes deaktiviert.",
+      "running": "Für diese Quelle läuft bereits ein Harvesting.",
+      "notIncremental": "Diese Quelle kann nicht nur Änderungen auflisten: Jedes Harvesting ist vollständig.",
+      "stopping": "Das Harvesting wird beendet."
+    },
+    "confirmFull": {
+      "title": "Vollständiges Harvesting starten?",
+      "message": "Ein vollständiges Harvesting liest alle Datensätze von {{source}} erneut und ersetzt ihre Kopien. Es kann lange dauern und entfernt keine Kopien von Datensätzen, die die Quelle nicht mehr auflistet."
+    },
+    "confirmCancel": {
+      "title": "Harvesting abbrechen?",
+      "message": "Das Harvesting von {{source}} endet nach dem aktuellen Datensatz. Bereits gespeicherte Datensätze bleiben erhalten; der Checkpoint bleibt unverändert, sodass das nächste inkrementelle Harvesting dieselben Änderungen erneut liest."
+    },
+    "running": {
+      "FULL": "Vollständiges Harvesting läuft",
+      "INCREMENTAL": "Inkrementelles Harvesting läuft",
+      "since": "gestartet {{time}}",
+      "stopping": "Wird nach dem aktuellen Datensatz beendet…"
+    },
+    "outcome": {
+      "COMPLETED": "Abgeschlossen",
+      "COMPLETED_WITH_ERRORS": "Mit Fehlern abgeschlossen",
+      "FAILED": "Fehlgeschlagen",
+      "CANCELLED": "Abgebrochen"
+    },
+    "mode": {
+      "FULL": "Vollständig",
+      "INCREMENTAL": "Inkrementell"
+    },
+    "field": {
+      "outcome": "Ergebnis",
+      "mode": "Modus",
+      "started": "Gestartet",
+      "duration": "Dauer",
+      "window": "Änderungen seit",
+      "listed": "Aufgelistet",
+      "created": "Erstellt",
+      "updated": "Aktualisiert",
+      "deleted": "Gelöscht",
+      "skipped": "Übersprungen",
+      "failed": "Fehlgeschlagen",
+      "pages": "Seiten",
+      "reason": "Grund"
+    },
+    "checkpoint": {
+      "moved": "Checkpoint gespeichert: Das nächste inkrementelle Harvesting liest Änderungen seit {{time}}.",
+      "kept": "Checkpoint unverändert: Das nächste inkrementelle Harvesting liest dieselben Änderungen erneut."
+    },
+    "failures": {
+      "heading": "Fehlgeschlagene Datensätze ({{count}})",
+      "partial": "Die ersten {{shown}} von {{count}} fehlgeschlagenen Datensätzen werden angezeigt."
+    },
+    "error": {
+      "signIn": "Melden Sie sich an, um das Harvesting zu sehen.",
+      "forbidden": "Sie können das Harvesting nicht sehen: Dafür ist Lesezugriff auf die geharvesteten Datensätze nötig.",
+      "unavailable": "Der Harvesting-Dienst ist nicht erreichbar. Er ist möglicherweise gestoppt oder nicht installiert."
     }
   }
 }

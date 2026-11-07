@@ -57,7 +57,7 @@ describe('AppComponent', () => {
 
     expect(element.querySelector('.ui-brand')?.textContent).toContain('Test repository');
     const links = [...element.querySelectorAll('.ui-nav a')].map((a) => a.getAttribute('href'));
-    expect(links).toEqual(['/browse', '/communities', '/profiles', '/topologies', '/search', 'http://host/swagger-ui.html', '/about']);
+    expect(links).toEqual(['/browse', '/communities', '/profiles', '/topologies', '/harvest', '/search', 'http://host/swagger-ui.html', '/about']);
     expect(element.querySelector('.ui-account')?.textContent).toContain('Sign in');
   });
 

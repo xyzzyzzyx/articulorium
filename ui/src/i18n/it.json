@@ -6,6 +6,7 @@
     "communities": "Comunità",
     "profiles": "Profili",
     "topologies": "Topologie",
+    "harvest": "Harvesting",
     "search": "Cerca",
     "api": "API",
     "about": "Informazioni",
@@ -97,6 +98,7 @@
     "editProfile": "Modifica profilo",
     "topologies": "Topologie",
     "topology": "Topologia",
+    "harvest": "Harvesting",
     "search": "Cerca",
     "about": "Informazioni"
   },
@@ -555,6 +557,91 @@
       "one": "{{formatted}} risorsa creata",
       "many": "{{formatted}} di risorse create",
       "other": "{{formatted}} risorse create"
+    }
+  },
+  "harvest": {
+    "heading": "Harvesting",
+    "intro": "L’harvesting copia nella piattaforma i record di altri repository (fornitori di dati OAI-PMH, DSpace, Fedora e VIVO). Un harvesting incrementale legge ciò che è cambiato dall’ultimo harvesting completo; un harvesting completo rilegge tutti i record.",
+    "refresh": "Aggiorna",
+    "readOnly": "Qui puoi seguire gli harvesting. Per avviarli e annullarli serve l’accesso in scrittura ai record raccolti.",
+    "none": "Nessuna sorgente di harvesting configurata. Gli operatori le aggiungono alle impostazioni del servizio di harvesting (articulorium.harvest.sources).",
+    "never": "Nessun harvesting dall’avvio del servizio di harvesting.",
+    "last": "Ultimo harvesting",
+    "earlier": "Harvesting precedenti ({{count}})",
+    "started": "Harvesting di {{source}} avviato",
+    "stopping": "L’harvesting di {{source}} si sta interrompendo",
+    "capability": {
+      "incremental": "Harvesting incrementali",
+      "fullOnly": "Solo harvesting completi",
+      "deletions": "Segnala le eliminazioni",
+      "noDeletions": "Non segnala le eliminazioni",
+      "scheduled": "Pianificato: {{schedule}}",
+      "onDemand": "Solo su richiesta",
+      "disabled": "Disattivata"
+    },
+    "action": {
+      "incremental": "Harvesting incrementale",
+      "full": "Harvesting completo",
+      "cancel": "Annulla harvesting"
+    },
+    "why": {
+      "permission": "Per avviare un harvesting serve l’accesso in scrittura ai record raccolti.",
+      "disabled": "Questa sorgente è disattivata nelle impostazioni del servizio di harvesting.",
+      "running": "È in corso un harvesting di questa sorgente.",
+      "notIncremental": "Questa sorgente non può elencare solo le modifiche: ogni harvesting è completo.",
+      "stopping": "L’harvesting si sta interrompendo."
+    },
+    "confirmFull": {
+      "title": "Avviare un harvesting completo?",
+      "message": "Un harvesting completo rilegge tutti i record di {{source}} e ne sostituisce le copie. Può richiedere molto tempo e non rimuove le copie dei record che la sorgente non elenca più."
+    },
+    "confirmCancel": {
+      "title": "Annullare l’harvesting?",
+      "message": "L’harvesting di {{source}} si interrompe dopo il record in corso. I record già salvati restano; il checkpoint non avanza, quindi il prossimo harvesting incrementale rilegge le stesse modifiche."
+    },
+    "running": {
+      "FULL": "Harvesting completo in corso",
+      "INCREMENTAL": "Harvesting incrementale in corso",
+      "since": "avviato {{time}}",
+      "stopping": "Interruzione dopo il record in corso…"
+    },
+    "outcome": {
+      "COMPLETED": "Completato",
+      "COMPLETED_WITH_ERRORS": "Completato con errori",
+      "FAILED": "Non riuscito",
+      "CANCELLED": "Annullato"
+    },
+    "mode": {
+      "FULL": "Completo",
+      "INCREMENTAL": "Incrementale"
+    },
+    "field": {
+      "outcome": "Esito",
+      "mode": "Modalità",
+      "started": "Avvio",
+      "duration": "Durata",
+      "window": "Modifiche dal",
+      "listed": "Elencati",
+      "created": "Creati",
+      "updated": "Aggiornati",
+      "deleted": "Eliminati",
+      "skipped": "Saltati",
+      "failed": "Non riusciti",
+      "pages": "Pagine",
+      "reason": "Motivo"
+    },
+    "checkpoint": {
+      "moved": "Checkpoint salvato: il prossimo harvesting incrementale legge le modifiche dal {{time}}.",
+      "kept": "Checkpoint invariato: il prossimo harvesting incrementale rilegge le stesse modifiche."
+    },
+    "failures": {
+      "heading": "Record non riusciti ({{count}})",
+      "partial": "Sono mostrati i primi {{shown}} di {{count}} record non riusciti."
+    },
+    "error": {
+      "signIn": "Accedi per vedere gli harvesting.",
+      "forbidden": "Non puoi vedere gli harvesting: serve l’accesso in lettura ai record raccolti.",
+      "unavailable": "Il servizio di harvesting non è raggiungibile. Potrebbe essere fermo o non installato."
     }
   }
 }

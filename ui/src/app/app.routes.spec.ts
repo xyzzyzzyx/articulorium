@@ -32,4 +32,8 @@ describe('routes', () => {
     expect(paths).toContain('profiles');
     expect(paths).toContain('profiles/:id/edit');
   });
+
+  it('opens the harvest page', () => {
+    expect(routes.find((route) => route.path === 'harvest')?.title).toBe('route.harvest');
+  });
 });

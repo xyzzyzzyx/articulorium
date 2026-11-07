@@ -6,6 +6,7 @@
     "communities": "社区",
     "profiles": "学者档案",
     "topologies": "拓扑",
+    "harvest": "收割",
     "search": "搜索",
     "api": "API",
     "about": "关于",
@@ -97,6 +98,7 @@
     "editProfile": "编辑档案",
     "topologies": "拓扑",
     "topology": "拓扑",
+    "harvest": "收割",
     "search": "搜索",
     "about": "关于"
   },
@@ -549,6 +551,91 @@
     "uploaded": "已上传{{label}}",
     "built": {
       "other": "已构建 {{formatted}} 个资源"
+    }
+  },
+  "harvest": {
+    "heading": "收割",
+    "intro": "收割会把其他存储库（OAI-PMH 数据提供方、DSpace、Fedora 和 VIVO）中的记录复制到平台。增量收割读取自上次完整收割以来的变更；完全收割会重新读取所有记录。",
+    "refresh": "刷新",
+    "readOnly": "您可以在此查看收割情况。启动和取消收割需要对已收割记录的写入权限。",
+    "none": "尚未配置收割源。运维人员可在收割服务的设置（articulorium.harvest.sources）中添加。",
+    "never": "自收割服务启动以来尚未收割。",
+    "last": "上次收割",
+    "earlier": "更早的收割（{{count}}）",
+    "started": "已开始收割 {{source}}",
+    "stopping": "正在停止 {{source}} 的收割",
+    "capability": {
+      "incremental": "支持增量收割",
+      "fullOnly": "仅完全收割",
+      "deletions": "报告删除",
+      "noDeletions": "不报告删除",
+      "scheduled": "定时：{{schedule}}",
+      "onDemand": "仅按需",
+      "disabled": "已停用"
+    },
+    "action": {
+      "incremental": "增量收割",
+      "full": "完全收割",
+      "cancel": "取消收割"
+    },
+    "why": {
+      "permission": "启动收割需要对已收割记录的写入权限。",
+      "disabled": "此收割源已在收割服务的设置中停用。",
+      "running": "此收割源正在收割。",
+      "notIncremental": "此收割源无法只列出变更：每次收割都是完全收割。",
+      "stopping": "收割正在停止。"
+    },
+    "confirmFull": {
+      "title": "开始完全收割？",
+      "message": "完全收割会重新读取 {{source}} 的所有记录并替换其副本。这可能需要很长时间，并且不会删除收割源已不再列出的记录的副本。"
+    },
+    "confirmCancel": {
+      "title": "取消收割？",
+      "message": "{{source}} 的收割将在当前记录处理完后停止。已存储的记录会保留；检查点不会前移，因此下一次增量收割会再次读取相同的变更。"
+    },
+    "running": {
+      "FULL": "正在完全收割",
+      "INCREMENTAL": "正在增量收割",
+      "since": "开始于 {{time}}",
+      "stopping": "将在当前记录处理完后停止…"
+    },
+    "outcome": {
+      "COMPLETED": "已完成",
+      "COMPLETED_WITH_ERRORS": "已完成但有错误",
+      "FAILED": "失败",
+      "CANCELLED": "已取消"
+    },
+    "mode": {
+      "FULL": "完全",
+      "INCREMENTAL": "增量"
+    },
+    "field": {
+      "outcome": "结果",
+      "mode": "模式",
+      "started": "开始时间",
+      "duration": "耗时",
+      "window": "变更起点",
+      "listed": "已列出",
+      "created": "已创建",
+      "updated": "已更新",
+      "deleted": "已删除",
+      "skipped": "已跳过",
+      "failed": "失败",
+      "pages": "页数",
+      "reason": "原因"
+    },
+    "checkpoint": {
+      "moved": "检查点已保存：下一次增量收割将读取 {{time}} 以来的变更。",
+      "kept": "检查点未前移：下一次增量收割会再次读取相同的变更。"
+    },
+    "failures": {
+      "heading": "失败的记录（{{count}}）",
+      "partial": "显示 {{count}} 条失败记录中的前 {{shown}} 条。"
+    },
+    "error": {
+      "signIn": "请登录以查看收割情况。",
+      "forbidden": "您无法查看收割情况：这需要对已收割记录的读取权限。",
+      "unavailable": "无法连接收割服务。它可能已停止或未部署。"
     }
   }
 }

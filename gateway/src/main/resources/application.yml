@@ -7,6 +7,7 @@
 #   /topology/**      topology (PCDM topologies and their instantiation)
 #   /auth/**          the OpenID Connect provider (Keycloak in docker compose; not in Consul)
 #   /oai              oai (OAI-PMH 2.0 data provider; the repository's base URL)
+#   /harvest/**       harvest (sources, harvests and reports for the user interface)
 #   /swagger-ui.html  Swagger UI for the OpenAPI descriptions of every service above
 
 logging:
@@ -121,6 +122,13 @@ spring:
               uri: lb://articulorium-oai
               predicates:
                 - Path=/oai,/oai/**
+              filters:
+                - StripPrefix=1
+            # harvest API of the user interface; access is checked against the platform's WebAC
+            - id: articulorium-harvest
+              uri: lb://articulorium-harvest
+              predicates:
+                - Path=/harvest/**
               filters:
                 - StripPrefix=1
             # /ui is redirected here (relative to the gateway's address): the service's own

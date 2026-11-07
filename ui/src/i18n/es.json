@@ -6,6 +6,7 @@
     "communities": "Comunidades",
     "profiles": "Perfiles",
     "topologies": "Topologías",
+    "harvest": "Recolección",
     "search": "Buscar",
     "api": "API",
     "about": "Acerca de",
@@ -97,6 +98,7 @@
     "editProfile": "Editar perfil",
     "topologies": "Topologías",
     "topology": "Topología",
+    "harvest": "Recolección",
     "search": "Buscar",
     "about": "Acerca de"
   },
@@ -555,6 +557,91 @@
       "one": "{{formatted}} recurso creado",
       "many": "{{formatted}} de recursos creados",
       "other": "{{formatted}} recursos creados"
+    }
+  },
+  "harvest": {
+    "heading": "Recolección",
+    "intro": "La recolección copia registros de otros repositorios (proveedores de datos OAI-PMH, DSpace, Fedora y VIVO) en la plataforma. Una recolección incremental lee lo que cambió desde la última recolección completa; una recolección total vuelve a leer todos los registros.",
+    "refresh": "Actualizar",
+    "readOnly": "Puede seguir las recolecciones aquí. Para iniciarlas y cancelarlas necesita acceso de escritura a los registros recolectados.",
+    "none": "No hay fuentes de recolección configuradas. Los operadores las añaden en la configuración del servicio de recolección (articulorium.harvest.sources).",
+    "never": "Sin recolecciones desde que se inició el servicio de recolección.",
+    "last": "Última recolección",
+    "earlier": "Recolecciones anteriores ({{count}})",
+    "started": "Recolección de {{source}} iniciada",
+    "stopping": "La recolección de {{source}} se está deteniendo",
+    "capability": {
+      "incremental": "Recolecciones incrementales",
+      "fullOnly": "Solo recolecciones totales",
+      "deletions": "Informa de eliminaciones",
+      "noDeletions": "No informa de eliminaciones",
+      "scheduled": "Programada: {{schedule}}",
+      "onDemand": "Solo bajo demanda",
+      "disabled": "Desactivada"
+    },
+    "action": {
+      "incremental": "Recolección incremental",
+      "full": "Recolección total",
+      "cancel": "Cancelar recolección"
+    },
+    "why": {
+      "permission": "Para iniciar recolecciones necesita acceso de escritura a los registros recolectados.",
+      "disabled": "Esta fuente está desactivada en la configuración del servicio de recolección.",
+      "running": "Hay una recolección de esta fuente en curso.",
+      "notIncremental": "Esta fuente no puede listar solo los cambios: cada recolección es total.",
+      "stopping": "La recolección se está deteniendo."
+    },
+    "confirmFull": {
+      "title": "¿Iniciar una recolección total?",
+      "message": "Una recolección total vuelve a leer todos los registros de {{source}} y reemplaza sus copias. Puede tardar mucho y no elimina las copias de registros que la fuente ya no lista."
+    },
+    "confirmCancel": {
+      "title": "¿Cancelar la recolección?",
+      "message": "La recolección de {{source}} se detiene tras el registro en curso. Los registros ya guardados se conservan; el punto de control no avanza, así que la próxima recolección incremental vuelve a leer los mismos cambios."
+    },
+    "running": {
+      "FULL": "Recolección total en curso",
+      "INCREMENTAL": "Recolección incremental en curso",
+      "since": "iniciada {{time}}",
+      "stopping": "Se detendrá tras el registro en curso…"
+    },
+    "outcome": {
+      "COMPLETED": "Completada",
+      "COMPLETED_WITH_ERRORS": "Completada con errores",
+      "FAILED": "Fallida",
+      "CANCELLED": "Cancelada"
+    },
+    "mode": {
+      "FULL": "Total",
+      "INCREMENTAL": "Incremental"
+    },
+    "field": {
+      "outcome": "Resultado",
+      "mode": "Modo",
+      "started": "Inicio",
+      "duration": "Duración",
+      "window": "Cambios desde",
+      "listed": "Listados",
+      "created": "Creados",
+      "updated": "Actualizados",
+      "deleted": "Eliminados",
+      "skipped": "Omitidos",
+      "failed": "Fallidos",
+      "pages": "Páginas",
+      "reason": "Motivo"
+    },
+    "checkpoint": {
+      "moved": "Punto de control guardado: la próxima recolección incremental lee los cambios desde {{time}}.",
+      "kept": "El punto de control no avanzó: la próxima recolección incremental vuelve a leer los mismos cambios."
+    },
+    "failures": {
+      "heading": "Registros fallidos ({{count}})",
+      "partial": "Se muestran los primeros {{shown}} de {{count}} registros fallidos."
+    },
+    "error": {
+      "signIn": "Inicie sesión para ver las recolecciones.",
+      "forbidden": "No puede ver las recolecciones: requieren acceso de lectura a los registros recolectados.",
+      "unavailable": "No se puede acceder al servicio de recolección. Puede estar detenido o no desplegado."
     }
   }
 }

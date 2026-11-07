@@ -28,7 +28,18 @@ describe('ConfigService', () => {
     expect(service.platformBase()).toBe('http://x/ldp/');
   });
 
-  it('resolves the API documentation, topology and transform services and the community and profile paths', async () => {
+  it('resolves a configured harvest service', async () => {
+    const service = TestBed.inject(ConfigService);
+    const loaded = service.load();
+    TestBed.inject(HttpTestingController)
+      .expectOne('api/config')
+      .flush({ platformUrl: '../platform/', title: 'Repo', harvestUrl: 'https://harvest.example/api' });
+    await loaded;
+
+    expect(service.harvestBase()).toBe('https://harvest.example/api/');
+  });
+
+  it('resolves the API documentation, topology, transform and harvest services and the community and profile paths', async () => {
     const service = TestBed.inject(ConfigService);
     const loaded = service.load();
     TestBed.inject(HttpTestingController)
@@ -39,6 +50,7 @@ describe('ConfigService', () => {
     expect(service.apiDocs()).toBe(new URL('../swagger-ui.html', document.baseURI).toString());
     expect(service.topologyBase()).toBe(new URL('../topology/', document.baseURI).toString());
     expect(service.transformBase()).toBe(new URL('../transform/', document.baseURI).toString());
+    expect(service.harvestBase()).toBe(new URL('../harvest/', document.baseURI).toString());
     expect(service.communitiesPath()).toBe('orgs');
     expect(service.profilesPath()).toBe('people');
   });

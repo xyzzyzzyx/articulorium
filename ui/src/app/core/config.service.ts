@@ -14,6 +14,8 @@ export interface UiConfig {
   readonly topologyUrl?: string;
   /** Where browsers reach the transform service (IIIF exports). */
   readonly transformUrl?: string;
+  /** Where browsers reach the harvest service. */
+  readonly harvestUrl?: string;
   /** Path (below the LDP root) of the community structure. */
   readonly communitiesPath?: string;
   /** Path (below the LDP root) of the academic profiles. */
@@ -44,6 +46,7 @@ export const FALLBACK_CONFIG: Required<UiConfig> = {
   apiDocsUrl: '../swagger-ui.html',
   topologyUrl: '../topology/',
   transformUrl: '../transform/',
+  harvestUrl: '../harvest/',
   communitiesPath: 'communities',
   profilesPath: 'profiles',
   auth: {
@@ -112,6 +115,15 @@ export class ConfigService {
    */
   transformBase(): string {
     return resolvePlatformBase(this.state().transformUrl || FALLBACK_CONFIG.transformUrl, document.baseURI);
+  }
+
+  /**
+   * The absolute base of the harvest service, ending with `/`.
+   *
+   * @returns for example `http://localhost:8000/harvest/`
+   */
+  harvestBase(): string {
+    return resolvePlatformBase(this.state().harvestUrl || FALLBACK_CONFIG.harvestUrl, document.baseURI);
   }
 
   /**

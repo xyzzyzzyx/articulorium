@@ -8,7 +8,7 @@ with the Fedora Commons HTML interface. The `service` module serves it; the gate
 
 | Fedora Commons UI                         | Articulorium UI                                                        |
 |-------------------------------------------|-----------------------------------------------------------------------|
-| Breadcrumb, Home and Search navigation    | Breadcrumb on every view; Browse, Communities, Topologies, Search, API (the gateway's Swagger UI for every service) and About |
+| Breadcrumb, Home and Search navigation    | Breadcrumb on every view; Browse, Communities, Profiles, Topologies, Harvest, Search, API (the gateway's Swagger UI for every service) and About |
 | Created / last modified (and by whom)     | Same, from the `fedora:` server-managed triples                       |
 | Children list with count                  | Same, sorted, linking to each child                                   |
 | Properties and "Other Resources"          | Property table per subject (prefixed names, links), blank nodes in panels |
@@ -25,6 +25,7 @@ with the Fedora Commons HTML interface. The `service` module serves it; the gate
 | —                                         | **Communities**: navigate communities, sub-communities, collections and items; create them; build items from topologies |
 | —                                         | **Profiles**: list, view, create, edit and delete academic profiles described with the VIVO ontology (identity, contact, ORCID iD, overview, research areas and keywords, positions, education, publications), with field-level validation |
 | —                                         | **Topologies**: list built-in and custom topologies, view them, duplicate, edit (levels, PCDM types, metadata fields, files, child counts), delete |
+| —                                         | **Harvest**: list the harvest sources and what they support, start incremental and full harvests, cancel them, follow their progress, read the reports and failed records ([harvest/README.md](../harvest/README.md#the-harvest-api-and-the-user-interface)) |
 | —                                         | **Topology aside** on resource pages: node, parent, ordered members, add children, edit the node's metadata fields, upload files per PCDM use; build a topology in any container |
 | —                                         | **Notifications** (COAR Notify): received notifications with their JSON-LD, sent notifications with delivery status, send a notification |
 | —                                         | **IIIF** link to the Manifest or Collection of PCDM objects, collections and communities |
@@ -60,8 +61,8 @@ placeholder or a plural form.
 
 * Settings come from `api/config` (the service): `platformUrl` (default `../platform/`, the gateway
   route relative to `/ui/`), `title`, `apiDocsUrl` (`../swagger-ui.html`), `topologyUrl`
-  (`../topology/`), `transformUrl` (`../transform/`), `communitiesPath` (`communities`) and
-  `profilesPath` (`profiles`).
+  (`../topology/`), `transformUrl` (`../transform/`), `harvestUrl` (`../harvest/`),
+  `communitiesPath` (`communities`) and `profilesPath` (`profiles`).
 * Resources are read as N-Triples (`src/app/core/rdf/ntriples.ts`), which needs no prefix or
   JSON-LD context processing. An RDF request for a binary is redirected by the platform to its
   description, which is what the view shows; a `HEAD` on the binary supplies its `Allow` header.
@@ -69,15 +70,16 @@ placeholder or a plural form.
   `WAC-Allow` header grants the mode.
 * Fedora API extensions: `fcr:versions`, `fcr:versions/<id>`, `fcr:fixity`, `fcr:search`,
   `fcr:acl`, `fcr:inbox`, `fcr:outbox`; `/.well-known/webac` for the agent and its access.
-* The topology service (`topologies`, `topologies/<id>/instances`, `topologies/<id>/members`) and
-  the transform service's `iiif/<path>`.
+* The topology service (`topologies`, `topologies/<id>/instances`, `topologies/<id>/members`),
+  the transform service's `iiif/<path>` and the harvest service's `sources`. The access token is
+  sent to these services only.
 
 Code layout: `core/` (configuration, `i18n/` (locale, translations, formatting pipes), the
 `LdpService` HTTP client, RDF parsing and helpers,
-`auth/` (the `AuthProvider` abstraction: OpenID Connect, pasted token, none; and the interceptor), `webac/`, `topology/`, `notify/`,
+`auth/` (the `AuthProvider` abstraction: OpenID Connect, pasted token, none; and the interceptor), `webac/`, `topology/`, `harvest/`, `notify/`,
 `profile/` (the VIVO mapping and validation of academic profiles)), `shared/` (term rendering,
 property table, breadcrumb, dialogs), and one folder per view (`browse/`, `history/`, `search/`,
-`permissions/`, `communities/`, `profiles/`, `topology/`, `notifications/`, `about/`).
+`permissions/`, `communities/`, `profiles/`, `topology/`, `harvest/`, `notifications/`, `about/`).
 
 ## Development
 
@@ -90,7 +92,7 @@ npm run i18n:check         # every shipped locale has a complete translation
 npm run build              # production build in dist/ui/browser
 ```
 
-`ng serve` uses `proxy.conf.json`: `/platform`, `/topology`, `/transform` and `/api` go to the gateway
+`ng serve` uses `proxy.conf.json`: `/platform`, `/topology`, `/transform`, `/harvest/` (the API; the page itself is `/harvest`) and `/api` go to the gateway
 (`docker compose up` in the repository root), with `X-Forwarded-*` headers so the platform mints
 IRIs under `http://localhost:4200/platform/`.
 

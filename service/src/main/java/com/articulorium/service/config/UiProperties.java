@@ -22,10 +22,12 @@ import org.springframework.boot.context.properties.bind.ConstructorBinding;
  * @param communitiesPath path (below the LDP root) of the community structure
  * @param profilesPath    path (below the LDP root) of the academic profiles (VIVO)
  * @param auth            how users sign in
+ * @param harvestUrl      URL of the harvest service's API ({@code /harvest/} on the gateway)
  */
 @ConfigurationProperties(prefix = "articulorium.ui")
 public record UiProperties(String platformUrl, String title, String apiDocsUrl, String topologyUrl,
-        String transformUrl, String communitiesPath, String profilesPath, Auth auth) {
+        String transformUrl, String communitiesPath, String profilesPath, Auth auth,
+        String harvestUrl) {
 
     /** Platform URL used when none is configured: the gateway route, relative to {@code /ui/}. */
     public static final String DEFAULT_PLATFORM_URL = "../platform/";
@@ -41,6 +43,9 @@ public record UiProperties(String platformUrl, String title, String apiDocsUrl, 
 
     /** Transform service used when none is configured: the gateway route. */
     public static final String DEFAULT_TRANSFORM_URL = "../transform/";
+
+    /** Harvest service used when none is configured: the gateway route. */
+    public static final String DEFAULT_HARVEST_URL = "../harvest/";
 
     /** Community structure used when none is configured (the platform's default). */
     public static final String DEFAULT_COMMUNITIES_PATH = "communities";
@@ -59,6 +64,7 @@ public record UiProperties(String platformUrl, String title, String apiDocsUrl, 
      * @param communitiesPath path of the community structure, may be {@code null}
      * @param profilesPath    path of the academic profiles, may be {@code null}
      * @param auth            sign-in settings, may be {@code null}
+     * @param harvestUrl      URL of the harvest service, may be {@code null}
      */
     @ConstructorBinding
     public UiProperties {
@@ -70,6 +76,7 @@ public record UiProperties(String platformUrl, String title, String apiDocsUrl, 
         communitiesPath = valueOr(communitiesPath, DEFAULT_COMMUNITIES_PATH);
         profilesPath = valueOr(profilesPath, DEFAULT_PROFILES_PATH);
         auth = auth == null ? new Auth(null, null) : auth;
+        harvestUrl = valueOr(harvestUrl, DEFAULT_HARVEST_URL);
     }
 
     /**
@@ -85,7 +92,7 @@ public record UiProperties(String platformUrl, String title, String apiDocsUrl, 
     public UiProperties(final String platformUrl, final String title, final String apiDocsUrl,
             final String topologyUrl, final String transformUrl, final String communitiesPath) {
         this(platformUrl, title, apiDocsUrl, topologyUrl, transformUrl, communitiesPath, null,
-            null);
+            null, null);
     }
 
     /**

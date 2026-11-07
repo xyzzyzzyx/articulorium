@@ -8,7 +8,8 @@ import { PLATFORM, unique } from '../support/e2e';
  *
  * Harvests are started with the actuator endpoint on the harvest service's management port, which
  * the gateway does not expose; cy.request runs in the Cypress process of the e2e container, which
- * resolves the compose service names.
+ * resolves the compose service names. The user interface's Harvest page is tested in
+ * harvest-ui.cy.ts.
  */
 
 /** The harvest service's actuator endpoint. */
