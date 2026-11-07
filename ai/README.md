@@ -6,18 +6,19 @@ reviews it and applies what is right with the existing APIs (the platform's LDP 
 API, the harvest review API). The agent never writes to the repository.
 
 ```bash
-# the agent, Ollama and its model (several GB on first start); the arxiv source harvests on start
-# and its records are classified for review on the Harvest page
-docker compose --profile ai up --build
+# the compose stack runs the agent, Ollama and its model (several GB on first start); the arxiv
+# source harvests on start, and its records are classified and placed in collections at once
+docker compose up --build
 curl -s http://localhost:8000/ai/capabilities
-# without classifying harvested records
-ARTICULORIUM_HARVEST_CLASSIFICATION=false docker compose --profile ai up --build
+# harvested records wait for review on the Harvest page instead
+ARTICULORIUM_HARVEST_AUTO_ACCEPT=false docker compose up --build
+# no classification of harvested records
+ARTICULORIUM_HARVEST_CLASSIFICATION=false docker compose up --build
 ```
 
-Without the `ai` profile the service is not deployed: the gateway answers `/ai/**` with 503 and the
-user interface hides every AI action. Records are still harvested; with classification enabled
-(the compose default) their classifications are recorded as failed, to retry from the review queue
-once the agent runs.
+When the agent is not running (or not registered in Consul yet) the gateway answers `/ai/**` with
+503 and the user interface hides every AI action. Records are still harvested; their
+classifications are recorded as failed (`AGENT_UNAVAILABLE`), to retry from the review queue.
 
 ## Capabilities
 
@@ -94,8 +95,8 @@ the rest of the page keeps working.
 ## Classifying harvested records
 
 With `articulorium.harvest.classification.enabled=true` (compose: on by default,
-`ARTICULORIUM_HARVEST_CLASSIFICATION=false` turns it off) the harvest service ingests records exactly as before,
-then asks the agent where each new record belongs:
+`ARTICULORIUM_HARVEST_CLASSIFICATION=false` turns it off) the harvest service ingests records
+exactly as before, then asks the agent where each new record belongs:
 
 1. The agent compares the record (texts, types, sets, file media types) with the community
    structure and topologies the harvester may read, and suggests an existing collection, or a new
@@ -104,7 +105,8 @@ then asks the agent where each new record belongs:
    `art:ReviewPending` while open). A record the agent cannot classify (not deployed, no model,
    failing) is stored as `FAILED` with the reason, to retry later: **the harvest never fails because
    of the agent**.
-3. A person reviews the queue on the **Harvest** page: accept the suggestion, place the record in
+3. With `auto-accept` (the default) the suggestion is accepted at once (below). Otherwise a person
+   reviews the queue on the **Harvest** page: accept the suggestion, place the record in
    another (or an alternative) collection, create the proposed collection or community and accept,
    reject (the record stays where it was harvested), or classify again. Suggestions below
    `review-threshold` are flagged as uncertain.
@@ -113,9 +115,15 @@ then asks the agent where each new record belongs:
    held once and later harvests update the item. Every write uses the credentials of whoever
    accepted, so the platform decides whether they may add items there.
 
-`auto-accept-threshold` (unset by default) accepts suggestions of an existing collection with an
-existing topology (or none) at least that sure without a person; proposals of new structures and
-uncertain suggestions always wait for review. Sources whose records do not belong in collections
+`auto-accept` (`true` by default; compose `ARTICULORIUM_HARVEST_AUTO_ACCEPT`) accepts suggestions
+without a person, with the harvester's credentials (decided by `auto`): the record goes to the
+suggested existing collection, or to the proposed collection of an existing community, or to the
+proposed community and its collection. Proposed communities and collections are created below
+`communities` (`communities` by default, the platform's community structure) unless one of that
+name exists, so records proposing the same structure share it. `auto-accept-threshold` (unset: any
+confidence) accepts only suggestions at least that sure. Suggestions of a new topology or of no
+placement, a proposed parent outside the community structure, and records whose placement fails
+wait for review. Sources whose records do not belong in collections
 (VIVO profiles) set `classify: false`. The `harvest.classifications` counter records outcomes
 (`pending`, `auto-accepted`, `failed`, `unrecorded`) by source. The review API is described in
 [harvest/README.md](../harvest/README.md#the-harvest-api-and-the-user-interface).
@@ -153,9 +161,10 @@ Agent settings (`articulorium.ai.*`):
 | `classification.catalog-ttl` | `1m` | How long the structure read for one caller is reused. |
 | `classification.max-record-length` | `2000` | Characters of a record shown to the model. |
 
-Harvest settings (`articulorium.harvest.classification.*`): `enabled` (`false`), `ai-url`,
-`topology-url`, `timeout` (`2m`, after which a classification is recorded as failed),
-`auto-accept-threshold` (unset), `review-threshold` (`0.5`).
+Harvest settings (`articulorium.harvest.classification.*`): `enabled` (`false`; `true` in compose),
+`ai-url`, `topology-url`, `timeout` (`2m`, after which a classification is recorded as failed),
+`auto-accept` (`true`), `auto-accept-threshold` (unset), `communities` (`communities`),
+`review-threshold` (`0.5`).
 
 ## Limitations and follow-ups
 

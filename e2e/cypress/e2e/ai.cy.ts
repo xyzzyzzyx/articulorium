@@ -1,13 +1,14 @@
 import { PLATFORM, pathOf, unique } from '../support/e2e';
 
 /**
- * The optional AI agent (the ai service, /ai/ on the gateway) in the user interface.
+ * The AI agent (the ai service, /ai/ on the gateway) in the user interface.
  *
- * The compose stack the tests run against starts without the agent (it needs the "ai" profile and
- * a model), so the first part checks what people see then: no AI action anywhere, and harvests
- * as before. The other parts check the flows of reviewing and applying suggestions; the agent's
- * answers are given by cy.intercept (a model does not answer the same twice), while everything a
- * person keeps is written to the real platform and topology service and read back from them.
+ * The compose stack the tests run against deploys the agent with its model, so the first part
+ * checks that it is offered: its capabilities, its actions, and harvested records classified and
+ * accepted automatically. The other parts check the flows of reviewing and applying suggestions;
+ * the agent's answers are given by cy.intercept (a model does not answer the same twice), while
+ * everything a person keeps is written to the real platform and topology service and read back
+ * from them.
  */
 
 const DCTERMS = 'http://purl.org/dc/terms/';
@@ -59,37 +60,24 @@ function ntriples(path: string): Cypress.Chainable<string> {
 }
 
 describe('AI agent', () => {
-  context('when it is not deployed', () => {
-    it('is reported unavailable and the user interface offers no AI action', () => {
-      // the gateway has no instance of the agent to route to
-      cy.request({ url: '/ai/capabilities', failOnStatusCode: false }).its('status').should('be.oneOf', [404, 503]);
+  context('as deployed by default', () => {
+    it('offers its capabilities with a model, and the user interface its actions', () => {
+      cy.request<typeof OFFERS_ALL>('/ai/capabilities').then((response) => {
+        expect(response.body.enabled).to.eq(true);
+        expect(response.body.model, 'the pulled model').to.eq(true);
+        expect(response.body.capabilities.classification).to.eq(true);
+      });
 
       cy.visitUi('topologies');
       cy.get('h1').should('have.text', 'Topologies');
-      cy.get('.ui-topology-summary').should('exist');
-      cy.get('.ui-ai-topology').should('not.exist');
-
-      cy.createContainer(unique('Covers')).then((parent) =>
-        cy.createBinary(parent, { name: 'cover.png', type: 'image/png', content: 'not really a PNG' }).then((binary) => {
-          cy.visitUi(`browse/${binary}`);
-          cy.get('h1').should('have.text', 'cover.png');
-          cy.get('.ui-ai-card').should('not.exist');
-        }),
-      );
-
-      createCommunity(unique('Library')).then((community) => {
-        visitStructure(community);
-        cy.get('.ui-structure-kind').should('have.text', 'Community');
-        cy.get('.ui-topic-suggestion').should('not.exist');
-      });
+      cy.get('.ui-ai-topology').should('exist');
     });
 
-    it('leaves harvesting as it was: no review queue unless classification is turned on', () => {
-      cy.request<{ classification?: boolean }>('/harvest/sources').then((response) => {
-        cy.visitUi('harvest');
-        cy.get('.ui-harvest-source').should('exist');
-        cy.get('ui-review-queue').should(response.body.classification ? 'exist' : 'not.exist');
-      });
+    it('classifies harvested records: the Harvest page has the review queue', () => {
+      cy.request<{ classification: boolean }>('/harvest/sources').its('body.classification').should('eq', true);
+      cy.visitUi('harvest');
+      cy.get('.ui-harvest-source').should('exist');
+      cy.get('ui-review-queue').should('exist');
     });
   });
 

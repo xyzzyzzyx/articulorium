@@ -53,8 +53,8 @@ public class HarvestProperties {
 
     /**
      * Classification of harvested records: the AI agent suggests the collection and topology of
-     * every new record, and a person reviews the suggestion (the harvest API's review queue) before
-     * the record is placed in the community structure.
+     * every new record; the suggestion is accepted at once ({@link #autoAccept}) or a person reviews
+     * it (the harvest API's review queue) before the record is placed in the community structure.
      */
     @Getter
     @Setter
@@ -73,10 +73,26 @@ public class HarvestProperties {
         private Duration timeout = Duration.ofMinutes(2);
 
         /**
-         * Confidence from which a placement in an existing collection, with an existing topology or
-         * none, is accepted without a person; unset (the default) to review every record.
+         * Whether suggestions are accepted without a person (the default): the record is placed in
+         * the suggested existing collection, or in the proposed collection (and community), created
+         * below {@link #communities} when no community or collection of that name exists yet.
+         * Suggestions of a new topology, of no placement, or below {@link #autoAcceptThreshold} wait
+         * for review, as does a record whose automatic placement fails. {@code false} to review
+         * every record.
+         */
+        private boolean autoAccept = true;
+
+        /**
+         * Confidence from which suggestions are accepted automatically (with {@link #autoAccept});
+         * unset (the default) for any confidence.
          */
         private Double autoAcceptThreshold;
+
+        /**
+         * The container of the community structure, below the LDP root (the platform's
+         * {@code articulorium.ldp.communities-path}); proposed communities are created there.
+         */
+        private String communities = "communities";
 
         /** Confidence below which a suggestion is flagged as uncertain in the review queue. */
         private double reviewThreshold = 0.5;

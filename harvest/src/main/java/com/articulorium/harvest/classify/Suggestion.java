@@ -30,6 +30,12 @@ public record Suggestion(String placement, Ref collection, Ref community, NewStr
     /** Placement in an existing collection. */
     public static final String EXISTING_COLLECTION = "EXISTING_COLLECTION";
 
+    /** Placement in a new collection of an existing community. */
+    public static final String NEW_COLLECTION = "NEW_COLLECTION";
+
+    /** Placement in a new collection of a new community. */
+    public static final String NEW_COMMUNITY = "NEW_COMMUNITY";
+
     /** No placement suggested. */
     public static final String NONE = "NONE";
 

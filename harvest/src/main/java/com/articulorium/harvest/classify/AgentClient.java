@@ -117,6 +117,12 @@ public class AgentClient {
             throw new AgentUnavailableException("AGENT_UNAVAILABLE", "The AI agent cannot be reached", e);
         } catch (RestClientException e) {
             throw new AgentUnavailableException("INVALID_OUTPUT", "The AI agent answered unreadably: " + e.getMessage(), e);
+        } catch (IllegalStateException e) {
+            // the load balancer knows no instance of the agent (not deployed, or not registered yet)
+            LOG.warn("The AI agent is not available to classify {} of {}: {}", record.identifier(), source,
+                e.getMessage());
+            throw new AgentUnavailableException("AGENT_UNAVAILABLE", "The AI agent is not available: " + e.getMessage(),
+                e);
         }
     }
 

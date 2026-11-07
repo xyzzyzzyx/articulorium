@@ -243,7 +243,7 @@ public class RecordPlacer {
         return writer.toString();
     }
 
-    private static String turtleLiteral(final String value) {
+    static String turtleLiteral(final String value) {
         return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r") + "\"";
     }
 

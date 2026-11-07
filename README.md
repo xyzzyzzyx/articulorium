@@ -450,25 +450,27 @@ docker compose exec harvest curl -s -X POST -H 'Content-Type: application/json' 
 docker compose exec harvest curl -s localhost:8000/actuator/harvest/self-oai
 ```
 
-## AI agent (optional)
+## AI agent
 
-The `ai` service ([ai/README.md](ai/README.md)) is an optional agent built on Spring AI. It
+The `ai` service ([ai/README.md](ai/README.md)) is an agent built on Spring AI. It
 suggests a topology for some material (an existing one, or a draft opened in the topology editor),
 metadata for images, videos and PDFs (read from the file and suggested by a model), the topics and a
 summary of a community or collection, the overview, research areas and keywords of an academic
 profile, and the collection and topology of harvested records. Each capability is an agent of the
 [agent library](agent/README.md) while it is turned on, so the agent registry and
 `/actuator/info` list exactly what runs. It
-never writes: people review every suggestion and apply what they keep with the existing APIs, and
-harvested records wait in a review queue on the **Harvest** page
-(`articulorium.harvest.classification.enabled=true`). Asking about a resource needs write access to
+never writes: people review its suggestions and apply what they keep with the existing APIs; the
+harvest service classifies harvested records with it and places them in collections at once
+(`articulorium.harvest.classification.enabled` and `auto-accept`, both on in docker compose), or
+leaves them in a review queue on the **Harvest** page (`ARTICULORIUM_HARVEST_AUTO_ACCEPT=false`). Asking about a resource needs write access to
 it, and the agent reads only what the caller may read. The model is chosen with Spring AI's
 settings: Ollama inside the deployment by default, or any OpenAI-compatible endpoint, with its key
-outside source control. Without the agent (the default) the user interface shows no AI action and
-harvesting is unchanged.
+outside source control. docker compose runs the agent, Ollama and its model
+(several GB on first start, `ARTICULORIUM_AI_MODEL`). Without the agent the user interface shows no
+AI action and harvested records are still ingested, their classifications recorded as failed.
 
 ```bash
-docker compose --profile ai up --build          # the agent, Ollama and its model
+docker compose up --build                       # includes the agent, Ollama and its model
 curl -s http://localhost:8000/ai/capabilities
 ```
 

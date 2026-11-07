@@ -1,9 +1,16 @@
 package com.articulorium.harvest.classify;
 
+import java.text.Normalizer;
 import java.time.Clock;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import com.articulorium.domain.rdf.ResourcePaths;
+import com.articulorium.domain.vocabulary.Articulorium;
+import com.articulorium.domain.vocabulary.Ldp;
+import com.articulorium.domain.vocabulary.Pcdm;
+import com.articulorium.domain.vocabulary.Rdf;
 import com.articulorium.harvest.config.HarvestProperties;
 import com.articulorium.harvest.core.HarvestException;
 import com.articulorium.harvest.core.HarvestedRecord;
@@ -13,7 +20,9 @@ import com.articulorium.harvest.ingest.PlatformAuthorization;
 import com.articulorium.harvest.ingest.PlatformClient;
 import com.articulorium.harvest.ingest.PlatformIngestor;
 import com.articulorium.harvest.ingest.RecordPaths;
+import com.articulorium.harvest.source.DublinCore;
 
+import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,9 +38,12 @@ import io.micrometer.core.instrument.MeterRegistry;
  * harvest itself goes on, and its outcome does not depend on the agent.</p>
  *
  * <p>Records already placed in a collection are updated in their item (and deleted with it), so a
- * placed record is never ingested a second time where it was harvested. With
- * {@code auto-accept-threshold} set, a suggestion of an existing collection (with an existing
- * topology or none) at least that sure is accepted at once, with the harvester's credentials.</p>
+ * placed record is never ingested a second time where it was harvested. With {@code auto-accept}
+ * (the default) a suggestion is accepted at once, with the harvester's credentials: the record goes
+ * to the suggested existing collection, or to the proposed collection (and community), created in
+ * the community structure unless one of that name exists. Suggestions of a new topology or of no
+ * placement, those below {@code auto-accept-threshold}, and records whose placement fails wait for
+ * review.</p>
  */
 public class ClassifyingIngestor implements RecordIngestor {
 
@@ -155,8 +167,8 @@ public class ClassifyingIngestor implements RecordIngestor {
         }
         if (autoAccept(classification.suggestion())) {
             try {
-                placer.place(platform, authorization.header(), classification,
-                    classification.suggestion().collection().path(), topology(classification.suggestion()), AUTO);
+                placer.place(platform, authorization.header(), classification, target(classification.suggestion()),
+                    topology(classification.suggestion()), AUTO);
                 count(sourceId, "auto-accepted");
                 return;
             } catch (TopologyClient.PlacementException | HarvestException e) {
@@ -171,14 +183,106 @@ public class ClassifyingIngestor implements RecordIngestor {
      * Tells whether a suggestion is accepted without a person.
      *
      * @param suggestion the suggestion
-     * @return {@code true} for an existing collection, an existing topology or none, and a confidence
-     *         from the threshold
+     * @return {@code true} with {@code auto-accept} for an existing collection, or a new collection
+     *         of an existing community, or a new community with its collection; with an existing
+     *         topology or none, and a confidence from the threshold (when one is set)
      */
     boolean autoAccept(final Suggestion suggestion) {
-        return settings.getAutoAcceptThreshold() != null && suggestion != null
-            && Suggestion.EXISTING_COLLECTION.equals(suggestion.placement()) && suggestion.collection() != null
-            && suggestion.confidenceOrZero() >= settings.getAutoAcceptThreshold()
-            && (suggestion.topology() == null || !Suggestion.Topology.NEW.equals(suggestion.topology().kind()));
+        if (!settings.isAutoAccept() || suggestion == null || suggestion.placement() == null) {
+            return false;
+        }
+        if (settings.getAutoAcceptThreshold() != null
+                && suggestion.confidenceOrZero() < settings.getAutoAcceptThreshold()) {
+            return false;
+        }
+        if (suggestion.topology() != null && Suggestion.Topology.NEW.equals(suggestion.topology().kind())) {
+            return false;
+        }
+        return switch (suggestion.placement()) {
+            case Suggestion.EXISTING_COLLECTION -> suggestion.collection() != null;
+            case Suggestion.NEW_COLLECTION -> suggestion.community() != null && suggestion.newCollection() != null;
+            case Suggestion.NEW_COMMUNITY -> suggestion.newCommunity() != null && suggestion.newCollection() != null;
+            default -> false;
+        };
+    }
+
+    /**
+     * Returns the collection an automatically accepted record goes to, creating the proposed
+     * community and collection when none of that name exists (records proposing the same structure
+     * share it, as when a person creates it from the review queue).
+     *
+     * @param suggestion an automatically accepted suggestion
+     * @return the collection's path
+     * @throws TopologyClient.PlacementException when the proposed parent is outside the community
+     *                                           structure or not a community
+     */
+    String target(final Suggestion suggestion) {
+        if (Suggestion.EXISTING_COLLECTION.equals(suggestion.placement())) {
+            return suggestion.collection().path();
+        }
+        final String root = ResourcePaths.normalize(settings.getCommunities());
+        String parent = root;
+        if (suggestion.community() != null) {
+            parent = ResourcePaths.normalize(suggestion.community().path());
+            if (!ResourcePaths.isSafe(parent) || !ResourcePaths.isSelfOrDescendant(parent, root)) {
+                throw new TopologyClient.PlacementException(422, "/" + parent + " is not in the community structure");
+            }
+            if (!parent.equals(root) && !hasType(parent, Articulorium.COMMUNITY)) {
+                throw new TopologyClient.PlacementException(422, "/" + parent + " is not a community");
+            }
+        }
+        if (Suggestion.NEW_COMMUNITY.equals(suggestion.placement())) {
+            parent = ensure(parent, Articulorium.COMMUNITY, suggestion.newCommunity());
+        }
+        return ensure(parent, Articulorium.COLLECTION, suggestion.newCollection());
+    }
+
+    private String ensure(final String parent, final String type, final Suggestion.NewStructure proposed) {
+        final String slug = slug(proposed);
+        final String path = parent + "/" + slug;
+        if (hasType(path, type)) {
+            return path;
+        }
+        final String title = proposed.title() == null || proposed.title().isBlank() ? slug : proposed.title().trim();
+        final StringBuilder turtle = new StringBuilder("<> <").append(Rdf.TYPE).append("> <").append(type).append("> .\n");
+        if (Articulorium.COLLECTION.equals(type)) {
+            turtle.append("<> <").append(Rdf.TYPE).append("> <").append(Pcdm.COLLECTION).append("> .\n");
+        }
+        turtle.append("<> <").append(DublinCore.DCTERMS).append("title> ").append(RecordPlacer.turtleLiteral(title))
+            .append(" .\n");
+        if (proposed.description() != null && !proposed.description().isBlank()) {
+            turtle.append("<> <").append(DublinCore.DCTERMS).append("description> ")
+                .append(RecordPlacer.turtleLiteral(proposed.description().trim())).append(" .\n");
+        }
+        // a name taken by something else: the platform picks another one
+        final String created = platform.create(parent, slug, turtle.toString(), Ldp.BASIC_CONTAINER);
+        LOG.info("Created {} /{} for automatically accepted harvested records",
+            Articulorium.COMMUNITY.equals(type) ? "community" : "collection", created);
+        return created;
+    }
+
+    private boolean hasType(final String path, final String type) {
+        final Optional<Model> model = platform.rdf(path);
+        return model.isPresent() && model.get().contains(model.get().createResource(platform.iri(path)),
+            model.get().createProperty(Rdf.TYPE), model.get().createResource(type));
+    }
+
+    /**
+     * Derives the resource name of a proposed community or collection as the user interface does:
+     * the proposed slug, or else the title, in lower-case letters, digits and hyphens.
+     *
+     * @param proposed the proposal
+     * @return the name, never empty
+     */
+    static String slug(final Suggestion.NewStructure proposed) {
+        final String base = proposed.slug() != null && !proposed.slug().isBlank() ? proposed.slug()
+            : proposed.title() == null ? "" : proposed.title();
+        String slug = Normalizer.normalize(base, Normalizer.Form.NFKD).replaceAll("\\p{M}", "")
+            .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
+        if (slug.length() > 80) {
+            slug = slug.substring(0, 80).replaceAll("-+$", "");
+        }
+        return slug.isEmpty() ? "untitled" : slug;
     }
 
     /**

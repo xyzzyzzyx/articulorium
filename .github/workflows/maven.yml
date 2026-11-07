@@ -46,7 +46,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Start the stack
-        run: docker compose up --build -d --wait --wait-timeout 600
+        # the first start also pulls the AI agent's model (several GB)
+        run: docker compose up --build -d --wait --wait-timeout 1800
       - name: Smoke test the LDP root through the gateway
         run: |
           curl -fsS -H 'Accept: text/turtle' http://localhost:8000/platform/
@@ -72,6 +73,8 @@ jobs:
           curl -fsS 'http://localhost:8000/oai?verb=Identify' | grep -q '<baseURL>http://localhost:8000/oai</baseURL>'
           curl -fsS 'http://localhost:8000/oai?verb=ListMetadataFormats' | grep -q '<metadataPrefix>oai_dc</metadataPrefix>'
           docker compose exec -T harvest curl -fsS http://localhost:8000/actuator/harvest | grep -q '"self-oai"'
+          docker compose exec -T harvest curl -fsS http://localhost:8000/actuator/harvest | grep -q '"arxiv"'
+          curl -fsS http://localhost:8000/ai/capabilities | grep -q '"model":true'
           docker compose exec -T triplestore curl -fsS http://localhost:8000/actuator/health | grep -q '"qlever"' 
       - name: Smoke test the identity provider (Keycloak on the gateway) and token validation
         run: |

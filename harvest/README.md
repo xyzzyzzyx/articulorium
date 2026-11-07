@@ -228,10 +228,13 @@ the harvest service cannot be reached); the actuator endpoint stays.
 
 ### Review queue (classification by the AI agent)
 
-With `articulorium.harvest.classification.enabled=true` the optional AI agent
+With `articulorium.harvest.classification.enabled=true` (on in the compose stack) the AI agent
 ([ai/README.md](../ai/README.md#classifying-harvested-records)) suggests where every new record
 belongs, `GET /sources` answers `"classification": true`, and the Harvest page shows the review
-queue below the sources. Records are ingested exactly as without the agent; a record the agent
+queue below the sources. With `classification.auto-accept` (the default) suggestions are accepted
+at once, creating proposed collections and communities; the queue then holds what could not be
+accepted automatically, and the accepted records (decided by `auto`) under "all".
+Records are ingested exactly as without the agent; a record the agent
 cannot classify is kept as `FAILED` with the reason and never fails the harvest.
 
 | Request | Effect | Needs |

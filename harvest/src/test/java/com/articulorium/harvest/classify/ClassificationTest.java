@@ -88,6 +88,8 @@ class ClassificationTest {
         final HarvestProperties.Source profiles = new HarvestProperties.Source();
         profiles.setClassify(false);
         properties.getSources().put("profiles", profiles);
+        // review every record unless a test turns automatic acceptance on (the default)
+        properties.getClassification().setAutoAccept(false);
         harvester = platform.client("Bearer harvester");
         store = new ClassificationStore();
         final RecordPlacer placer = new RecordPlacer(store, platform.topologies(), clock);
@@ -106,11 +108,15 @@ class ClassificationTest {
     }
 
     private static HarvestedRecord record(final String title) {
+        return record("oai:repo:1", title);
+    }
+
+    private static HarvestedRecord record(final String identifier, final String title) {
         final Model model = ModelFactory.createDefaultModel();
-        final Resource subject = model.createResource("oai:repo:1");
+        final Resource subject = model.createResource(identifier);
         subject.addProperty(model.createProperty(DCTERMS + "title"), title);
         subject.addProperty(model.createProperty(DCTERMS + "subject"), "Quantum dots");
-        return new HarvestedRecord("oai:repo:1", "oai:repo:1", null, false, List.of("theses"), model,
+        return new HarvestedRecord(identifier, identifier, null, false, List.of("theses"), model,
             List.of(new HarvestedFile(java.net.URI.create("https://repo.test/1.pdf"), "1.pdf", "application/pdf", 10L)));
     }
 
@@ -362,6 +368,7 @@ class ClassificationTest {
 
     @Test
     void acceptsConfidentSuggestionsAutomaticallyWhenConfigured() {
+        properties.getClassification().setAutoAccept(true);
         properties.getClassification().setAutoAcceptThreshold(0.9);
         answers.add(SUGGESTION);
 
@@ -374,18 +381,137 @@ class ClassificationTest {
     }
 
     @Test
-    void neverAcceptsUncertainOrNewStructuresAutomatically() {
+    void acceptsAutomaticallyByDefault() {
+        assertThat(new HarvestProperties.Classification().isAutoAccept()).isTrue();
+        assertThat(new HarvestProperties.Classification().getAutoAcceptThreshold()).isNull();
+        assertThat(new HarvestProperties.Classification().getCommunities()).isEqualTo("communities");
+    }
+
+    @Test
+    void neverAcceptsUncertainSuggestionsNewTopologiesOrNoPlacementAutomatically() {
+        properties.getClassification().setAutoAccept(true);
         properties.getClassification().setAutoAcceptThreshold(0.9);
+        final Suggestion.NewStructure proposed = new Suggestion.NewStructure("Data", null, null);
+        final Suggestion.Ref science = new Suggestion.Ref("communities/science", "Science", "Science");
 
         assertThat(ingestor.autoAccept(SUGGESTION)).isTrue();
         assertThat(ingestor.autoAccept(new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
             null, null, null, 0.89, null, null, null))).isFalse();
         assertThat(ingestor.autoAccept(new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
             null, null, new Suggestion.Topology("NEW", null, "x", null), 0.99, null, null, null))).isFalse();
-        assertThat(ingestor.autoAccept(new Suggestion("NEW_COLLECTION", null, null, null, null, null, 0.99, null, null,
+        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.NEW_COLLECTION, null, science, null, proposed, null,
+            0.99, null, null, null))).isTrue();
+        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.NEW_COLLECTION, null, null, null, proposed, null,
+            0.99, null, null, null))).as("a new collection needs its community").isFalse();
+        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.NEW_COMMUNITY, null, null, proposed, proposed, null,
+            0.99, null, null, null))).isTrue();
+        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.NONE, null, null, null, null, null, 0.99, null, null,
             null))).isFalse();
+        assertThat(ingestor.autoAccept(null)).isFalse();
+
+        // without a threshold any confidence will do; turned off, nothing is accepted automatically
         properties.getClassification().setAutoAcceptThreshold(null);
+        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
+            null, null, null, 0.1, null, null, null))).isTrue();
+        properties.getClassification().setAutoAccept(false);
         assertThat(ingestor.autoAccept(SUGGESTION)).isFalse();
+    }
+
+    @Test
+    void createsTheProposedCollectionOnceAndPlacesRecordsInIt() {
+        properties.getClassification().setAutoAccept(true);
+        platform.put("communities/science",
+            "<> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + Articulorium.COMMUNITY + "> .\n");
+        final Suggestion datasets = new Suggestion(Suggestion.NEW_COLLECTION, null,
+            new Suggestion.Ref("communities/science", "Science", "Science"), null,
+            new Suggestion.NewStructure("Research Data", "Data sets of the faculty", null),
+            new Suggestion.Topology("EXISTING", "thesis", "Thesis", null), 0.7, "No data collection yet.", List.of(), null);
+        answers.add(datasets);
+        answers.add(datasets);
+
+        ingestor.ingest("repo", record("oai:repo:1", "Quantum dots"));
+        ingestor.ingest("repo", record("oai:repo:2", "Quantum wells"));
+
+        final String collection = "communities/science/research-data";
+        final Model model = platform.get(collection);
+        final Resource subject = model.createResource(FakePlatform.BASE + collection);
+        final org.apache.jena.rdf.model.Property type = model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+        assertThat(subject.hasProperty(type, model.createResource(Articulorium.COLLECTION))).isTrue();
+        assertThat(subject.hasProperty(type, model.createResource(Pcdm.COLLECTION))).isTrue();
+        assertThat(title(collection)).isEqualTo("Research Data");
+        assertThat(subject.hasProperty(model.createProperty(DCTERMS + "description"), "Data sets of the faculty")).isTrue();
+        // the second record shares the collection the first one created
+        assertThat(platform.exists(collection + "-2")).isFalse();
+        for (final String identifier : List.of("oai:repo:1", "oai:repo:2")) {
+            final Classification classification = store.read(harvester, PATHS.record("repo", identifier)).orElseThrow();
+            assertThat(classification.status()).isEqualTo(Classification.Status.ACCEPTED);
+            assertThat(classification.decidedBy()).isEqualTo(ClassifyingIngestor.AUTO);
+            assertThat(classification.placedAt()).startsWith(collection + "/");
+        }
+        assertThat(meters.counter("harvest.classifications", "source", "repo", "outcome", "auto-accepted").count())
+            .isEqualTo(2);
+    }
+
+    @Test
+    void createsAProposedCommunityWithItsCollection() {
+        properties.getClassification().setAutoAccept(true);
+        answers.add(new Suggestion(Suggestion.NEW_COMMUNITY, null, null,
+            new Suggestion.NewStructure("Physics", null, null), new Suggestion.NewStructure("Quantum Dots", null, "dots"),
+            null, 0.6, "Nothing about physics yet.", List.of(), null));
+
+        ingestor.ingest("repo", record("Quantum dots"));
+
+        final Model community = platform.get("communities/physics");
+        assertThat(community.contains(community.createResource(FakePlatform.BASE + "communities/physics"),
+            community.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            community.createResource(Articulorium.COMMUNITY))).isTrue();
+        final Classification classification = store.read(harvester, STAGING).orElseThrow();
+        assertThat(classification.status()).isEqualTo(Classification.Status.ACCEPTED);
+        // no topology suggested: a plain object in the new collection
+        assertThat(classification.placedAt()).isEqualTo("communities/physics/dots/" + NAME);
+    }
+
+    @Test
+    void leavesSuggestionsOutsideTheCommunityStructureForReview() {
+        properties.getClassification().setAutoAccept(true);
+        answers.add(new Suggestion(Suggestion.NEW_COLLECTION, null, new Suggestion.Ref("harvested/repo", "repo", "repo"),
+            null, new Suggestion.NewStructure("Stolen", null, null), null, 0.99, null, List.of(), null));
+
+        ingestor.ingest("repo", record("Quantum dots"));
+
+        assertThat(store.read(harvester, STAGING).orElseThrow().status()).isEqualTo(Classification.Status.PENDING);
+        assertThat(platform.exists("harvested/repo/stolen")).isFalse();
+        assertThat(meters.counter("harvest.classifications", "source", "repo", "outcome", "pending").count()).isEqualTo(1);
+    }
+
+    @Test
+    void recordsAFailedClassificationWhenNoInstanceOfTheAgentIsRegistered() {
+        // what Spring Cloud LoadBalancer throws when Consul knows no articulorium-ai instance
+        final AgentClient unregistered = new AgentClient(org.springframework.web.client.RestClient.builder()
+            .requestInterceptor((request, body, execution) -> {
+                throw new IllegalStateException("No instances available for articulorium-ai");
+            }).build(), "http://articulorium-ai/", com.articulorium.harvest.ingest.PlatformAuthorization.fixed(null));
+        final ClassifyingIngestor withoutAgent = new ClassifyingIngestor(new PlatformIngestor(harvester, paths,
+            FakePlatform.clock()), harvester, com.articulorium.harvest.ingest.PlatformAuthorization.fixed("Bearer harvester"),
+            paths, store, unregistered, null, properties.getClassification(), source -> true, FakePlatform.clock(), meters);
+
+        assertThatThrownBy(() -> unregistered.classify("harvested/repo", "repo", record("Quantum dots")))
+            .isInstanceOfSatisfying(AgentClient.AgentUnavailableException.class,
+                e -> assertThat(e.getReason()).isEqualTo("AGENT_UNAVAILABLE"));
+        // the record is ingested; its classification waits for a retry
+        assertThat(withoutAgent.ingest("repo", record("Quantum dots"))).isEqualTo(IngestAction.CREATED);
+        final Classification classification = store.read(harvester, STAGING).orElseThrow();
+        assertThat(classification.status()).isEqualTo(Classification.Status.FAILED);
+        assertThat(meters.counter("harvest.classifications", "source", "repo", "outcome", "failed").count()).isEqualTo(1);
+    }
+
+    @Test
+    void namesProposedStructuresAsTheUserInterfaceDoes() {
+        assertThat(ClassifyingIngestor.slug(new Suggestion.NewStructure("Ångström Lab: Rare Books!", null, null)))
+            .isEqualTo("angstrom-lab-rare-books");
+        assertThat(ClassifyingIngestor.slug(new Suggestion.NewStructure("Rare Books", null, "rare"))).isEqualTo("rare");
+        assertThat(ClassifyingIngestor.slug(new Suggestion.NewStructure("!!!", null, " "))).isEqualTo("untitled");
+        assertThat(ClassifyingIngestor.slug(new Suggestion.NewStructure("a".repeat(100), null, null))).hasSize(80);
     }
 
     @Test
