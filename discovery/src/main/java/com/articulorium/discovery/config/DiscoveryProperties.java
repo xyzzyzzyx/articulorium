@@ -650,7 +650,8 @@ public class DiscoveryProperties {
         /**
          * Filter queries applied to every search: what the discovery layer shows at all. The
          * defaults select communities, collections and PCDM objects that are not nested in another
-         * object (pages of a book).
+         * object (pages of a book, which the topology service builds in {@code members}
+         * containers).
          */
         private List<String> baseFilters = new ArrayList<>();
 
@@ -681,8 +682,6 @@ public class DiscoveryProperties {
         /** Exact-value field of resource types (kinds of resources, type facets). */
         private String typeField = "type_str";
 
-        /** Exact-value field of the parent container (members of communities and collections). */
-        private String parentField = "hasParent_str";
 
         /** Field of the date of the last modification (recent resources, sitemaps). */
         private String modifiedField = "lastModified";

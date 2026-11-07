@@ -1,7 +1,9 @@
 package com.articulorium.discovery.search;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.articulorium.discovery.access.AccessVerifier;
@@ -31,7 +33,7 @@ import tools.jackson.databind.JsonNode;
 @Service
 public class ItemService {
 
-    /** Most parents followed for the trail. */
+    /** Most ancestors listed in the trail. */
     static final int MAX_DEPTH = 10;
 
     /** Longest path accepted. */
@@ -109,7 +111,7 @@ public class ItemService {
             SolrDocuments.first(doc, settings.getDescriptionField(), locale), kind, types,
             SolrDocuments.first(doc, "created", null), SolrDocuments.first(doc, settings.getModifiedField(), null),
             StringUtils.hasText(settings.getDateField()) ? SolrDocuments.first(doc, settings.getDateField(), null) : null,
-            SolrDocuments.values(doc, "languages"), fields, trail(doc, locale, authorization), summary, thumbnail,
+            SolrDocuments.values(doc, "languages"), fields, trail(path, locale, authorization), summary, thumbnail,
             properties.getLayout().getItem().isRepositoryLink() ? urls.repositoryUiUrl(path) : null);
     }
 
@@ -160,25 +162,51 @@ public class ItemService {
         return docs.isArray() && !docs.isEmpty() ? Optional.of(docs.get(0)) : Optional.empty();
     }
 
-    private List<ItemView.Crumb> trail(final JsonNode doc, @Nullable final String locale,
+    /**
+     * The trail of a resource: its ancestors (platform paths are hierarchical) that are part of the
+     * discovery layer and that the visitor may read, outermost first. Ancestors outside the
+     * discovery layer (the community root, {@code members} containers) are skipped.
+     */
+    private List<ItemView.Crumb> trail(final String path, @Nullable final String locale,
             @Nullable final String authorization) {
+        final List<String> ancestors = new ArrayList<>();
+        for (int slash = path.lastIndexOf('/'); slash > 0 && ancestors.size() < MAX_DEPTH;
+                slash = path.lastIndexOf('/', slash - 1)) {
+            ancestors.addFirst(path.substring(0, slash));
+        }
+        if (ancestors.isEmpty()) {
+            return List.of();
+        }
+        final List<String> iris = new ArrayList<>();
+        ancestors.forEach(ancestor -> iris.addAll(urls.irisOf(ancestor)));
+        final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("q", SolrSyntax.anyOf("id", iris));
+        search.baseFilters().forEach(filter -> params.add("fq", filter));
+        params.add("rows", Integer.toString(iris.size()));
+        params.add("fl", String.join(",", trailFields(locale)));
+        final Map<String, JsonNode> found = new HashMap<>();
+        for (final JsonNode doc : solr.select(params).path("response").path("docs")) {
+            final String ancestor = urls.pathOf(doc.path("id").asString(null));
+            if (ancestor != null) {
+                found.putIfAbsent(ancestor, doc);
+            }
+        }
         final List<ItemView.Crumb> trail = new ArrayList<>();
-        String parent = SolrDocuments.first(doc, "hasParent", null);
-        for (int depth = 0; depth < MAX_DEPTH && parent != null; depth++) {
-            final String path = urls.pathOf(parent);
-            if (path == null || path.isEmpty() || !access.mayRead(path, authorization)) {
-                break;
-            }
-            final Optional<JsonNode> found = document(path);
-            if (found.isEmpty()) {
-                break;
-            }
-            final String title = SolrDocuments.first(found.get(), properties.getSearch().getTitleField(), locale);
-            trail.addFirst(new ItemView.Crumb(path, title == null ? SolrDocuments.fallbackTitle(path) : title,
-                ResourceKind.of(SolrDocuments.values(found.get(), "type"))));
-            parent = SolrDocuments.first(found.get(), "hasParent", null);
+        final List<String> readable = access.readable(ancestors.stream().filter(found::containsKey).toList(),
+            authorization);
+        for (final String ancestor : readable) {
+            final JsonNode doc = found.get(ancestor);
+            final String title = SolrDocuments.first(doc, properties.getSearch().getTitleField(), locale);
+            trail.add(new ItemView.Crumb(ancestor, title == null ? SolrDocuments.fallbackTitle(ancestor) : title,
+                ResourceKind.of(SolrDocuments.values(doc, "type"))));
         }
         return trail;
+    }
+
+    private List<String> trailFields(@Nullable final String locale) {
+        final List<String> fields = new ArrayList<>(List.of("id", "type"));
+        fields.addAll(SolrDocuments.fieldList(properties.getSearch().getTitleField(), locale));
+        return fields;
     }
 
     /**

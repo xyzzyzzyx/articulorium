@@ -75,6 +75,40 @@ public final class SolrSyntax {
     }
 
     /**
+     * A query matching the direct children of containers in a hierarchy of identifiers: values that
+     * continue a parent's value with {@code /} and one more segment. Platform paths are
+     * hierarchical, so the members of a community or collection are the documents whose
+     * identifier is one segment below its own.
+     *
+     * @param field   the field of identifiers (from the settings)
+     * @param parents the parents' identifiers (one resource under several addresses)
+     * @return for example {@code (id:/http\:\/\/x\/c\/[^\/]+/)}, a regular expression per parent
+     */
+    public static String childrenOf(final String field, final Collection<String> parents) {
+        return parents.stream()
+            .map(parent -> field + ":/" + regex(parent.endsWith("/") ? parent : parent + "/") + "[^\\/]+/")
+            .collect(Collectors.joining(" OR ", "(", ")"));
+    }
+
+    /**
+     * Escapes a value for a Lucene regular expression in a query: every character that is not a
+     * letter or a digit is escaped, the {@code /} delimiters included.
+     *
+     * @param value the literal value
+     * @return the escaped value
+     */
+    static String regex(final String value) {
+        final StringBuilder escaped = new StringBuilder(value.length() * 2);
+        value.codePoints().forEach(c -> {
+            if (!Character.isLetterOrDigit(c)) {
+                escaped.append('\\');
+            }
+            escaped.appendCodePoint(c);
+        });
+        return escaped.toString();
+    }
+
+    /**
      * The suffix of a language's text fields.
      *
      * @param tag a BCP 47 tag

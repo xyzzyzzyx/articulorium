@@ -207,7 +207,6 @@ public class DiscoverySettingsValidator implements InitializingBean {
             fields("search.thumbnail-field", List.of(search.getThumbnailField()), problems);
         }
         fields("search.type-field", List.of(String.valueOf(search.getTypeField())), problems);
-        fields("search.parent-field", List.of(String.valueOf(search.getParentField())), problems);
         fields("search.modified-field", List.of(String.valueOf(search.getModifiedField())), problems);
         if (search.getMaxRows() < 1 || search.getMaxRows() > 1000) {
             problems.add("search.max-rows must be between 1 and 1000");

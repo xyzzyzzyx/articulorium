@@ -101,7 +101,7 @@ class SearchServiceTest {
         search.getPhraseFields().add(field("title", 20, false));
         search.getBoostQueries().add("type_str:\"https://articulorium.org/ns/repository#Collection\"^2");
         search.getBaseFilters().add("type_str:(\"http://pcdm.org/models#Object\")");
-        search.getBaseFilters().add("-hasParent_str:*\\/members");
+        search.getBaseFilters().add("-id:*\\/members\\/*");
         final DiscoveryProperties.Facet type = new DiscoveryProperties.Facet();
         type.setId("type");
         type.setField("type_str");
@@ -160,7 +160,7 @@ class SearchServiceTest {
         assertThat(sent.get("pf")).containsExactly("title^20");
         assertThat(sent.get("bq")).containsExactly("type_str:\"https://articulorium.org/ns/repository#Collection\"^2");
         assertThat(sent.get("uf")).containsExactly("-*");
-        assertThat(sent.get("fq")).containsExactly("type_str:(\"http://pcdm.org/models#Object\")", "-hasParent_str:*\\/members");
+        assertThat(sent.get("fq")).containsExactly("type_str:(\"http://pcdm.org/models#Object\")", "-id:*\\/members\\/*");
         assertThat(sent.get("start")).containsExactly("10");
         assertThat(sent.get("rows")).containsExactly("10");
         // the first sort order (relevance) needs no sort parameter
@@ -223,7 +223,8 @@ class SearchServiceTest {
         assertThat(sent.get("fq")).contains(
             "{!tag=year}(date:[1850-01-01T00:00:00Z TO 1900-01-01T00:00:00Z})",
             "hasFile_str:*",
-            "hasParent_str:(\"" + P + "communities/c\" OR \"http://articulorium-platform/communities/c\")",
+            "(id:/" + P.replace(":", "\\:").replace("/", "\\/").replace(".", "\\.")
+                + "communities\\/c\\/[^\\/]+/ OR id:/http\\:\\/\\/articulorium\\-platform\\/communities\\/c\\/[^\\/]+/)",
             "type_str:(\"https://articulorium.org/ns/repository#Collection\" OR \"http://pcdm.org/models#Collection\")");
         assertThat(sent.get("sort")).containsExactly("title_str asc, id asc");
         assertThat(sent.get("rows")).containsExactly("20");

@@ -144,7 +144,7 @@ articulorium:
       # pages of a book, in "members" containers)
       base-filters:
         - 'type_str:("https://articulorium.org/ns/repository#Community" OR "https://articulorium.org/ns/repository#Collection" OR "http://pcdm.org/models#Object")'
-        - '-hasParent_str:*\/members'
+        - '-id:*\/members\/*'
       facets:
         - id: type
           field: type_str
@@ -216,7 +216,6 @@ articulorium:
       date-field: date
       thumbnail-field: thumbnail
       type-field: type_str
-      parent-field: hasParent_str
       modified-field: lastModified
       max-rows: 100
 

@@ -3,6 +3,7 @@ package com.articulorium.discovery.search;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -13,7 +14,10 @@ import static org.springframework.test.web.client.ExpectedCount.manyTimes;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.articulorium.discovery.access.AccessVerifier;
 import com.articulorium.discovery.config.DiscoveryProperties;
@@ -70,35 +74,44 @@ class ItemServiceTest {
         final SolrSearchClient client = new SolrSearchClient(builder, properties);
         service = new ItemService(client, access, iiif, urls, properties,
             new SearchService(client, mock(SolrSchema.class), access, urls, properties));
-        // Solr answers by the requested identifier
+        when(access.readable(anyCollection(), any())).thenAnswer(invocation -> invocation.<Collection<String>>getArgument(0)
+            .stream().filter(path -> access.mayRead(path, invocation.getArgument(1))).toList());
+        // the documents Solr holds, some identified by the platform's internal address; there is
+        // no document for "communities" (outside the discovery layer)
+        final Map<String, String> docs = Map.of(
+            "communities/c/moby", """
+                {"id": "http://articulorium-platform/communities/c/moby", "type": ["http://pcdm.org/models#Object"],
+                 "title": ["Moby Dick"], "title_txt_fr": ["Moby Dick ou le Cachalot"],
+                 "description": ["A whale of a tale"], "creator": ["Herman Melville", "Herman Melville"],
+                 "license": ["https://creativecommons.org/publicdomain/mark/1.0/", "javascript:alert(1)"],
+                 "created": ["2026-01-01T00:00:00Z"], "lastModified": ["2026-02-01T00:00:00Z"],
+                 "languages": ["en", "fr"]}
+                """,
+            "communities/top/c", """
+                {"id": "http://articulorium-platform/communities/top/c",
+                 "type": ["https://articulorium.org/ns/repository#Collection"], "title": ["Rare books"]}
+                """,
+            "communities/top", """
+                {"id": "%scommunities/top", "type": ["https://articulorium.org/ns/repository#Community"],
+                 "title": ["Library"]}
+                """.formatted(P),
+            "communities/top/c/moby", """
+                {"id": "%scommunities/top/c/moby", "type": ["http://pcdm.org/models#Object"], "title": ["Moby Dick"]}
+                """.formatted(P));
+        // Solr answers with the documents whose identifiers are asked for
         solr.expect(manyTimes(), requestTo("http://solr.test/solr/articulorium/select")).andRespond(request -> {
             final MultiValueMap<String, String> form = SolrRequests.form(((MockClientHttpRequest) request).getBodyAsString());
-            assertThat(form.get("fq")).as("pages are limited to the discovery layer").contains("-hasParent_str:*\\/members");
-            // id:("<public IRI>" OR "<internal IRI>")
+            assertThat(form.get("fq")).as("pages are limited to the discovery layer").contains("-id:*\\/members\\/*");
+            // id:("<public IRI>" OR "<internal IRI>" ...)
             final String q = form.getFirst("q");
             assertThat(q).contains("\"http://articulorium-platform/");
-            final String id = q.substring(q.indexOf('"') + 1, q.indexOf('"', q.indexOf('"') + 1));
-            final String doc = switch (id.substring(P.length())) {
-                case "communities/c/moby" -> """
-                    {"id": "%1$scommunities/c/moby", "type": ["http://pcdm.org/models#Object"],
-                     "title": ["Moby Dick"], "title_txt_fr": ["Moby Dick ou le Cachalot"],
-                     "description": ["A whale of a tale"], "creator": ["Herman Melville", "Herman Melville"],
-                     "license": ["https://creativecommons.org/publicdomain/mark/1.0/", "javascript:alert(1)"],
-                     "created": ["2026-01-01T00:00:00Z"], "lastModified": ["2026-02-01T00:00:00Z"],
-                     "hasParent": ["http://articulorium-platform/communities/c"], "languages": ["en", "fr"]}
-                    """.formatted(P);
-                case "communities/c" -> """
-                    {"id": "%1$scommunities/c", "type": ["https://articulorium.org/ns/repository#Collection"],
-                     "title": ["Rare books"], "hasParent": ["%1$scommunities/top"]}
-                    """.formatted(P);
-                case "communities/top" -> """
-                    {"id": "%1$scommunities/top", "type": ["https://articulorium.org/ns/repository#Community"],
-                     "title": ["Library"], "hasParent": ["%1$scommunities"]}
-                    """.formatted(P);
-                default -> null;
-            };
-            final String body = "{\"response\": {\"docs\": [" + (doc == null ? "" : doc) + "]}}";
-            return withSuccess(body, MediaType.APPLICATION_JSON).createResponse(request);
+            final String found = docs.entrySet().stream()
+                .filter(doc -> q.contains("\"" + P + doc.getKey() + "\"")
+                    && q.contains("\"http://articulorium-platform/" + doc.getKey() + "\""))
+                .map(Map.Entry::getValue)
+                .collect(Collectors.joining(","));
+            return withSuccess("{\"response\": {\"docs\": [" + found + "]}}", MediaType.APPLICATION_JSON)
+                .createResponse(request);
         });
     }
 
@@ -122,23 +135,33 @@ class ItemServiceTest {
             new ItemService.ItemView.FieldValues("creator", java.util.List.of("Herman Melville"), false),
             new ItemService.ItemView.FieldValues("license",
                 java.util.List.of("https://creativecommons.org/publicdomain/mark/1.0/"), true));
-        assertThat(item.trail()).containsExactly(
-            new ItemService.ItemView.Crumb("communities/top", "Library", ResourceKind.COMMUNITY),
-            new ItemService.ItemView.Crumb("communities/c", "Rare books", ResourceKind.COLLECTION));
+        assertThat(item.trail()).as("a resource without indexed ancestors has no trail").isEmpty();
         assertThat(item.iiif()).isEqualTo(summary);
         assertThat(item.thumbnail()).isEqualTo("https://images.example.org/moby.jpg");
         assertThat(item.repositoryUrl()).isEqualTo("http://localhost:8000/ui/browse/communities/c/moby");
     }
 
     @Test
-    void stopsTheTrailAtParentsTheVisitorMayNotRead() {
+    void listsTheIndexedAncestorsOutermostFirst() {
+        when(iiif.summary(anyString(), any())).thenReturn(Optional.empty());
+
+        final ItemService.ItemView item = service.item("communities/top/c/moby", "en", null);
+
+        // "communities" is not in the index
+        assertThat(item.trail()).containsExactly(
+            new ItemService.ItemView.Crumb("communities/top", "Library", ResourceKind.COMMUNITY),
+            new ItemService.ItemView.Crumb("communities/top/c", "Rare books", ResourceKind.COLLECTION));
+    }
+
+    @Test
+    void leavesAncestorsTheVisitorMayNotReadOutOfTheTrail() {
         when(iiif.summary(anyString(), any())).thenReturn(Optional.empty());
         when(access.mayRead(eq("communities/top"), any())).thenReturn(false);
 
-        final ItemService.ItemView item = service.item("communities/c/moby", null, null);
+        final ItemService.ItemView item = service.item("communities/top/c/moby", null, null);
 
         assertThat(item.title()).isEqualTo("Moby Dick");
-        assertThat(item.trail()).extracting(ItemService.ItemView.Crumb::path).containsExactly("communities/c");
+        assertThat(item.trail()).extracting(ItemService.ItemView.Crumb::path).containsExactly("communities/top/c");
         assertThat(item.iiif()).isNull();
         assertThat(item.thumbnail()).isNull();
     }

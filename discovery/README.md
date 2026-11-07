@@ -173,7 +173,7 @@ for anything beyond tokens; the built-in components use `disc-*` classes and `--
       minimum-match: "2<-1 5<80%"
       base-filters:                   # what the discovery layer shows at all
         - 'type_str:("https://articulorium.org/ns/repository#Community" OR "https://articulorium.org/ns/repository#Collection" OR "http://pcdm.org/models#Object")'
-        - '-hasParent_str:*\/members'
+        - '-id:*\/members\/*'
       facets:
         - id: type
           field: type_str             # exact values: the _default config set's <field>_str copies
