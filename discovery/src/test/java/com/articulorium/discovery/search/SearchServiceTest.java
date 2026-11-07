@@ -52,7 +52,9 @@ class SearchServiceTest {
           {"id": "%1$scommunities/c/secret", "type": ["http://pcdm.org/models#Object"], "title": ["Secret"]},
           {"id": "%1$scommunities/c", "type": ["https://articulorium.org/ns/repository#Collection"],
            "thumbnail": ["https://images.example.org/c.jpg"]},
-          {"id": "http://elsewhere.example.org/x", "title": ["Not ours"]}
+          {"id": "http://elsewhere.example.org/x", "title": ["Not ours"]},
+          {"id": "http://articulorium-platform/communities/c/atlas", "type": ["http://pcdm.org/models#Object"],
+           "title": ["Atlas"]}
         ]},
          "facet_counts": {
            "facet_fields": {"type": ["http://pcdm.org/models#Object", 40, "https://articulorium.org/ns/repository#Collection", 2]},
@@ -221,7 +223,7 @@ class SearchServiceTest {
         assertThat(sent.get("fq")).contains(
             "{!tag=year}(date:[1850-01-01T00:00:00Z TO 1900-01-01T00:00:00Z})",
             "hasFile_str:*",
-            "{!term f=hasParent_str}" + P + "communities/c",
+            "hasParent_str:(\"" + P + "communities/c\" OR \"http://articulorium-platform/communities/c\")",
             "type_str:(\"https://articulorium.org/ns/repository#Collection\" OR \"http://pcdm.org/models#Collection\")");
         assertThat(sent.get("sort")).containsExactly("title_str asc, id asc");
         assertThat(sent.get("rows")).containsExactly("20");
@@ -250,8 +252,9 @@ class SearchServiceTest {
         assertThat(response.sort()).isEqualTo("title");
         assertThat(response.filters()).containsExactly("digitized");
         assertThat(response.hidden()).isEqualTo(2);
+        // resources written by services that reach the platform directly carry its internal address
         assertThat(response.results()).extracting(SearchResponse.Result::path)
-            .containsExactly("communities/c/moby", "communities/c");
+            .containsExactly("communities/c/moby", "communities/c", "communities/c/atlas");
         final SearchResponse.Result moby = response.results().getFirst();
         assertThat(moby.title()).isEqualTo("Moby Dick oder Der Wal");
         assertThat(moby.description()).isEqualTo("A whale of a tale");

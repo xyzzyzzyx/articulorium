@@ -74,7 +74,10 @@ class ItemServiceTest {
         solr.expect(manyTimes(), requestTo("http://solr.test/solr/articulorium/select")).andRespond(request -> {
             final MultiValueMap<String, String> form = SolrRequests.form(((MockClientHttpRequest) request).getBodyAsString());
             assertThat(form.get("fq")).as("pages are limited to the discovery layer").contains("-hasParent_str:*\\/members");
-            final String id = form.getFirst("q").substring("{!term f=id}".length());
+            // id:("<public IRI>" OR "<internal IRI>")
+            final String q = form.getFirst("q");
+            assertThat(q).contains("\"http://articulorium-platform/");
+            final String id = q.substring(q.indexOf('"') + 1, q.indexOf('"', q.indexOf('"') + 1));
             final String doc = switch (id.substring(P.length())) {
                 case "communities/c/moby" -> """
                     {"id": "%1$scommunities/c/moby", "type": ["http://pcdm.org/models#Object"],
@@ -82,7 +85,7 @@ class ItemServiceTest {
                      "description": ["A whale of a tale"], "creator": ["Herman Melville", "Herman Melville"],
                      "license": ["https://creativecommons.org/publicdomain/mark/1.0/", "javascript:alert(1)"],
                      "created": ["2026-01-01T00:00:00Z"], "lastModified": ["2026-02-01T00:00:00Z"],
-                     "hasParent": ["%1$scommunities/c"], "languages": ["en", "fr"]}
+                     "hasParent": ["http://articulorium-platform/communities/c"], "languages": ["en", "fr"]}
                     """.formatted(P);
                 case "communities/c" -> """
                     {"id": "%1$scommunities/c", "type": ["https://articulorium.org/ns/repository#Collection"],

@@ -50,6 +50,7 @@ link stops the service with a list of problems.
 | `public-url` | `http://localhost:8000/discover/` | the address people and search engines use; canonical URLs, `hreflang` links, Open Graph URLs and sitemaps are built from it |
 | `platform-url`, `transform-url`, `load-balanced` | Consul service names | where this service reads the platform (access checks) and the transform service (IIIF summaries) |
 | `platform-public-url`, `transform-public-url` | `../platform/`, `../transform/` | the services as visitors reach them, relative to `public-url`; Solr documents are identified by these public IRIs |
+| `platform-iri-bases` | (none) | further addresses under which indexed resources may be identified. The platform mints IRIs from the address of the request that wrote a resource: through the gateway the public one, from services that reach it directly (topology, harvest) `platform-url`, which is always recognized |
 | `solr.base-url`, `solr.collection` | `http://solr:8983/solr`, `articulorium` | the collection the index service writes |
 | `access.verify`, `access.anonymous-cache-seconds`, `access.parallelism` | `true`, `60`, `8` | access checks (turn off only when the collection holds nothing but public resources) |
 | `iiif.enabled`, `iiif.cache-seconds` | `true`, `300` | IIIF summaries of resource pages (preview image, kinds of media) |

@@ -35,4 +35,17 @@ class PublicUrlsTest {
         assertThat(urls.pathOf(null)).isNull();
     }
 
+    @Test
+    void recognizesIrisMintedUnderOtherPlatformAddresses() {
+        final DiscoveryProperties properties = new DiscoveryProperties();
+        properties.getPlatformIriBases().add("https://ldp.internal.example.org/root");
+        final PublicUrls urls = new PublicUrls(properties);
+
+        assertThat(urls.pathOf("http://articulorium-platform/communities/c/atlas")).isEqualTo("communities/c/atlas");
+        assertThat(urls.pathOf("https://ldp.internal.example.org/root/x")).isEqualTo("x");
+        assertThat(urls.irisOf("a/b")).containsExactly("http://localhost:8000/platform/a/b",
+            "http://articulorium-platform/a/b", "https://ldp.internal.example.org/root/a/b");
+        assertThat(urls.iriOf("a/b")).isEqualTo("http://localhost:8000/platform/a/b");
+    }
+
 }

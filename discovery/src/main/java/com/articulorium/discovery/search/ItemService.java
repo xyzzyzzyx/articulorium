@@ -151,7 +151,8 @@ public class ItemService {
 
     private Optional<JsonNode> document(final String path) {
         final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("q", SolrSyntax.term("id", urls.iriOf(path)));
+        // the platform may have identified the resource by its public or its internal address
+        params.add("q", SolrSyntax.anyOf("id", urls.irisOf(path)));
         search.baseFilters().forEach(filter -> params.add("fq", filter));
         params.add("rows", "1");
         params.add("fl", "*");

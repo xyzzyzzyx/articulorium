@@ -217,7 +217,7 @@ public class SearchService {
         settings.getFilters().stream().filter(filter -> filters.contains(filter.getId()))
             .forEach(filter -> params.add("fq", filter.getQuery()));
         if (StringUtils.hasText(request.within())) {
-            params.add("fq", SolrSyntax.term(settings.getParentField(), urls.iriOf(ItemService.normalize(request.within()))));
+            params.add("fq", SolrSyntax.anyOf(settings.getParentField(), urls.irisOf(ItemService.normalize(request.within()))));
         }
         if (request.kind() != null && request.kind() != ResourceKind.RESOURCE) {
             final List<String> types = request.kind() == ResourceKind.COLLECTION

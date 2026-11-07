@@ -54,6 +54,15 @@ public class DiscoveryProperties {
     /** Where clients reach the transform service, relative to {@link #publicUrl} or absolute. */
     private String transformPublicUrl = "../transform/";
 
+    /**
+     * Other bases under which the platform mints the IRIs of indexed resources. The platform
+     * identifies a resource by the address of the request that wrote it: resources written through
+     * the gateway carry public IRIs ({@link #platformPublicUrl}), resources written by services
+     * reaching the platform directly (the topology and harvest services) carry IRIs under
+     * {@link #platformUrl}, which is always recognized. List any further addresses here.
+     */
+    private List<String> platformIriBases = new ArrayList<>();
+
     /** Solr. */
     private Solr solr = new Solr();
 

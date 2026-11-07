@@ -1,6 +1,10 @@
 package com.articulorium.discovery.config;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
@@ -21,6 +25,8 @@ public class PublicUrls {
 
     private final String repositoryUiBase;
 
+    private final List<String> iriBases;
+
     /**
      * Resolves the public addresses of the settings.
      *
@@ -31,6 +37,11 @@ public class PublicUrls {
         this.platformBase = resolve(publicUrl, properties.getPlatformPublicUrl());
         this.transformBase = resolve(publicUrl, properties.getTransformPublicUrl());
         this.repositoryUiBase = resolve(publicUrl, properties.getLayout().getItem().getRepositoryUiUrl());
+        final Set<String> bases = new LinkedHashSet<>();
+        bases.add(platformBase);
+        bases.add(slash(properties.getPlatformUrl()));
+        properties.getPlatformIriBases().stream().filter(StringUtils::hasText).map(PublicUrls::slash).forEach(bases::add);
+        this.iriBases = List.copyOf(bases);
     }
 
     /** @return the public address of the discovery layer, ending with {@code /} */
@@ -69,21 +80,39 @@ public class PublicUrls {
     }
 
     /**
-     * Returns the path of a public platform IRI.
+     * Returns every IRI the platform may have given a resource in the index: under its public base,
+     * its internal address and the configured {@code platform-iri-bases}.
+     *
+     * @param path the resource path, without leading {@code /}
+     * @return the IRIs, the public one first
+     */
+    public List<String> irisOf(final String path) {
+        final List<String> iris = new ArrayList<>();
+        iriBases.forEach(base -> iris.add(base + path));
+        return iris;
+    }
+
+    /**
+     * Returns the path of a platform IRI, under the public base or another known base.
      *
      * @param iri the IRI
      * @return the path without leading or trailing {@code /}, {@code null} when the IRI is not
-     *     below the platform's root
+     *     below a known platform base
      */
     public @Nullable String pathOf(@Nullable final String iri) {
-        if (iri == null || !iri.startsWith(platformBase)) {
+        if (iri == null) {
             return null;
         }
-        String path = iri.substring(platformBase.length());
-        while (path.endsWith("/")) {
-            path = path.substring(0, path.length() - 1);
+        for (final String base : iriBases) {
+            if (iri.startsWith(base)) {
+                String path = iri.substring(base.length());
+                while (path.endsWith("/")) {
+                    path = path.substring(0, path.length() - 1);
+                }
+                return path;
+            }
         }
-        return path;
+        return null;
     }
 
     /**
