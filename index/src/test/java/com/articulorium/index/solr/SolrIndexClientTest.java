@@ -76,6 +76,35 @@ class SolrIndexClientTest {
     }
 
     @Test
+    void declaresMissingFieldsOnly() {
+        server.expect(requestTo(BASE + "/articulorium/schema/fields?wt=json"))
+            .andRespond(withSuccess("{\"fields\":[{\"name\":\"id\"},{\"name\":\"created\",\"type\":\"pdates\"}]}",
+                MediaType.APPLICATION_JSON));
+        server.expect(requestTo(BASE + "/articulorium/schema?wt=json"))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(content().json("{\"add-field\":[{\"name\":\"lastModified\",\"type\":\"pdate\",\"stored\":true},"
+                + "{\"name\":\"date\",\"type\":\"pdates\",\"stored\":true}]}", org.springframework.test.json.JsonCompareMode.STRICT))
+            .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+
+        final Map<String, String> fields = new java.util.LinkedHashMap<>();
+        fields.put("created", "pdate");
+        fields.put("lastModified", "pdate");
+        fields.put("date", "pdates");
+        assertThat(client.ensureFields(fields)).containsExactly("lastModified", "date");
+        server.verify();
+    }
+
+    @Test
+    void declaresNothingWhenEveryFieldExists() {
+        server.expect(requestTo(BASE + "/articulorium/schema/fields?wt=json"))
+            .andRespond(withSuccess("{\"fields\":[{\"name\":\"date\"}]}", MediaType.APPLICATION_JSON));
+
+        assertThat(client.ensureFields(Map.of("date", "pdates"))).isEmpty();
+        assertThat(client.ensureFields(Map.of())).isEmpty();
+        server.verify();
+    }
+
+    @Test
     void addsDocumentsAsJsonArrays() {
         server.expect(requestToUriTemplate(BASE + "/articulorium/update?commitWithin=1000&wt=json"))
             .andExpect(method(HttpMethod.POST))

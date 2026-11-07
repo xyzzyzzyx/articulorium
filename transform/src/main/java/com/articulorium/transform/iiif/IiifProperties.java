@@ -41,6 +41,13 @@ public class IiifProperties {
     /** Canvas height when an image's dimensions are unknown. */
     private int defaultHeight = 1000;
 
+    /**
+     * Whether a canvas without image, audio or video is painted with its PDF (a {@code Text} body
+     * with format {@code application/pdf}) instead of offering it as a rendering only, so viewers
+     * such as Mirador with a document plugin present it.
+     */
+    private boolean paintDocuments = true;
+
     /** Largest number of resources read for one export. */
     private int maxResources = 2000;
 

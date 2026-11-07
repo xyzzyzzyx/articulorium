@@ -13,7 +13,10 @@ The gateway serves the service under `/transform/`.
 ## Transformers
 
 The built-in `field-mapping` transformer maps RDF property paths to typed fields
-([field-mappings.yml](src/main/resources/transform/field-mappings.yml)). Add one by contributing a
+([field-mappings.yml](src/main/resources/transform/field-mappings.yml)), including the topology
+a resource was built from (`topology`, `topologyNode`) and a preview image (`thumbnail`, from
+`schema:thumbnailUrl`, `foaf:depiction` or `schema:image`), which the discovery layer facets and
+shows. Add one by contributing a
 Spring bean implementing `com.articulorium.transform.spi.Transformer` and listing its name in
 `articulorium.transform.transformers`. `POST /transformers/<name>/preview?iri=…` runs one on a posted
 RDF document without publishing anything.
@@ -32,7 +35,9 @@ RDF document without publishing anything.
   `pcdmuse:ServiceFile`, then `pcdmuse:OriginalFile`) is painted on the canvas; image dimensions
   are read from the image's first bytes (JPEG, PNG, GIF, BMP, TIFF), durations from
   `ebucore:duration` or a numeric `dcterms:extent`. Other files (PDF, OCR text, transcripts) are
-  `rendering`s.
+  `rendering`s. A canvas without image, audio or video is painted with its PDF instead, as a
+  `Text` body with format `application/pdf` (`paint-documents`), so viewers that present documents
+  show it: the discovery layer's Mirador has a plugin for these canvases.
 * **Ranges**: intermediate objects (a postcard's front and back, a folio's recto and verso) become
   `structures`.
 * **Descriptive metadata**: every descriptive property becomes a `metadata` entry;
@@ -57,3 +62,4 @@ the export is the public one.
 | `probe-image-size`, `probe-bytes` | `true`, `262144`            | read image dimensions from the leading bytes  |
 | `default-width`, `default-height` | `1000`                      | canvas size when unknown                      |
 | `max-resources`                | `2000`                         | largest number of resources read per export   |
+| `paint-documents`              | `true`                         | paint the PDF of a canvas without image, audio or video (otherwise a rendering only) |

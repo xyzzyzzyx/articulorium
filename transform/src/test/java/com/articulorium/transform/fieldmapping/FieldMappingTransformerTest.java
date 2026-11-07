@@ -99,6 +99,25 @@ class FieldMappingTransformerTest {
         assertThat(loaded.description()).contains(loaded.mappings().fields().size() + " fields");
     }
 
+    /** The default mappings index the topology and preview image the discovery layer facets and shows. */
+    @Test
+    void defaultMappingsIndexTopologiesAndThumbnails() throws Exception {
+        final FieldMappingTransformer loaded = new FieldMappingTransformer(new TransformProperties(),
+            new DefaultResourceLoader());
+        final Model model = ModelFactory.createDefaultModel();
+        model.createResource(IRI)
+            .addProperty(model.createProperty("https://articulorium.org/ns/repository#topology"), "book")
+            .addProperty(model.createProperty("https://articulorium.org/ns/repository#topologyNode"), "book")
+            .addProperty(model.createProperty("http://schema.org/thumbnailUrl"),
+                model.createResource("http://localhost:8000/platform/books/1/files/thumb.jpg"));
+
+        final Map<String, Collection<?>> document = loaded.transform(new TransformationContext(IRI, null, model));
+
+        assertThat(values(document.get("topology"))).containsExactly("book");
+        assertThat(values(document.get("topologyNode"))).containsExactly("book");
+        assertThat(values(document.get("thumbnail"))).containsExactly("http://localhost:8000/platform/books/1/files/thumb.jpg");
+    }
+
     /**
      * Copies field values into a list AssertJ can compare element by element.
      *

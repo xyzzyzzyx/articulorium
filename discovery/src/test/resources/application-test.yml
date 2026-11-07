@@ -1,0 +1,31 @@
+# Test profile (@ActiveProfiles("test")) on top of application.yml: no Consul, plain HTTP clients
+# towards mocked services.
+articulorium:
+  discovery:
+    platform-url: http://platform.test/
+    transform-url: http://transform.test/
+    load-balanced: false
+    solr:
+      base-url: http://solr.test/solr
+
+management:
+  server:
+    port: 0
+
+spring:
+  application:
+    name: discovery
+  config:
+    import: ""
+  cloud:
+    consul:
+      enabled: false
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+    discovery:
+      enabled: false
+    service-registry:
+      auto-registration:
+        enabled: false

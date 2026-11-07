@@ -13,6 +13,8 @@ for (const url of urls) {
   for (;;) {
     try {
       const response = await fetch(url, { redirect: 'manual' });
+      // read the body: an unread (streamed) body keeps the connection, and this process, alive
+      await response.arrayBuffer().catch(() => undefined);
       if (response.status === 200) {
         console.log(`ready: ${url}`);
         break;
@@ -28,3 +30,6 @@ for (const url of urls) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 }
+
+// every URL answered: exit now instead of waiting for idle keep-alive connections to close
+process.exit(0);

@@ -1,0 +1,135 @@
+{
+  "site": {
+    "description": "探索数字化馆藏：图书、报纸、手稿、录音等。"
+  },
+  "nav": {
+    "skip": "跳到正文",
+    "landmark": "主导航",
+    "home": "首页",
+    "browse": "浏览",
+    "languageMenu": "语言：{{language}}",
+    "footer": "页脚"
+  },
+  "footer": {
+    "iiif": "图像、录音和文档通过 IIIF 共享。"
+  },
+  "search": {
+    "landmark": "搜索馆藏",
+    "label": "搜索",
+    "submit": "搜索",
+    "refine": "筛选结果",
+    "filters": "仅显示",
+    "selected": "（已选）",
+    "loading": "正在搜索…",
+    "sort": "排序方式",
+    "active": "已应用的筛选",
+    "remove": "移除 {{value}}",
+    "clear": "清除所有筛选",
+    "empty": "没有符合此搜索的结果。请尝试其他词语或减少筛选条件。",
+    "pagination": "结果分页",
+    "previous": "上一页",
+    "next": "下一页",
+    "pageOf": "第 {{page}} 页，共 {{pages}} 页",
+    "titleFor": "“{{query}}”的搜索结果",
+    "browse": "浏览馆藏",
+    "results": "结果",
+    "count": {
+      "other": "{{formatted}} 条结果"
+    }
+  },
+  "home": {
+    "search": "搜索",
+    "collections": "馆藏",
+    "recent": "最近添加",
+    "browseAll": "浏览全部"
+  },
+  "kinds": {
+    "community": "社区",
+    "collection": "馆藏集",
+    "object": "条目",
+    "resource": "资源"
+  },
+  "types": {
+    "book": "图书",
+    "issue": "期",
+    "article": "文章",
+    "journal": "期刊",
+    "newspaper": "报纸",
+    "manuscript": "手稿",
+    "audiovisual": "视听录制"
+  },
+  "topologies": {
+    "book": "图书",
+    "newspaper": "报纸",
+    "journal": "期刊",
+    "postcards": "明信片",
+    "manuscript": "手稿",
+    "audiovisual": "视听录制"
+  },
+  "facets": {
+    "type": "类型",
+    "topology": "形式",
+    "creator": "创作者",
+    "subject": "主题",
+    "language": "语言",
+    "year": "年代"
+  },
+  "filters": {
+    "digitized": "已数字化条目"
+  },
+  "sorts": {
+    "relevance": "相关度",
+    "title": "标题",
+    "newest": "最近更改",
+    "date": "日期"
+  },
+  "fields": {
+    "title": "标题",
+    "description": "描述",
+    "creator": "创作者",
+    "contributor": "贡献者",
+    "date": "日期",
+    "publisher": "出版者",
+    "subject": "主题",
+    "type": "类型",
+    "language": "语言",
+    "format": "格式",
+    "extent": "数量",
+    "identifier": "标识符",
+    "rights": "权利",
+    "license": "许可",
+    "source": "来源",
+    "isPartOf": "所属",
+    "bibliographicCitation": "引用"
+  },
+  "item": {
+    "loading": "正在加载…",
+    "breadcrumb": "当前位置",
+    "viewer": "查看器",
+    "details": "详细信息",
+    "links": "链接",
+    "iiifManifest": "IIIF 清单",
+    "iiifCollection": "IIIF 集合",
+    "repository": "在存储库中查看",
+    "communityMembers": "此社区中的内容",
+    "collectionMembers": "此馆藏集中的内容"
+  },
+  "viewer": {
+    "label": "查看器：{{title}}",
+    "preview": "{{title}} 的预览",
+    "loading": "正在加载查看器…",
+    "failed": "无法加载查看器。",
+    "document": "文档：{{title}}",
+    "openPdf": "打开 PDF"
+  },
+  "errors": {
+    "unavailableTitle": "暂时无法使用",
+    "unavailable": "暂时无法访问馆藏，请几分钟后重试。",
+    "search": "搜索暂时不可用，请几分钟后重试。",
+    "badSearch": "无法执行此搜索。请尝试更短的词语或减少筛选条件。",
+    "item": "暂时无法显示此条目，请几分钟后重试。",
+    "notFoundTitle": "未找到",
+    "notFound": "此条目不存在或未公开。",
+    "pageNotFound": "此地址没有页面。"
+  }
+}

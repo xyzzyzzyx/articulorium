@@ -1,0 +1,15 @@
+{
+  "/discover/api": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "xfwd": true
+  },
+  "/platform": {
+    "target": "http://localhost:8000",
+    "secure": false
+  },
+  "/transform": {
+    "target": "http://localhost:8000",
+    "secure": false
+  }
+}

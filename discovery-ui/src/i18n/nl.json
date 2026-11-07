@@ -1,0 +1,136 @@
+{
+  "site": {
+    "description": "Verken de gedigitaliseerde collecties: boeken, kranten, handschriften, opnamen en meer."
+  },
+  "nav": {
+    "skip": "Naar de inhoud",
+    "landmark": "Hoofdnavigatie",
+    "home": "Home",
+    "browse": "Bladeren",
+    "languageMenu": "Taal: {{language}}",
+    "footer": "Voettekst"
+  },
+  "footer": {
+    "iiif": "Afbeeldingen, opnamen en documenten worden gedeeld via IIIF."
+  },
+  "search": {
+    "landmark": "Zoeken in de collecties",
+    "label": "Zoeken",
+    "submit": "Zoeken",
+    "refine": "Resultaten verfijnen",
+    "filters": "Alleen tonen",
+    "selected": "(geselecteerd)",
+    "loading": "Bezig met zoeken…",
+    "sort": "Sorteren op",
+    "active": "Actieve verfijningen",
+    "remove": "{{value}} verwijderen",
+    "clear": "Alle verfijningen wissen",
+    "empty": "Niets komt overeen met deze zoekopdracht. Probeer andere woorden of minder verfijningen.",
+    "pagination": "Resultaatpagina's",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "pageOf": "Pagina {{page}} van {{pages}}",
+    "titleFor": "Resultaten voor ‘{{query}}’",
+    "browse": "Door de collecties bladeren",
+    "results": "Resultaten",
+    "count": {
+      "one": "{{formatted}} resultaat",
+      "other": "{{formatted}} resultaten"
+    }
+  },
+  "home": {
+    "search": "Zoeken",
+    "collections": "Collecties",
+    "recent": "Recent toegevoegd",
+    "browseAll": "Alles bekijken"
+  },
+  "kinds": {
+    "community": "Gemeenschap",
+    "collection": "Collectie",
+    "object": "Object",
+    "resource": "Bron"
+  },
+  "types": {
+    "book": "Boek",
+    "issue": "Nummer",
+    "article": "Artikel",
+    "journal": "Tijdschrift",
+    "newspaper": "Krant",
+    "manuscript": "Handschrift",
+    "audiovisual": "Audiovisuele opname"
+  },
+  "topologies": {
+    "book": "Boek",
+    "newspaper": "Krant",
+    "journal": "Tijdschrift",
+    "postcards": "Ansichtkaarten",
+    "manuscript": "Handschrift",
+    "audiovisual": "Audiovisuele opname"
+  },
+  "facets": {
+    "type": "Soort",
+    "topology": "Vorm",
+    "creator": "Maker",
+    "subject": "Onderwerp",
+    "language": "Taal",
+    "year": "Datum"
+  },
+  "filters": {
+    "digitized": "Gedigitaliseerde objecten"
+  },
+  "sorts": {
+    "relevance": "Relevantie",
+    "title": "Titel",
+    "newest": "Recent gewijzigd",
+    "date": "Datum"
+  },
+  "fields": {
+    "title": "Titel",
+    "description": "Beschrijving",
+    "creator": "Maker",
+    "contributor": "Bijdrager",
+    "date": "Datum",
+    "publisher": "Uitgever",
+    "subject": "Onderwerp",
+    "type": "Soort",
+    "language": "Taal",
+    "format": "Formaat",
+    "extent": "Omvang",
+    "identifier": "Identificatie",
+    "rights": "Rechten",
+    "license": "Licentie",
+    "source": "Bron",
+    "isPartOf": "Onderdeel van",
+    "bibliographicCitation": "Citatie"
+  },
+  "item": {
+    "loading": "Laden…",
+    "breadcrumb": "U bent hier",
+    "viewer": "Viewer",
+    "details": "Details",
+    "links": "Links",
+    "iiifManifest": "IIIF-manifest",
+    "iiifCollection": "IIIF-collectie",
+    "repository": "Bekijken in de repository",
+    "communityMembers": "In deze gemeenschap",
+    "collectionMembers": "In deze collectie"
+  },
+  "viewer": {
+    "label": "Viewer: {{title}}",
+    "preview": "Voorbeeld van {{title}}",
+    "loading": "Viewer laden…",
+    "failed": "De viewer kon niet worden geladen.",
+    "document": "Document: {{title}}",
+    "openPdf": "De pdf openen"
+  },
+  "errors": {
+    "unavailableTitle": "Tijdelijk niet beschikbaar",
+    "unavailable": "De collecties zijn op dit moment niet bereikbaar. Probeer het over een paar minuten opnieuw.",
+    "search": "Zoeken is op dit moment niet beschikbaar. Probeer het over een paar minuten opnieuw.",
+    "badSearch": "Deze zoekopdracht kan niet worden uitgevoerd. Probeer kortere termen of minder verfijningen.",
+    "item": "Dit object kan nu niet worden getoond. Probeer het over een paar minuten opnieuw.",
+    "notFoundTitle": "Niet gevonden",
+    "notFound": "Dit object bestaat niet of is niet openbaar.",
+    "pageNotFound": "Op dit adres is geen pagina."
+  }
+}

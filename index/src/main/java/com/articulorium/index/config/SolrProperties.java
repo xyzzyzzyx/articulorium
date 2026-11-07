@@ -1,5 +1,8 @@
 package com.articulorium.index.config;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import lombok.Getter;
@@ -30,5 +33,14 @@ public class SolrProperties {
 
     /** Milliseconds within which Solr makes updates visible ({@code commitWithin}). */
     private int commitWithin = 1000;
+
+    /**
+     * Fields declared in the collection's schema on start-up when they are missing, by name, with
+     * their Solr field type. The {@code _default} config set only creates a field when the first
+     * document carrying it is indexed ("schemaless"); sorting or faceting on a field that does not
+     * exist yet fails, so the fields the discovery layer sorts and facets on are declared up front.
+     * Existing fields are left alone.
+     */
+    private Map<String, String> fields = new LinkedHashMap<>();
 
 }

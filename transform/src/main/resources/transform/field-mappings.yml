@@ -19,6 +19,9 @@ prefixes:
   owl: "http://www.w3.org/2002/07/owl#"
   skos: "http://www.w3.org/2004/02/skos/core#"
   dc: "http://purl.org/dc/elements/1.1/"
+  art: "https://articulorium.org/ns/repository#"
+  schema: "http://schema.org/"
+  foaf: "http://xmlns.com/foaf/0.1/"
 
 fields:
   created:
@@ -359,4 +362,16 @@ fields:
     type: uri
   mode:
     paths: [ "acl:mode" ]
+    type: uri
+  # the PCDM topology a resource was built from and the node it instantiates (facets of the
+  # discovery layer: books, newspapers, postcards, ...)
+  topology:
+    paths: [ "art:topology" ]
+    type: string
+  topologyNode:
+    paths: [ "art:topologyNode" ]
+    type: string
+  # a preview image, when the resource names one (thumbnails of the discovery layer's results)
+  thumbnail:
+    paths: [ "schema:thumbnailUrl", "foaf:depiction", "schema:image" ]
     type: uri

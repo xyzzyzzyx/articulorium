@@ -1,0 +1,292 @@
+# Articulorium discovery: configuration, search and resource API of the public discovery layer.
+# The gateway serves it under /discover/api/ next to the server-rendered pages (discovery-ui).
+#
+# Everything below articulorium.discovery can be changed per deployment without touching the user
+# interface: in this file, with environment variables (ARTICULORIUM_DISCOVERY_SITE_NAME_VALUE=...)
+# or in Consul (config/discovery/articulorium/discovery/...). See discovery/README.md.
+
+articulorium:
+  discovery:
+    # the public address of the pages: canonical URLs, alternate language links, sitemaps and
+    # social sharing metadata are built from it, so set it to the address people and search
+    # engines use (https://collections.example.org/discover/)
+    public-url: http://localhost:8000/discover/
+    # where this service reads the platform and the transform service (Consul service names)
+    platform-url: http://articulorium-platform/
+    transform-url: http://articulorium-transform/
+    load-balanced: true
+    # where visitors reach the platform and the transform service, relative to public-url
+    platform-public-url: ../platform/
+    transform-public-url: ../transform/
+
+    solr:
+      base-url: http://solr:8983/solr
+      collection: articulorium
+
+    access:
+      # every hit and every resource page is checked against the platform's Web Access Control
+      verify: true
+      anonymous-cache-seconds: 60
+
+    site:
+      name:
+        value: Articulorium
+      description:
+        key: site.description
+      # logo-url: https://collections.example.org/branding/logo.svg
+      # default-image-url: https://collections.example.org/branding/share.png
+      # twitter-site: "@example"
+
+    theme:
+      # light, dark or system
+      color-scheme: light
+      # Material 3 system color tokens (--mat-sys-<token>), any CSS color
+      colors: {}
+      #   primary: "#1b5e7a"
+      #   on-primary: "#ffffff"
+      typography:
+        # brand-family: "Merriweather, Georgia, serif"
+        # plain-family: "Inter, system-ui, sans-serif"
+        # stylesheet-url: https://fonts.example.org/css?family=Merriweather
+        base-size: 16px
+      # corner-radius: 8
+      density: 0
+      content-width: 1200px
+      # stylesheet-url: /branding/discovery.css
+
+    layout:
+      header:
+        search: true
+        links: []
+      footer:
+        links: []
+      home:
+        # HERO, SEARCH, COLLECTIONS, RECENT in any order
+        sections: [HERO, SEARCH, COLLECTIONS, RECENT]
+        collections-path: communities
+        collections-limit: 12
+        recent-limit: 6
+      results:
+        view: LIST
+        facet-position: START
+        thumbnails: true
+        page-size: 20
+        page-sizes: [10, 20, 50]
+        description-length: 280
+      item:
+        # TOP, BOTTOM or SIDE
+        viewer-position: TOP
+        members-limit: 24
+        repository-link: false
+        repository-ui-url: ../ui/
+        # metadata of resource pages, in order (labels default to the translation fields.<field>)
+        fields:
+          - field: creator
+          - field: contributor
+          - field: date
+          - field: publisher
+          - field: subject
+          - field: type
+            link: true
+          - field: language
+          - field: format
+          - field: extent
+          - field: identifier
+          - field: rights
+          - field: license
+            link: true
+          - field: source
+          - field: isPartOf
+          - field: bibliographicCitation
+
+    viewer:
+      enabled: true
+      height: 70vh
+      side-bar-open: false
+      thumbnail-navigation: far-bottom
+      allow-fullscreen: true
+      pdf: true
+
+    search:
+      # search precedence: hits in fields with higher boosts rank first; localized fields are also
+      # searched in the visitor's language (<field>_txt_<language>)
+      fields:
+        - field: title
+          boost: 10
+          localized: true
+        - field: alternative
+          boost: 6
+        - field: creator
+          boost: 5
+        - field: subject
+          boost: 4
+          localized: true
+        - field: description
+          boost: 2
+          localized: true
+        - field: abstract
+          boost: 2
+          localized: true
+        - field: _text_
+          boost: 1
+      phrase-fields:
+        - field: title
+          boost: 20
+        - field: description
+          boost: 4
+      # collections rank before the objects they contain when both match equally
+      boost-queries:
+        - 'type_str:"https://articulorium.org/ns/repository#Collection"^2'
+        - 'type_str:"https://articulorium.org/ns/repository#Community"^2'
+      minimum-match: "2<-1 5<80%"
+      # what the discovery layer shows at all: communities, collections and PCDM objects that are
+      # not nested in another object (the topology service builds nested objects, such as the
+      # pages of a book, in "members" containers)
+      base-filters:
+        - 'type_str:("https://articulorium.org/ns/repository#Community" OR "https://articulorium.org/ns/repository#Collection" OR "http://pcdm.org/models#Object")'
+        - '-hasParent_str:*\/members'
+      facets:
+        - id: type
+          field: type_str
+          limit: 8
+          # map keys that are not plain words are written in brackets: "[<value>]"
+          values:
+            "[https://articulorium.org/ns/repository#Community]":
+              key: kinds.community
+            "[https://articulorium.org/ns/repository#Collection]":
+              key: kinds.collection
+            "[http://pcdm.org/models#Object]":
+              key: kinds.object
+            "[http://pcdm.org/models#Collection]":
+              key: kinds.collection
+            "[http://purl.org/ontology/bibo/Book]":
+              key: types.book
+            "[http://purl.org/ontology/bibo/Issue]":
+              key: types.issue
+            "[http://purl.org/ontology/bibo/Article]":
+              key: types.article
+            "[http://purl.org/ontology/bibo/Journal]":
+              key: types.journal
+            "[http://purl.org/ontology/bibo/Newspaper]":
+              key: types.newspaper
+            "[http://purl.org/ontology/bibo/Manuscript]":
+              key: types.manuscript
+            "[http://purl.org/ontology/bibo/AudioVisualDocument]":
+              key: types.audiovisual
+        - id: topology
+          field: topology_str
+          limit: 10
+          values:
+            book: { key: topologies.book }
+            newspaper: { key: topologies.newspaper }
+            journal: { key: topologies.journal }
+            postcards: { key: topologies.postcards }
+            manuscript: { key: topologies.manuscript }
+            audiovisual: { key: topologies.audiovisual }
+        - id: creator
+          field: creator_str
+          limit: 10
+        - id: subject
+          field: subject_str
+          limit: 10
+        - id: language
+          field: language_str
+          limit: 10
+        - id: year
+          field: date
+          type: YEAR_RANGE
+          start: 1800
+          gap: 10
+          expanded: false
+      filters:
+        - id: digitized
+          query: 'hasFile_str:* OR hasMember_str:*'
+      sorts:
+        - id: relevance
+          value: score desc
+        - id: title
+          value: title_str asc
+        - id: newest
+          value: lastModified desc
+        - id: date
+          value: date asc
+      browse-sort: lastModified desc
+      title-field: title
+      description-field: description
+      date-field: date
+      thumbnail-field: thumbnail
+      type-field: type_str
+      parent-field: hasParent_str
+      modified-field: lastModified
+      max-rows: 100
+
+    seo:
+      robots: "index, follow"
+      search-robots: "noindex, follow"
+      # true on test and staging deployments: every page says noindex and no sitemap is offered
+      noindex: false
+      twitter-card: summary_large_image
+      sitemap: true
+      sitemap-limit: 5000
+
+  # locales (i18n-spring-boot-starter): the same values as every other service
+  i18n:
+    default-locale: en
+
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+  info:
+    env:
+      enabled: true
+  server:
+    port: 8000
+
+info:
+  application:
+    name: ${spring.application.name}
+    description: Configuration, search and resource API of the discovery layer
+
+server:
+  port: 9000
+  # honour X-Forwarded-* set by the gateway (server URLs of the OpenAPI description)
+  forward-headers-strategy: framework
+
+springdoc:
+  api-docs:
+    # below /api, so the gateway's /discover/api/** route serves it (/discover/api/docs)
+    path: /api/docs
+  swagger-ui:
+    enabled: false
+
+spring:
+  application:
+    name: discovery
+
+  config:
+    import: "optional:consul:"
+
+  cloud:
+    consul:
+      host: consul
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: false
+      discovery:
+        health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}:${random.value}
+        service-name: articulorium-${spring.application.name}
+        prefer-ip-address: true

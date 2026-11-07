@@ -1,6 +1,8 @@
 # Articulorium gateway: public entry point routing to Consul-registered services.
 #
-#   /, /ui            redirect to the user interface (/ui/)
+#   /                 redirect to articulorium.gateway.root-redirect (the user interface, /ui/, by default;
+#                     /discover/ makes the public discovery layer the home page)
+#   /ui               redirect to the user interface (/ui/)
 #   /ui/**            service (Angular UI and its API)
 #   /platform/**      platform (Linked Data Platform root)
 #   /transform/**     transform (transformer preview API, IIIF Presentation exports)
@@ -9,6 +11,8 @@
 #   /oai              oai (OAI-PMH 2.0 data provider; the repository's base URL)
 #   /harvest/**       harvest (sources, harvests and reports for the user interface)
 #   /ai/**            ai (optional AI agent: suggestions of topologies, metadata, topics, classifications)
+#   /discover/api/**  discovery (configuration, search and resources of the public discovery layer)
+#   /discover/**      discovery-ui (server-rendered discovery and presentation pages; Node.js, not in Consul)
 #   /swagger-ui.html  Swagger UI for the OpenAPI descriptions of every service above
 
 logging:
@@ -49,6 +53,8 @@ springdoc:
         url: /oai/v3/api-docs
       - name: ai
         url: /ai/v3/api-docs
+      - name: discovery
+        url: /discover/api/docs
       - name: service
         url: /ui/api/docs
 
@@ -143,6 +149,27 @@ spring:
                 - Path=/ai/**
               filters:
                 - StripPrefix=1
+            # API of the public discovery layer: /discover/api/** -> the discovery service's /api/**
+            # (its OpenAPI description is /discover/api/docs). Declared before the pages' route.
+            - id: articulorium-discovery-api
+              uri: lb://articulorium-discovery
+              predicates:
+                - Path=/discover/api/**
+              filters:
+                - StripPrefix=1
+            # the server-rendered discovery and presentation pages (Angular SSR on Node.js, which is
+            # not registered in Consul): forwarded unchanged, the application's base href is
+            # /discover/. Point it elsewhere with ARTICULORIUM_GATEWAY_DISCOVERY_URI.
+            - id: articulorium-discovery-slash
+              uri: no://op
+              predicates:
+                - Path=/discover
+              filters:
+                - RedirectTo=302, /discover/
+            - id: articulorium-discovery
+              uri: ${articulorium.gateway.discovery-uri:http://discovery-ui:4000}
+              predicates:
+                - Path=/discover/**
             # /ui is redirected here (relative to the gateway's address): the service's own
             # context-root redirect would point browsers at the service's internal address
             - id: articulorium-ui-slash
@@ -156,10 +183,11 @@ spring:
               uri: lb://articulorium-service
               predicates:
                 - Path=/ui/**
-            # the bare root opens the user interface
+            # the bare root opens the user interface, or the discovery layer with
+            # ARTICULORIUM_GATEWAY_ROOT_REDIRECT=/discover/
             - id: articulorium-root
               uri: no://op
               predicates:
                 - Path=/
               filters:
-                - RedirectTo=302, /ui/
+                - RedirectTo=302, ${articulorium.gateway.root-redirect:/ui/}

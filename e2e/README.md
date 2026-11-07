@@ -36,6 +36,7 @@ open` for the interactive runner. `CYPRESS_BASE_URL` points the tests elsewhere.
 
 | Spec                | Covers                                                                   |
 |---------------------|--------------------------------------------------------------------------|
+| `discovery.cy.ts`   | public discovery layer: configuration API, language negotiation, server-rendered resource pages (canonical, hreflang, Open Graph, JSON-LD), 404s, search with facets, Mirador on resource pages, collection members, language switch, robots.txt and sitemap |
 | `navigation.cy.ts`  | gateway root and `/ui` redirects, main navigation (API link to the gateway's Swagger UI), children and breadcrumbs, deep links, missing resources |
 | `containers.cy.ts`  | basic containers at chosen or minted identifiers, no overwriting, invalid Turtle, direct/indirect templates, blank nodes |
 | `binaries.cy.ts`    | upload with metadata, download, replace content, fixity, editing a binary's description |

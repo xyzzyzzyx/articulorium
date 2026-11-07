@@ -1,0 +1,136 @@
+{
+  "site": {
+    "description": "Explore the digitized collections: books, newspapers, manuscripts, recordings and more."
+  },
+  "nav": {
+    "skip": "Skip to content",
+    "landmark": "Main navigation",
+    "home": "Home",
+    "browse": "Browse",
+    "languageMenu": "Language: {{language}}",
+    "footer": "Footer"
+  },
+  "footer": {
+    "iiif": "Images, recordings and documents are shared with IIIF."
+  },
+  "search": {
+    "landmark": "Search the collections",
+    "label": "Search",
+    "submit": "Search",
+    "refine": "Refine results",
+    "filters": "Show only",
+    "selected": "(selected)",
+    "loading": "Searching…",
+    "sort": "Sort by",
+    "active": "Active refinements",
+    "remove": "Remove {{value}}",
+    "clear": "Clear all refinements",
+    "empty": "Nothing matches this search. Try other words or fewer refinements.",
+    "pagination": "Pages of results",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{pages}}",
+    "titleFor": "Results for “{{query}}”",
+    "browse": "Browse the collections",
+    "results": "Results",
+    "count": {
+      "one": "{{formatted}} result",
+      "other": "{{formatted}} results"
+    }
+  },
+  "home": {
+    "search": "Search",
+    "collections": "Collections",
+    "recent": "Recently added",
+    "browseAll": "Browse everything"
+  },
+  "kinds": {
+    "community": "Community",
+    "collection": "Collection",
+    "object": "Item",
+    "resource": "Resource"
+  },
+  "types": {
+    "book": "Book",
+    "issue": "Issue",
+    "article": "Article",
+    "journal": "Journal",
+    "newspaper": "Newspaper",
+    "manuscript": "Manuscript",
+    "audiovisual": "Audiovisual recording"
+  },
+  "topologies": {
+    "book": "Book",
+    "newspaper": "Newspaper",
+    "journal": "Journal",
+    "postcards": "Postcards",
+    "manuscript": "Manuscript",
+    "audiovisual": "Audiovisual recording"
+  },
+  "facets": {
+    "type": "Type",
+    "topology": "Format",
+    "creator": "Creator",
+    "subject": "Subject",
+    "language": "Language",
+    "year": "Date"
+  },
+  "filters": {
+    "digitized": "Digitized items"
+  },
+  "sorts": {
+    "relevance": "Relevance",
+    "title": "Title",
+    "newest": "Recently changed",
+    "date": "Date"
+  },
+  "fields": {
+    "title": "Title",
+    "description": "Description",
+    "creator": "Creator",
+    "contributor": "Contributor",
+    "date": "Date",
+    "publisher": "Publisher",
+    "subject": "Subject",
+    "type": "Type",
+    "language": "Language",
+    "format": "Format",
+    "extent": "Extent",
+    "identifier": "Identifier",
+    "rights": "Rights",
+    "license": "License",
+    "source": "Source",
+    "isPartOf": "Part of",
+    "bibliographicCitation": "Citation"
+  },
+  "item": {
+    "loading": "Loading…",
+    "breadcrumb": "You are here",
+    "viewer": "Viewer",
+    "details": "Details",
+    "links": "Links",
+    "iiifManifest": "IIIF Manifest",
+    "iiifCollection": "IIIF Collection",
+    "repository": "View in the repository",
+    "communityMembers": "In this community",
+    "collectionMembers": "In this collection"
+  },
+  "viewer": {
+    "label": "Viewer: {{title}}",
+    "preview": "Preview of {{title}}",
+    "loading": "Loading the viewer…",
+    "failed": "The viewer could not be loaded.",
+    "document": "Document: {{title}}",
+    "openPdf": "Open the PDF"
+  },
+  "errors": {
+    "unavailableTitle": "Temporarily unavailable",
+    "unavailable": "The collections cannot be reached right now. Please try again in a few minutes.",
+    "search": "Search is unavailable right now. Please try again in a few minutes.",
+    "badSearch": "This search cannot be run. Try shorter terms or fewer refinements.",
+    "item": "This item cannot be shown right now. Please try again in a few minutes.",
+    "notFoundTitle": "Not found",
+    "notFound": "This item does not exist or is not public.",
+    "pageNotFound": "There is no page at this address."
+  }
+}

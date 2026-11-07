@@ -8,6 +8,12 @@ articulorium:
     replication-factor: 1
     config-set: _default
     commit-within: 1000
+    # declared on start-up when missing (the _default config set creates fields only when a
+    # document carries them): the discovery layer sorts and facets on these
+    fields:
+      created: pdate
+      "[lastModified]": pdate
+      date: pdates
 
 logging:
   level:
