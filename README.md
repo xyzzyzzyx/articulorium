@@ -741,15 +741,22 @@ mvn -Pnative -pl platform -am package -DskipTests # -> platform/target/platform
 # with Docker only
 docker build -f Dockerfile.native --build-arg MODULE=gateway -t articulorium/gateway:native .
 
-# the whole stack: build the images one at a time (each needs ~10 GB), then start it
+# the whole stack: build every image one at a time (each native build needs ~10 GB of memory;
+# "up" would build missing images in parallel), then start it
 docker compose -f docker-compose.yml -f docker-compose.native.yml build gateway
 docker compose -f docker-compose.yml -f docker-compose.native.yml build platform
-docker compose -f docker-compose.yml -f docker-compose.native.yml build transform 
+docker compose -f docker-compose.yml -f docker-compose.native.yml build transform
 docker compose -f docker-compose.yml -f docker-compose.native.yml build index
 docker compose -f docker-compose.yml -f docker-compose.native.yml build triplestore
 docker compose -f docker-compose.yml -f docker-compose.native.yml build topology
 docker compose -f docker-compose.yml -f docker-compose.native.yml build oai
 docker compose -f docker-compose.yml -f docker-compose.native.yml build service
+# JVM images (no native override yet) and the discovery layer's Node.js image
+docker compose -f docker-compose.yml -f docker-compose.native.yml build harvest
+docker compose -f docker-compose.yml -f docker-compose.native.yml build discovery
+docker compose -f docker-compose.yml -f docker-compose.native.yml build discovery-ui
+# only with the optional AI agent (then add --profile ai to "up" as well)
+docker compose -f docker-compose.yml -f docker-compose.native.yml --profile ai build ai
 docker compose -f docker-compose.yml -f docker-compose.native.yml up
 ```
 
