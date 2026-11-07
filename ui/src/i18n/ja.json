@@ -58,7 +58,8 @@
     "none": "なし",
     "loading": "読み込み中…",
     "noValue": "—",
-    "backToResource": "リソースに戻る"
+    "backToResource": "リソースに戻る",
+    "close": "閉じる"
   },
   "breadcrumb": {
     "label": "パンくずリスト",
@@ -636,6 +637,174 @@
       "signIn": "ハーベストを表示するにはサインインしてください。",
       "forbidden": "ハーベストを表示できません。ハーベストしたレコードへの読み取りアクセスが必要です。",
       "unavailable": "ハーベストサービスに接続できません。停止しているか、デプロイされていない可能性があります。"
+    }
+  },
+  "ai": {
+    "thinking": "AI エージェントに問い合わせています…",
+    "discard": "破棄",
+    "review": "保存する前に提案を一つずつ確認してください。AI エージェントは誤ることがあります。",
+    "fromFile": "ファイルから",
+    "suggested": "提案",
+    "confidence": "確信度 {{percent}}%",
+    "reason": {
+      "INVALID_REQUEST": "AI エージェントはこのリクエストを処理できませんでした。",
+      "UNAUTHENTICATED": "AI エージェントを使うにはサインインしてください。",
+      "FORBIDDEN": "AI エージェントは、このリソースを変更できる人だけを支援します。",
+      "NOT_FOUND": "AI エージェントはこのリソースを見つけられませんでした。",
+      "TOO_LARGE": "このファイルは AI エージェントには大きすぎます。",
+      "UNSUPPORTED": "AI エージェントはこの種類のファイルを説明できません。",
+      "BUSY": "AI エージェントは混み合っています。しばらくしてからもう一度お試しください。",
+      "MODEL_ERROR": "AI モデルでエラーが発生しました。後でもう一度お試しください。",
+      "INVALID_OUTPUT": "AI モデルの回答を利用できませんでした。もう一度お試しください。",
+      "DISABLED": "AI エージェントは無効です。",
+      "CAPABILITY_DISABLED": "この AI 機能は無効です。",
+      "MODEL_UNAVAILABLE": "利用できる AI モデルがありません。",
+      "PLATFORM_UNAVAILABLE": "AI エージェントがリポジトリに接続できませんでした。後でもう一度お試しください。",
+      "UNREACHABLE": "AI エージェントに接続できません。"
+    },
+    "media": {
+      "heading": "AI によるメタデータの提案",
+      "intro": "AI エージェントがファイルに埋め込まれたメタデータを読み取り、説明を提案します。",
+      "suggest": "メタデータを提案",
+      "nothing": "このファイルについて AI エージェントが提案できるものはありません。",
+      "apply": {
+        "other": "{{formatted}} 件の記述を追加"
+      },
+      "applied": {
+        "other": "{{formatted}} 件の記述を追加しました"
+      },
+      "note": {
+        "IMAGE_FORMAT_NOT_SHOWN": "画像形式が未対応のため、モデルは画像を見ずにメタデータから判断しました。",
+        "IMAGE_TOO_LARGE_TO_SHOW": "画像が大きすぎるため、モデルは画像を見ずにメタデータから判断しました。",
+        "IMAGE_NOT_SHOWN": "モデルは画像を見ずにメタデータから判断しました。",
+        "VIDEO_NOT_SHOWN": "モデルは動画を見ずに、メタデータと文脈から判断しました。",
+        "FILE_NOT_READ": "ファイルが大きすぎて読み取れないため、提案は文脈のみに基づいています。",
+        "TEXT_FROM_FIRST_PAGES": "PDF の最初の数ページだけを読み取りました。",
+        "TEXT_SHORTENED": "テキストはモデルに送る前に短縮されました。",
+        "NO_TEXT": "この PDF にはテキストがありません。",
+        "TEXT_NOT_EXTRACTABLE": "PDF のテキストを抽出できませんでした。",
+        "ENCRYPTED": "PDF が暗号化されているため、テキストを読み取れませんでした。",
+        "UNREADABLE_METADATA": "ファイルのメタデータの一部を読み取れませんでした。"
+      }
+    },
+    "term": {
+      "abstract": "要旨",
+      "alternative": "別タイトル",
+      "contributor": "寄与者",
+      "created": "作成日",
+      "creator": "作成者",
+      "date": "日付",
+      "description": "説明",
+      "extent": "数量",
+      "issued": "発行日",
+      "language": "言語",
+      "rights": "権利",
+      "spatial": "場所",
+      "subject": "主題",
+      "temporal": "時代",
+      "title": "タイトル",
+      "type": "種類",
+      "width": "幅",
+      "height": "高さ",
+      "duration": "再生時間",
+      "frameRate": "フレームレート"
+    },
+    "topics": {
+      "heading": "AI によるトピック",
+      "intro": "AI エージェントがここにあるアイテムを読み、トピックと概要を提案します。",
+      "suggest": "トピックを提案",
+      "noItems": "分析できるアイテムがありません。",
+      "analysed": {
+        "other": "{{formatted}} 件のアイテムに基づきます。"
+      },
+      "truncated": "エージェントが読んだ以上のアイテムがあります。",
+      "summary": "概要",
+      "items": {
+        "other": "{{formatted}} 件のアイテム"
+      },
+      "apply": "選択したトピックを追加",
+      "applied": {
+        "other": "{{formatted}} 件のトピックを追加しました"
+      },
+      "appliedSummary": "概要を追加しました"
+    },
+    "profiles": {
+      "heading": "AI によるプロフィールの提案",
+      "intro": "AI エージェントがこのプロフィールの職歴・学位・業績を読み、概要・研究分野・キーワードを提案します。",
+      "suggest": "プロフィール項目を提案",
+      "noMaterial": "まずプロフィールに職歴、学位、業績を追加してください。AI エージェントはそれらから提案します。",
+      "nothing": "このプロフィールに追加できるものは見つかりませんでした。",
+      "overview": "概要",
+      "replacesOverview": "保存すると現在の概要が置き換わります。",
+      "researchAreas": "研究分野",
+      "keywords": "キーワード",
+      "apply": "プロフィールに追加",
+      "applied": "プロフィールを更新しました"
+    },
+    "topology": {
+      "open": "トポロジーを提案",
+      "heading": "トポロジーを提案",
+      "intro": "資料について説明してください。AI エージェントが既存のトポロジーを勧めるか、確認用に新しいトポロジーの下書きを作ります。",
+      "description": "資料",
+      "placeholder": "例: デジタル化した書簡。それぞれに複数ページのスキャン画像と翻刻がある",
+      "sample": "例となるコンテナ (任意)",
+      "samplePlaceholder": "collections/letters/letter-1",
+      "sampleHint": "すでに例を含むコンテナのパス",
+      "suggest": "提案",
+      "existing": "既存のトポロジー「{{name}}」を使う",
+      "new": "新しいトポロジー: 「{{name}}」",
+      "errors": "保存する前にエディタで次の問題を修正してください:",
+      "view": "トポロジーを開く",
+      "edit": "エディタで確認"
+    }
+  },
+  "review": {
+    "heading": "ハーベストしたレコードの確認",
+    "intro": "AI エージェントがハーベストした各レコードの配置先を提案します。承認するまで何も移動しません。",
+    "source": "ソース",
+    "allSources": "すべてのソース",
+    "status": "表示するレコード",
+    "open": "未確認",
+    "all": "すべて",
+    "readOnly": "提案は閲覧できますが、判断する権限はありません。",
+    "uncertain": "不確実",
+    "failed": "分類に失敗しました: {{reason}}",
+    "placement": "配置先:",
+    "topology": "トポロジー:",
+    "alternatives": "ほかの候補コレクション:",
+    "useThis": "これを使う",
+    "placedAt": "配置先",
+    "decidedBy": "{{agent}} が判断",
+    "collectionPath": "コレクションのパス",
+    "collectionHint": "例: communities/library/rare-books",
+    "noTopology": "トポロジーなし",
+    "place": "配置",
+    "accept": "承認",
+    "createAndAccept": "作成して承認",
+    "choose": "別の場所に配置",
+    "reject": "却下",
+    "retry": "再分類",
+    "emptyOpen": "確認待ちのレコードはありません。",
+    "empty": "分類されたレコードはありません。",
+    "previous": "前へ",
+    "next": "次へ",
+    "range": "{{total}} 件中 {{from}}–{{to}} 件",
+    "newCollection": "{{community}} に新しいコレクション「{{title}}」",
+    "newCommunity": "コレクション「{{collection}}」を含む新しいコミュニティ「{{title}}」",
+    "newSubCommunity": "{{community}} に、コレクション「{{collection}}」を含む新しいコミュニティ「{{title}}」",
+    "newTopology": "新しいトポロジー「{{name}}」: {{description}}",
+    "noPlacement": "該当するコレクションはありません",
+    "confirmCreate": "作成してレコードをそこに配置しますか? {{placement}}",
+    "confirmReject": "「{{title}}」の提案を却下しますか? レコードはハーベストされた場所に残ります。",
+    "accepted": "「{{title}}」を配置しました",
+    "rejected": "「{{title}}」の提案を却下しました",
+    "retried": "「{{title}}」を再分類しました",
+    "state": {
+      "PENDING": "確認待ち",
+      "PLACING": "配置中",
+      "ACCEPTED": "承認済み",
+      "REJECTED": "却下",
+      "FAILED": "失敗"
     }
   }
 }

@@ -77,6 +77,8 @@ export interface HarvestSources {
   readonly sources: readonly HarvestSource[];
   /** Whether the user may start and cancel harvests. */
   readonly operate: boolean;
+  /** Whether harvested records are classified by the AI agent (the review queue is served). */
+  readonly classification?: boolean;
 }
 
 /** An action on a source. */
@@ -205,4 +207,98 @@ export function formatDuration(milliseconds: number, locale: string): string {
     parts.push(unit(seconds, 'second'));
   }
   return new Intl.ListFormat(locale, { style: 'narrow', type: 'unit' }).format(parts);
+}
+
+/** An existing community or collection in a classification. */
+export interface StructureRef {
+  readonly path: string;
+  readonly title: string;
+  readonly trail: string;
+}
+
+/** A community or collection the agent proposes. */
+export interface ProposedStructure {
+  readonly title: string;
+  readonly description?: string | null;
+  readonly slug: string;
+}
+
+/** Where the AI agent suggests a harvested record belongs. */
+export interface ClassificationSuggestion {
+  readonly placement: 'EXISTING_COLLECTION' | 'NEW_COLLECTION' | 'NEW_COMMUNITY' | 'NONE';
+  readonly collection?: StructureRef | null;
+  /** The community a new collection or community goes in; none for a new top-level community. */
+  readonly community?: StructureRef | null;
+  readonly newCommunity?: ProposedStructure | null;
+  readonly newCollection?: ProposedStructure | null;
+  readonly topology?: {
+    readonly kind: 'EXISTING' | 'NEW' | 'NONE';
+    readonly id?: string | null;
+    readonly name?: string | null;
+    readonly description?: string | null;
+  } | null;
+  readonly confidence?: number | null;
+  readonly rationale?: string | null;
+  readonly alternatives?: readonly { readonly collection: StructureRef; readonly confidence?: number | null }[] | null;
+  readonly model?: string | null;
+}
+
+/** Where a classification stands. */
+export type ClassificationStatus = 'PENDING' | 'PLACING' | 'ACCEPTED' | 'REJECTED' | 'FAILED';
+
+/** The classification of a harvested record (the harvest service's review queue). */
+export interface Classification {
+  readonly source: string;
+  /** The path of the record's copy where it was harvested. */
+  readonly record: string;
+  readonly identifier: string;
+  readonly title?: string | null;
+  readonly status: ClassificationStatus;
+  readonly suggestion?: ClassificationSuggestion | null;
+  /** Why classification failed (`AGENT_UNAVAILABLE`, `MODEL_UNAVAILABLE` ...). */
+  readonly failure?: string | null;
+  /** Whether the agent was unsure (below the review threshold). */
+  readonly uncertain: boolean;
+  readonly classifiedAt?: string | null;
+  /** The record's item, once placed. */
+  readonly placedAt?: string | null;
+  readonly decidedBy?: string | null;
+  readonly decidedAt?: string | null;
+}
+
+/** A page of the review queue (`GET classifications`). */
+export interface ClassificationQueue {
+  readonly classifications: readonly Classification[];
+  readonly total: number;
+  readonly offset: number;
+  /** Whether the user may accept, reject and retry. */
+  readonly decide: boolean;
+}
+
+/**
+ * The name of a classified record (the last segment of its path), as the review API addresses it.
+ *
+ * @param classification - the classification
+ * @returns the record's name
+ */
+export function recordName(classification: Classification): string {
+  const segments = classification.record.split('/');
+  return segments[segments.length - 1];
+}
+
+/**
+ * Tells whether a classification can be accepted as suggested, without the user choosing a
+ * collection or topology: it names an existing collection and no new topology.
+ *
+ * @param classification - the classification
+ * @returns `true` when it can
+ */
+export function acceptableAsSuggested(classification: Classification): boolean {
+  const suggestion = classification.suggestion;
+  return (
+    !!suggestion &&
+    suggestion.placement === 'EXISTING_COLLECTION' &&
+    !!suggestion.collection &&
+    suggestion.topology?.kind !== 'NEW'
+  );
 }

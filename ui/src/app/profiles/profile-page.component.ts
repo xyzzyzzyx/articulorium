@@ -14,7 +14,8 @@ import { I18nService } from '../core/i18n/i18n.service';
 import { LdpService } from '../core/ldp/ldp.service';
 import { ResourceView } from '../core/ldp/models';
 import { childPath, routeTo } from '../core/ldp/paths';
-import { DOI_BASE, ORCID_BASE, Profile, displayName, isProfile, readProfile } from '../core/profile/profile';
+import { DOI_BASE, ORCID_BASE, Profile, ProfileDocument, displayName, isProfile, readProfile } from '../core/profile/profile';
+import { ProfileSuggestionComponent } from '../ai/profile-suggestion.component';
 import { allows } from '../core/webac/webac';
 import { ConfirmData, ConfirmDialogComponent } from '../shared/confirm-dialog.component';
 import { Notifier } from '../shared/notifier.service';
@@ -24,17 +25,20 @@ interface Shown {
   readonly view: ResourceView;
   /** The profile, or `undefined` when the resource is not a profile. */
   readonly profile?: Profile;
+  /** The profile with the statements the editor keeps as they are, to save suggestions. */
+  readonly document?: ProfileDocument;
   readonly name: string;
   readonly canEdit: boolean;
 }
 
 /**
  * Shows an academic profile: identity and contact details, overview, research, positions,
- * education and publications, with links to edit and delete it.
+ * education and publications, with links to edit and delete it, and (when the AI agent offers it)
+ * suggestions of an overview, research areas and keywords to review and keep.
  */
 @Component({
   selector: 'ui-profile-page',
-  imports: [MatButtonModule, MatChipsModule, MatIconModule, MatProgressBarModule, RouterLink, TranslatePipe],
+  imports: [MatButtonModule, MatChipsModule, MatIconModule, MatProgressBarModule, ProfileSuggestionComponent, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: `
     .ui-profile-section {
@@ -94,6 +98,10 @@ interface Shown {
           }
         </div>
       </header>
+
+      @if (s.canEdit && s.document; as document) {
+        <ui-profile-suggestion [view]="s.view" [document]="document" (applied)="shown.reload()" />
+      }
 
       @if (s.profile; as p) {
         <dl class="ui-facts ui-profile-contact">
@@ -224,10 +232,12 @@ export class ProfilePageComponent {
     stream: ({ params }) =>
       this.ldp.load(params).pipe(
         map((view): Shown => {
-          const profile = isProfile(view.graph, view.subject) ? readProfile(view.graph, view.subject).profile : undefined;
+          const document = isProfile(view.graph, view.subject) ? readProfile(view.graph, view.subject) : undefined;
+          const profile = document?.profile;
           return {
             view,
             profile,
+            document,
             name: (profile && displayName(profile)) || view.graph.title(view.subject, this.i18n.locale()),
             canEdit: allows(view.wacAllow, 'write'),
           };

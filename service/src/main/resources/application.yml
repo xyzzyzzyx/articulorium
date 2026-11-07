@@ -13,6 +13,9 @@ articulorium:
     transform-url: ../transform/
     # harvest service (sources, harvests and their reports) on the gateway
     harvest-url: ../harvest/
+    # optional AI agent (suggestions of topologies, metadata, topics); the user interface asks it
+    # what it offers and hides the AI actions when it is off or not deployed
+    ai-url: ../ai/
     # container of the community / sub-community / collection structure on the platform
     communities-path: communities
     # container of the academic profiles (VIVO) on the platform

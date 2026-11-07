@@ -58,7 +58,8 @@
     "none": "Keine",
     "loading": "Wird geladen…",
     "noValue": "—",
-    "backToResource": "Zurück zur Ressource"
+    "backToResource": "Zurück zur Ressource",
+    "close": "Schließen"
   },
   "breadcrumb": {
     "label": "Brotkrümelnavigation",
@@ -639,6 +640,179 @@
       "signIn": "Melden Sie sich an, um das Harvesting zu sehen.",
       "forbidden": "Sie können das Harvesting nicht sehen: Dafür ist Lesezugriff auf die geharvesteten Datensätze nötig.",
       "unavailable": "Der Harvesting-Dienst ist nicht erreichbar. Er ist möglicherweise gestoppt oder nicht installiert."
+    }
+  },
+  "ai": {
+    "thinking": "Der KI-Agent wird gefragt …",
+    "discard": "Verwerfen",
+    "review": "Prüfen Sie jeden Vorschlag, bevor Sie ihn übernehmen: Der KI-Agent kann sich irren.",
+    "fromFile": "Aus der Datei",
+    "suggested": "Vorgeschlagen",
+    "confidence": "Sicherheit {{percent}} %",
+    "reason": {
+      "INVALID_REQUEST": "Der KI-Agent konnte mit dieser Anfrage nichts anfangen.",
+      "UNAUTHENTICATED": "Melden Sie sich an, um den KI-Agenten zu nutzen.",
+      "FORBIDDEN": "Der KI-Agent hilft nur Personen, die diese Ressource ändern dürfen.",
+      "NOT_FOUND": "Der KI-Agent hat diese Ressource nicht gefunden.",
+      "TOO_LARGE": "Diese Datei ist für den KI-Agenten zu groß.",
+      "UNSUPPORTED": "Der KI-Agent kann diese Art von Datei nicht beschreiben.",
+      "BUSY": "Der KI-Agent ist ausgelastet. Versuchen Sie es gleich noch einmal.",
+      "MODEL_ERROR": "Das KI-Modell ist fehlgeschlagen. Versuchen Sie es später noch einmal.",
+      "INVALID_OUTPUT": "Die Antwort des KI-Modells war nicht verwendbar. Versuchen Sie es noch einmal.",
+      "DISABLED": "Der KI-Agent ist ausgeschaltet.",
+      "CAPABILITY_DISABLED": "Diese KI-Funktion ist ausgeschaltet.",
+      "MODEL_UNAVAILABLE": "Es ist kein KI-Modell verfügbar.",
+      "PLATFORM_UNAVAILABLE": "Der KI-Agent hat das Repository nicht erreicht. Versuchen Sie es später noch einmal.",
+      "UNREACHABLE": "Der KI-Agent ist nicht erreichbar."
+    },
+    "media": {
+      "heading": "KI-Vorschläge für Metadaten",
+      "intro": "Der KI-Agent liest die eingebetteten Metadaten der Datei und schlägt eine Beschreibung vor.",
+      "suggest": "Metadaten vorschlagen",
+      "nothing": "Der KI-Agent hat für diese Datei nichts vorzuschlagen.",
+      "apply": {
+        "one": "{{formatted}} Aussage hinzufügen",
+        "other": "{{formatted}} Aussagen hinzufügen"
+      },
+      "applied": {
+        "one": "{{formatted}} Aussage hinzugefügt",
+        "other": "{{formatted}} Aussagen hinzugefügt"
+      },
+      "note": {
+        "IMAGE_FORMAT_NOT_SHOWN": "Das Modell hat das Bild nicht gesehen (Format nicht unterstützt) und nur die Metadaten verwendet.",
+        "IMAGE_TOO_LARGE_TO_SHOW": "Das Modell hat das Bild nicht gesehen (zu groß) und nur die Metadaten verwendet.",
+        "IMAGE_NOT_SHOWN": "Das Modell hat das Bild nicht gesehen und nur die Metadaten verwendet.",
+        "VIDEO_NOT_SHOWN": "Das Modell hat das Video nicht angesehen und nur Metadaten und Kontext verwendet.",
+        "FILE_NOT_READ": "Die Datei ist zu groß zum Lesen; der Vorschlag beruht nur auf ihrem Kontext.",
+        "TEXT_FROM_FIRST_PAGES": "Nur die ersten Seiten des PDFs wurden gelesen.",
+        "TEXT_SHORTENED": "Der Text wurde gekürzt, bevor er an das Modell ging.",
+        "NO_TEXT": "Das PDF enthält keinen Text.",
+        "TEXT_NOT_EXTRACTABLE": "Der Text des PDFs ließ sich nicht extrahieren.",
+        "ENCRYPTED": "Das PDF ist verschlüsselt; sein Text konnte nicht gelesen werden.",
+        "UNREADABLE_METADATA": "Einige Metadaten der Datei konnten nicht gelesen werden."
+      }
+    },
+    "term": {
+      "abstract": "Zusammenfassung",
+      "alternative": "Alternativer Titel",
+      "contributor": "Mitwirkende",
+      "created": "Erstellt",
+      "creator": "Urheber",
+      "date": "Datum",
+      "description": "Beschreibung",
+      "extent": "Umfang",
+      "issued": "Erschienen",
+      "language": "Sprache",
+      "rights": "Rechte",
+      "spatial": "Ort",
+      "subject": "Thema",
+      "temporal": "Zeitraum",
+      "title": "Titel",
+      "type": "Typ",
+      "width": "Breite",
+      "height": "Höhe",
+      "duration": "Dauer",
+      "frameRate": "Bildrate"
+    },
+    "topics": {
+      "heading": "KI-Themen",
+      "intro": "Der KI-Agent liest die Objekte hier und schlägt ihre Themen und eine Zusammenfassung vor.",
+      "suggest": "Themen vorschlagen",
+      "noItems": "Hier gibt es keine Objekte zum Analysieren.",
+      "analysed": {
+        "one": "Auf Grundlage von {{formatted}} Objekt.",
+        "other": "Auf Grundlage von {{formatted}} Objekten."
+      },
+      "truncated": "Es gibt mehr Objekte, als der Agent gelesen hat.",
+      "summary": "Zusammenfassung",
+      "items": {
+        "one": "{{formatted}} Objekt",
+        "other": "{{formatted}} Objekte"
+      },
+      "apply": "Ausgewählte Themen hinzufügen",
+      "applied": {
+        "one": "{{formatted}} Thema hinzugefügt",
+        "other": "{{formatted}} Themen hinzugefügt"
+      },
+      "appliedSummary": "Zusammenfassung hinzugefügt"
+    },
+    "profiles": {
+      "heading": "KI-Vorschläge für das Profil",
+      "intro": "Der KI-Agent liest die Positionen, Abschlüsse und Publikationen dieses Profils und schlägt eine Übersicht, Forschungsgebiete und Schlagwörter vor.",
+      "suggest": "Profilangaben vorschlagen",
+      "noMaterial": "Fügen Sie dem Profil zuerst Positionen, Abschlüsse oder Publikationen hinzu: Daraus schlägt der KI-Agent vor.",
+      "nothing": "Der KI-Agent hat nichts gefunden, was dem Profil fehlt.",
+      "overview": "Übersicht",
+      "replacesOverview": "Wenn Sie sie übernehmen, ersetzt sie die aktuelle Übersicht.",
+      "researchAreas": "Forschungsgebiete",
+      "keywords": "Schlagwörter",
+      "apply": "Zum Profil hinzufügen",
+      "applied": "Profil aktualisiert"
+    },
+    "topology": {
+      "open": "Topologie vorschlagen",
+      "heading": "Topologie vorschlagen",
+      "intro": "Beschreiben Sie das Material: Der KI-Agent empfiehlt eine vorhandene Topologie oder entwirft eine neue zur Prüfung.",
+      "description": "Material",
+      "placeholder": "Zum Beispiel: digitalisierte Briefe, jeweils mit mehreren Seitenscans und einer Transkription",
+      "sample": "Beispielcontainer (optional)",
+      "samplePlaceholder": "collections/briefe/brief-1",
+      "sampleHint": "Der Pfad eines Containers, der bereits ein Beispiel enthält",
+      "suggest": "Vorschlagen",
+      "existing": "Die vorhandene Topologie „{{name}}“ verwenden",
+      "new": "Eine neue Topologie: „{{name}}“",
+      "errors": "Beheben Sie diese Probleme im Editor, bevor Sie speichern:",
+      "view": "Topologie öffnen",
+      "edit": "Im Editor prüfen"
+    }
+  },
+  "review": {
+    "heading": "Geharvestete Datensätze prüfen",
+    "intro": "Der KI-Agent schlägt vor, wohin jeder geharvestete Datensatz gehört. Nichts wird verschoben, bevor Sie zustimmen.",
+    "source": "Quelle",
+    "allSources": "Alle Quellen",
+    "status": "Welche Datensätze",
+    "open": "Zu prüfen",
+    "all": "Alle",
+    "readOnly": "Sie sehen die Vorschläge, dürfen aber nicht über sie entscheiden.",
+    "uncertain": "Unsicher",
+    "failed": "Klassifizierung fehlgeschlagen: {{reason}}",
+    "placement": "Gehört in:",
+    "topology": "Topologie:",
+    "alternatives": "Weitere mögliche Sammlungen:",
+    "useThis": "Diese verwenden",
+    "placedAt": "Abgelegt unter",
+    "decidedBy": "Entschieden von {{agent}}",
+    "collectionPath": "Pfad der Sammlung",
+    "collectionHint": "Zum Beispiel communities/bibliothek/rara",
+    "noTopology": "Keine Topologie",
+    "place": "Ablegen",
+    "accept": "Annehmen",
+    "createAndAccept": "Anlegen und annehmen",
+    "choose": "Woanders ablegen",
+    "reject": "Ablehnen",
+    "retry": "Erneut klassifizieren",
+    "emptyOpen": "Keine Datensätze warten auf Prüfung.",
+    "empty": "Es wurden keine Datensätze klassifiziert.",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "range": "{{from}}–{{to}} von {{total}}",
+    "newCollection": "Eine neue Sammlung „{{title}}“ in {{community}}",
+    "newCommunity": "Eine neue Community „{{title}}“ mit der Sammlung „{{collection}}“",
+    "newSubCommunity": "Eine neue Community „{{title}}“ in {{community}}, mit der Sammlung „{{collection}}“",
+    "newTopology": "Eine neue Topologie „{{name}}“: {{description}}",
+    "noPlacement": "Keine Sammlung passt",
+    "confirmCreate": "Anlegen und den Datensatz dort ablegen? {{placement}}",
+    "confirmReject": "Den Vorschlag für „{{title}}“ ablehnen? Der Datensatz bleibt, wo er geharvestet wurde.",
+    "accepted": "„{{title}}“ wurde abgelegt",
+    "rejected": "Vorschlag für „{{title}}“ abgelehnt",
+    "retried": "„{{title}}“ wurde erneut klassifiziert",
+    "state": {
+      "PENDING": "Wartet",
+      "PLACING": "Wird abgelegt",
+      "ACCEPTED": "Angenommen",
+      "REJECTED": "Abgelehnt",
+      "FAILED": "Fehlgeschlagen"
     }
   }
 }

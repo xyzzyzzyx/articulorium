@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { HarvestReport, HarvestSource } from '../core/harvest/harvest';
@@ -75,6 +76,7 @@ describe('HarvestPageComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideNoopAnimations(),
+        provideRouter([]),
         provideTestConfig(),
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snackBar },
@@ -116,6 +118,27 @@ describe('HarvestPageComponent', () => {
 
   const button = (element: HTMLElement, id: string, kind: string) =>
     card(element, id).querySelector(`.ui-harvest-${kind}`) as HTMLButtonElement | null;
+
+  it('shows the review queue of the AI agent only when the harvest service classifies records', async () => {
+    const without = await render([REPO]);
+    expect(without.element.querySelector('ui-review-queue')).toBeNull();
+    without.fixture.destroy();
+
+    const fixture = TestBed.createComponent(HarvestPageComponent);
+    fixture.detectChanges();
+    TestBed.tick();
+    http.expectOne({ method: 'GET', url: SOURCES }).flush({ sources: [REPO, PROFILES], operate: true, classification: true });
+    // the queue loads once rendered: the page is not stable before it is answered
+    await flushView(fixture);
+    await flushView(fixture);
+    const queue = http.expectOne((request) => request.url === `${TEST_HARVEST}classifications`);
+    expect(queue.request.params.get('status')).toBe('open');
+    queue.flush({ classifications: [], total: 0, offset: 0, decide: true });
+    await settle(fixture);
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.querySelector('ui-review-queue h2')?.textContent).toContain('Review harvested records');
+    expect(element.querySelector('.ui-review-empty')?.textContent).toContain('No records are waiting for review.');
+  });
 
   it('lists the sources with what each supports and the last report', async () => {
     const { element } = await render([REPO, PROFILES]);

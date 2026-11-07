@@ -58,7 +58,8 @@
     "none": "Geen",
     "loading": "Laden…",
     "noValue": "—",
-    "backToResource": "Terug naar de bron"
+    "backToResource": "Terug naar de bron",
+    "close": "Sluiten"
   },
   "breadcrumb": {
     "label": "Kruimelpad",
@@ -639,6 +640,179 @@
       "signIn": "Meld u aan om de harvests te zien.",
       "forbidden": "U kunt de harvests niet zien: daarvoor is leestoegang tot de geharveste records nodig.",
       "unavailable": "De harvestdienst is niet bereikbaar. Mogelijk is hij gestopt of niet geïnstalleerd."
+    }
+  },
+  "ai": {
+    "thinking": "De AI-agent wordt gevraagd…",
+    "discard": "Verwerpen",
+    "review": "Controleer elke suggestie voordat u die bewaart: de AI-agent kan zich vergissen.",
+    "fromFile": "Uit het bestand",
+    "suggested": "Voorgesteld",
+    "confidence": "Zekerheid {{percent}} %",
+    "reason": {
+      "INVALID_REQUEST": "De AI-agent kon dit verzoek niet gebruiken.",
+      "UNAUTHENTICATED": "Meld u aan om de AI-agent te gebruiken.",
+      "FORBIDDEN": "De AI-agent helpt alleen mensen die deze bron mogen wijzigen.",
+      "NOT_FOUND": "De AI-agent kon deze bron niet vinden.",
+      "TOO_LARGE": "Dit bestand is te groot voor de AI-agent.",
+      "UNSUPPORTED": "De AI-agent kan dit soort bestand niet beschrijven.",
+      "BUSY": "De AI-agent is bezet. Probeer het zo opnieuw.",
+      "MODEL_ERROR": "Het AI-model is mislukt. Probeer het later opnieuw.",
+      "INVALID_OUTPUT": "Het AI-model gaf een onbruikbaar antwoord. Probeer het opnieuw.",
+      "DISABLED": "De AI-agent staat uit.",
+      "CAPABILITY_DISABLED": "Deze AI-functie staat uit.",
+      "MODEL_UNAVAILABLE": "Er is geen AI-model beschikbaar.",
+      "PLATFORM_UNAVAILABLE": "De AI-agent kon de repository niet bereiken. Probeer het later opnieuw.",
+      "UNREACHABLE": "De AI-agent is niet bereikbaar."
+    },
+    "media": {
+      "heading": "AI-suggesties voor metadata",
+      "intro": "De AI-agent leest de ingebedde metadata van het bestand en stelt een beschrijving voor.",
+      "suggest": "Metadata voorstellen",
+      "nothing": "De AI-agent heeft niets voor te stellen voor dit bestand.",
+      "apply": {
+        "one": "{{formatted}} bewering toevoegen",
+        "other": "{{formatted}} beweringen toevoegen"
+      },
+      "applied": {
+        "one": "{{formatted}} bewering toegevoegd",
+        "other": "{{formatted}} beweringen toegevoegd"
+      },
+      "note": {
+        "IMAGE_FORMAT_NOT_SHOWN": "Het model heeft de afbeelding niet gezien (formaat niet ondersteund) en werkte met de metadata.",
+        "IMAGE_TOO_LARGE_TO_SHOW": "Het model heeft de afbeelding niet gezien (te groot) en werkte met de metadata.",
+        "IMAGE_NOT_SHOWN": "Het model heeft de afbeelding niet gezien en werkte met de metadata.",
+        "VIDEO_NOT_SHOWN": "Het model heeft de video niet bekeken en werkte met de metadata en de context.",
+        "FILE_NOT_READ": "Het bestand is te groot om te lezen; de suggestie is alleen op de context gebaseerd.",
+        "TEXT_FROM_FIRST_PAGES": "Alleen de eerste pagina's van de pdf zijn gelezen.",
+        "TEXT_SHORTENED": "De tekst is ingekort voordat die naar het model ging.",
+        "NO_TEXT": "De pdf bevat geen tekst.",
+        "TEXT_NOT_EXTRACTABLE": "De tekst van de pdf kon niet worden opgehaald.",
+        "ENCRYPTED": "De pdf is versleuteld; de tekst kon niet worden gelezen.",
+        "UNREADABLE_METADATA": "Een deel van de metadata van het bestand kon niet worden gelezen."
+      }
+    },
+    "term": {
+      "abstract": "Samenvatting",
+      "alternative": "Alternatieve titel",
+      "contributor": "Bijdrager",
+      "created": "Gemaakt",
+      "creator": "Maker",
+      "date": "Datum",
+      "description": "Beschrijving",
+      "extent": "Omvang",
+      "issued": "Uitgegeven",
+      "language": "Taal",
+      "rights": "Rechten",
+      "spatial": "Plaats",
+      "subject": "Onderwerp",
+      "temporal": "Periode",
+      "title": "Titel",
+      "type": "Type",
+      "width": "Breedte",
+      "height": "Hoogte",
+      "duration": "Duur",
+      "frameRate": "Beeldsnelheid"
+    },
+    "topics": {
+      "heading": "AI-onderwerpen",
+      "intro": "De AI-agent leest de objecten hier en stelt hun onderwerpen en een samenvatting voor.",
+      "suggest": "Onderwerpen voorstellen",
+      "noItems": "Er zijn hier geen objecten om te analyseren.",
+      "analysed": {
+        "one": "Op basis van {{formatted}} object.",
+        "other": "Op basis van {{formatted}} objecten."
+      },
+      "truncated": "Er zijn meer objecten dan de agent heeft gelezen.",
+      "summary": "Samenvatting",
+      "items": {
+        "one": "{{formatted}} object",
+        "other": "{{formatted}} objecten"
+      },
+      "apply": "Geselecteerde onderwerpen toevoegen",
+      "applied": {
+        "one": "{{formatted}} onderwerp toegevoegd",
+        "other": "{{formatted}} onderwerpen toegevoegd"
+      },
+      "appliedSummary": "Samenvatting toegevoegd"
+    },
+    "profiles": {
+      "heading": "AI-suggesties voor het profiel",
+      "intro": "De AI-agent leest de functies, diploma's en publicaties van dit profiel en stelt een overzicht, onderzoeksgebieden en trefwoorden voor.",
+      "suggest": "Profielgegevens voorstellen",
+      "noMaterial": "Voeg eerst functies, diploma's of publicaties toe aan het profiel: daaruit doet de AI-agent voorstellen.",
+      "nothing": "De AI-agent heeft niets gevonden om aan dit profiel toe te voegen.",
+      "overview": "Overzicht",
+      "replacesOverview": "Als u het bewaart, vervangt het het huidige overzicht.",
+      "researchAreas": "Onderzoeksgebieden",
+      "keywords": "Trefwoorden",
+      "apply": "Aan het profiel toevoegen",
+      "applied": "Profiel bijgewerkt"
+    },
+    "topology": {
+      "open": "Topologie voorstellen",
+      "heading": "Topologie voorstellen",
+      "intro": "Beschrijf het materiaal: de AI-agent raadt een bestaande topologie aan of maakt een ontwerp voor een nieuwe, ter controle.",
+      "description": "Materiaal",
+      "placeholder": "Bijvoorbeeld: gedigitaliseerde brieven, elk met meerdere paginascans en een transcriptie",
+      "sample": "Voorbeeldcontainer (optioneel)",
+      "samplePlaceholder": "collections/brieven/brief-1",
+      "sampleHint": "Het pad van een container die al een voorbeeld bevat",
+      "suggest": "Voorstellen",
+      "existing": "De bestaande topologie ‘{{name}}’ gebruiken",
+      "new": "Een nieuwe topologie: ‘{{name}}’",
+      "errors": "Los deze problemen op in de editor voordat u opslaat:",
+      "view": "Topologie openen",
+      "edit": "Controleren in de editor"
+    }
+  },
+  "review": {
+    "heading": "Geharveste records controleren",
+    "intro": "De AI-agent stelt voor waar elk geharvest record thuishoort. Er wordt niets verplaatst voordat u akkoord gaat.",
+    "source": "Bron",
+    "allSources": "Alle bronnen",
+    "status": "Welke records",
+    "open": "Te controleren",
+    "all": "Alle",
+    "readOnly": "U ziet de suggesties, maar mag er niet over beslissen.",
+    "uncertain": "Onzeker",
+    "failed": "Classificatie mislukt: {{reason}}",
+    "placement": "Hoort in:",
+    "topology": "Topologie:",
+    "alternatives": "Andere mogelijke collecties:",
+    "useThis": "Deze gebruiken",
+    "placedAt": "Geplaatst in",
+    "decidedBy": "Besloten door {{agent}}",
+    "collectionPath": "Pad van de collectie",
+    "collectionHint": "Bijvoorbeeld communities/bibliotheek/zeldzame-boeken",
+    "noTopology": "Geen topologie",
+    "place": "Plaatsen",
+    "accept": "Accepteren",
+    "createAndAccept": "Aanmaken en accepteren",
+    "choose": "Elders plaatsen",
+    "reject": "Afwijzen",
+    "retry": "Opnieuw classificeren",
+    "emptyOpen": "Er wachten geen records op controle.",
+    "empty": "Er zijn geen records geclassificeerd.",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "range": "{{from}}–{{to}} van {{total}}",
+    "newCollection": "Een nieuwe collectie ‘{{title}}’ in {{community}}",
+    "newCommunity": "Een nieuwe community ‘{{title}}’ met de collectie ‘{{collection}}’",
+    "newSubCommunity": "Een nieuwe community ‘{{title}}’ in {{community}}, met de collectie ‘{{collection}}’",
+    "newTopology": "Een nieuwe topologie ‘{{name}}’: {{description}}",
+    "noPlacement": "Geen collectie past",
+    "confirmCreate": "Aanmaken en het record daar plaatsen? {{placement}}",
+    "confirmReject": "De suggestie voor ‘{{title}}’ afwijzen? Het record blijft waar het geharvest is.",
+    "accepted": "‘{{title}}’ is geplaatst",
+    "rejected": "Suggestie voor ‘{{title}}’ afgewezen",
+    "retried": "‘{{title}}’ is opnieuw geclassificeerd",
+    "state": {
+      "PENDING": "Wacht",
+      "PLACING": "Wordt geplaatst",
+      "ACCEPTED": "Geaccepteerd",
+      "REJECTED": "Afgewezen",
+      "FAILED": "Mislukt"
     }
   }
 }

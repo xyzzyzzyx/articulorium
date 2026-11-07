@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 
 /**
  * Adds `Authorization: Bearer <token>` to requests for the platform, the topology service, the
- * transform service and the harvest service while a token is set. Requests elsewhere (and requests that already carry
+ * transform service, the harvest service and the AI agent while a token is set. Requests elsewhere (and requests that already carry
  * credentials) are left alone, so the token never leaves the repository's services.
  *
  * @param request - the outgoing request
@@ -19,7 +19,13 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     return next(request);
   }
   const config = inject(ConfigService);
-  const targets = [config.platformBase(), config.topologyBase(), config.transformBase(), config.harvestBase()];
+  const targets = [
+    config.platformBase(),
+    config.topologyBase(),
+    config.transformBase(),
+    config.harvestBase(),
+    config.aiBase(),
+  ];
   const url = new URL(request.url, document.baseURI).toString();
   if (!targets.some((base) => url.startsWith(base))) {
     return next(request);

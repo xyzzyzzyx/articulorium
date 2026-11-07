@@ -7,6 +7,7 @@ import { ART, LDP, RDF } from '../core/rdf/vocabulary';
 import { TEST_BASE, provideTestConfig } from '../testing/test-config';
 import { CommunitiesPageComponent } from './communities-page.component';
 import { provideTestI18n } from '../testing/test-i18n';
+import { provideTestAi } from '../testing/test-ai';
 
 const T = 'http://purl.org/dc/terms/title';
 
@@ -17,7 +18,7 @@ describe('CommunitiesPageComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [CommunitiesPageComponent],
-      providers: [...provideTestI18n(), provideHttpClient(), provideHttpClientTesting(), provideRouter([]), provideTestConfig()],
+      providers: [...provideTestI18n(), provideHttpClient(), provideHttpClientTesting(), provideRouter([]), provideTestConfig(), provideTestAi()],
     });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(CommunitiesPageComponent);

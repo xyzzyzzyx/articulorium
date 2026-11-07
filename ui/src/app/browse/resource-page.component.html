@@ -176,6 +176,15 @@
         </mat-card>
       }
 
+      @if (v.binary && patchable() && mediaSuggestions()) {
+        <mat-card appearance="outlined" class="ui-ai-card">
+          <mat-card-header><mat-card-title>{{ 'ai.media.heading' | translate }}</mat-card-title></mat-card-header>
+          <mat-card-content>
+            <ui-media-suggestion [view]="v" (applied)="reload()" />
+          </mat-card-content>
+        </mat-card>
+      }
+
       @if (v.path !== '') {
         <mat-card appearance="outlined">
           <mat-card-header><mat-card-title>{{ 'resource.versioning' | translate }}</mat-card-title></mat-card-header>

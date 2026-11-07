@@ -16,6 +16,8 @@ export interface UiConfig {
   readonly transformUrl?: string;
   /** Where browsers reach the harvest service. */
   readonly harvestUrl?: string;
+  /** Where browsers reach the optional AI agent. */
+  readonly aiUrl?: string;
   /** Path (below the LDP root) of the community structure. */
   readonly communitiesPath?: string;
   /** Path (below the LDP root) of the academic profiles. */
@@ -47,6 +49,7 @@ export const FALLBACK_CONFIG: Required<UiConfig> = {
   topologyUrl: '../topology/',
   transformUrl: '../transform/',
   harvestUrl: '../harvest/',
+  aiUrl: '../ai/',
   communitiesPath: 'communities',
   profilesPath: 'profiles',
   auth: {
@@ -124,6 +127,15 @@ export class ConfigService {
    */
   harvestBase(): string {
     return resolvePlatformBase(this.state().harvestUrl || FALLBACK_CONFIG.harvestUrl, document.baseURI);
+  }
+
+  /**
+   * The absolute base of the optional AI agent, ending with `/`.
+   *
+   * @returns for example `http://localhost:8000/ai/`
+   */
+  aiBase(): string {
+    return resolvePlatformBase(this.state().aiUrl || FALLBACK_CONFIG.aiUrl, document.baseURI);
   }
 
   /**

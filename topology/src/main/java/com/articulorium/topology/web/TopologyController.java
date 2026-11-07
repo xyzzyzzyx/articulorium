@@ -8,6 +8,8 @@ import com.articulorium.topology.model.BuildRequest;
 import com.articulorium.topology.model.BuildResult;
 import com.articulorium.topology.model.Topology;
 import com.articulorium.topology.model.TopologySummary;
+import com.articulorium.topology.model.TopologyValidation;
+import com.articulorium.topology.service.TopologyValidator;
 import com.articulorium.topology.service.InvalidTopologyException;
 import com.articulorium.topology.service.TopologyBuilder;
 import com.articulorium.topology.service.TopologyLocalizer;
@@ -107,6 +109,29 @@ public class TopologyController {
         }
         final Topology saved = registry.save(topology, authorization);
         return ResponseEntity.created(URI.create("topologies/" + saved.id())).body(saved);
+    }
+
+    /**
+     * Checks a topology as {@link #create} would, without saving it: for drafts (the AI agent's,
+     * the editor's) to be corrected before they are saved.
+     *
+     * @param topology      the topology
+     * @param authorization the caller's credentials
+     * @return whether it is valid, its problems and whether its identifier is taken
+     */
+    @PostMapping(path = "/validation", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(operationId = "validateTopology", summary = "Check a topology without saving it")
+    public TopologyValidation validate(@RequestBody final Topology topology,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) final String authorization) {
+        if (topology == null) {
+            return new TopologyValidation(false, List.of("A topology is required"), false);
+        }
+        final List<String> errors = new java.util.ArrayList<>(TopologyValidator.validate(topology.with(topology.id(), false)));
+        final boolean exists = topology.id() != null && exists(topology.id(), authorization);
+        if (exists) {
+            errors.add("A topology " + topology.id() + " already exists");
+        }
+        return new TopologyValidation(errors.isEmpty(), errors, exists);
     }
 
     /**

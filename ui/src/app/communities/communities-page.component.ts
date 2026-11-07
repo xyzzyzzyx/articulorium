@@ -19,6 +19,7 @@ import { normalizePath, pathOf, routeTo, segmentsOf } from '../core/ldp/paths';
 import { DCTERMS, LDP } from '../core/rdf/vocabulary';
 import { allows } from '../core/webac/webac';
 import { Notifier } from '../shared/notifier.service';
+import { TopicSuggestionComponent } from '../ai/topic-suggestion.component';
 import { TopologyPanelComponent } from '../topology/topology-panel.component';
 import { StructureKind, slugOf, structureKind, structureTurtle } from './communities';
 
@@ -64,6 +65,7 @@ interface Node {
     MatInputModule,
     MatProgressBarModule,
     RouterLink,
+    TopicSuggestionComponent,
     TopologyPanelComponent,
     TranslatePipe,
   ],
@@ -106,6 +108,9 @@ interface Node {
         </div>
       </header>
 
+      @if (n.kind === 'community' || n.kind === 'collection') {
+        <ui-topic-suggestion [view]="n.view" (applied)="node.reload()" />
+      }
       @if (n.kind === 'root' || n.kind === 'community') {
         <h2>{{ (n.kind === 'root' ? 'nav.communities' : 'communities.subCommunities') | translate }}</h2>
         <div class="ui-card-grid ui-communities-list">

@@ -2,6 +2,7 @@ package com.articulorium.harvest.web;
 
 import java.util.Locale;
 
+import com.articulorium.harvest.classify.ReviewException;
 import com.articulorium.harvest.service.HarvestRequestException;
 
 import org.springframework.http.HttpHeaders;
@@ -17,7 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * English ({@code Content-Language: en}); the user interface shows its own text for the status
  * next to them.
  */
-@RestControllerAdvice(assignableTypes = HarvestController.class)
+@RestControllerAdvice(assignableTypes = {HarvestController.class, ReviewController.class})
 public class HarvestApiExceptionHandler {
 
     /** Language of the details. */
@@ -62,6 +63,28 @@ public class HarvestApiExceptionHandler {
         final ProblemDetail problem = problem(status, e.getMessage());
         problem.setProperty("reason", e.getReason().name());
         return respond(status, problem);
+    }
+
+    /**
+     * Refusals of the review queue, with their status and reason (unknown source or record 404, a
+     * decided classification or a missing collection or topology 409, a collection or topology that
+     * cannot be used 422, the platform's own refusals with their status).
+     *
+     * @param e the exception
+     * @return the problem
+     */
+    @ExceptionHandler(ReviewException.class)
+    public ResponseEntity<ProblemDetail> review(final ReviewException e) {
+        final HttpStatus resolved = HttpStatus.resolve(e.getStatus());
+        final HttpStatus status = resolved == null ? HttpStatus.BAD_GATEWAY : resolved;
+        final ProblemDetail problem = problem(status, e.getMessage());
+        problem.setProperty("reason", e.getReason());
+        final ResponseEntity.BodyBuilder response = ResponseEntity.status(status)
+            .header(HttpHeaders.CONTENT_LANGUAGE, DETAIL_LANGUAGE);
+        if (status == HttpStatus.UNAUTHORIZED) {
+            response.header(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+        }
+        return response.body(problem);
     }
 
     /**

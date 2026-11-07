@@ -51,6 +51,7 @@ describe('ConfigService', () => {
     expect(service.topologyBase()).toBe(new URL('../topology/', document.baseURI).toString());
     expect(service.transformBase()).toBe(new URL('../transform/', document.baseURI).toString());
     expect(service.harvestBase()).toBe(new URL('../harvest/', document.baseURI).toString());
+    expect(service.aiBase()).toBe(new URL('../ai/', document.baseURI).toString());
     expect(service.communitiesPath()).toBe('orgs');
     expect(service.profilesPath()).toBe('people');
   });

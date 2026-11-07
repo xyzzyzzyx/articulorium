@@ -58,7 +58,8 @@
     "none": "없음",
     "loading": "불러오는 중…",
     "noValue": "—",
-    "backToResource": "리소스로 돌아가기"
+    "backToResource": "리소스로 돌아가기",
+    "close": "닫기"
   },
   "breadcrumb": {
     "label": "이동 경로",
@@ -636,6 +637,174 @@
       "signIn": "하베스트를 보려면 로그인하세요.",
       "forbidden": "하베스트를 볼 수 없습니다. 하베스트된 레코드에 대한 읽기 권한이 필요합니다.",
       "unavailable": "하베스트 서비스에 연결할 수 없습니다. 중지되었거나 배포되지 않았을 수 있습니다."
+    }
+  },
+  "ai": {
+    "thinking": "AI 에이전트에게 묻는 중…",
+    "discard": "버리기",
+    "review": "보관하기 전에 각 제안을 확인하세요. AI 에이전트도 틀릴 수 있습니다.",
+    "fromFile": "파일에서",
+    "suggested": "제안",
+    "confidence": "신뢰도 {{percent}}%",
+    "reason": {
+      "INVALID_REQUEST": "AI 에이전트가 이 요청을 사용할 수 없습니다.",
+      "UNAUTHENTICATED": "AI 에이전트를 사용하려면 로그인하세요.",
+      "FORBIDDEN": "AI 에이전트는 이 리소스를 변경할 수 있는 사람만 돕습니다.",
+      "NOT_FOUND": "AI 에이전트가 이 리소스를 찾지 못했습니다.",
+      "TOO_LARGE": "이 파일은 AI 에이전트가 처리하기에 너무 큽니다.",
+      "UNSUPPORTED": "AI 에이전트는 이 종류의 파일을 설명할 수 없습니다.",
+      "BUSY": "AI 에이전트가 바쁩니다. 잠시 후 다시 시도하세요.",
+      "MODEL_ERROR": "AI 모델에 오류가 발생했습니다. 나중에 다시 시도하세요.",
+      "INVALID_OUTPUT": "AI 모델의 답변을 사용할 수 없습니다. 다시 시도하세요.",
+      "DISABLED": "AI 에이전트가 꺼져 있습니다.",
+      "CAPABILITY_DISABLED": "이 AI 기능이 꺼져 있습니다.",
+      "MODEL_UNAVAILABLE": "사용할 수 있는 AI 모델이 없습니다.",
+      "PLATFORM_UNAVAILABLE": "AI 에이전트가 저장소에 연결하지 못했습니다. 나중에 다시 시도하세요.",
+      "UNREACHABLE": "AI 에이전트에 연결할 수 없습니다."
+    },
+    "media": {
+      "heading": "AI 메타데이터 제안",
+      "intro": "AI 에이전트가 파일에 포함된 메타데이터를 읽고 설명을 제안합니다.",
+      "suggest": "메타데이터 제안",
+      "nothing": "이 파일에 대해 AI 에이전트가 제안할 내용이 없습니다.",
+      "apply": {
+        "other": "진술 {{formatted}}개 추가"
+      },
+      "applied": {
+        "other": "진술 {{formatted}}개를 추가했습니다"
+      },
+      "note": {
+        "IMAGE_FORMAT_NOT_SHOWN": "이미지 형식이 지원되지 않아 모델이 이미지를 보지 않고 메타데이터로 판단했습니다.",
+        "IMAGE_TOO_LARGE_TO_SHOW": "이미지가 너무 커서 모델이 이미지를 보지 않고 메타데이터로 판단했습니다.",
+        "IMAGE_NOT_SHOWN": "모델이 이미지를 보지 않고 메타데이터로 판단했습니다.",
+        "VIDEO_NOT_SHOWN": "모델이 동영상을 보지 않고 메타데이터와 맥락으로 판단했습니다.",
+        "FILE_NOT_READ": "파일이 너무 커서 읽지 못했습니다. 제안은 맥락에만 근거합니다.",
+        "TEXT_FROM_FIRST_PAGES": "PDF의 앞쪽 몇 페이지만 읽었습니다.",
+        "TEXT_SHORTENED": "텍스트를 모델에 보내기 전에 줄였습니다.",
+        "NO_TEXT": "이 PDF에는 텍스트가 없습니다.",
+        "TEXT_NOT_EXTRACTABLE": "PDF의 텍스트를 추출할 수 없습니다.",
+        "ENCRYPTED": "PDF가 암호화되어 텍스트를 읽을 수 없습니다.",
+        "UNREADABLE_METADATA": "파일 메타데이터의 일부를 읽을 수 없습니다."
+      }
+    },
+    "term": {
+      "abstract": "초록",
+      "alternative": "대체 제목",
+      "contributor": "기여자",
+      "created": "생성일",
+      "creator": "작성자",
+      "date": "날짜",
+      "description": "설명",
+      "extent": "분량",
+      "issued": "발행일",
+      "language": "언어",
+      "rights": "권리",
+      "spatial": "장소",
+      "subject": "주제",
+      "temporal": "시대",
+      "title": "제목",
+      "type": "유형",
+      "width": "너비",
+      "height": "높이",
+      "duration": "재생 시간",
+      "frameRate": "프레임 속도"
+    },
+    "topics": {
+      "heading": "AI 주제",
+      "intro": "AI 에이전트가 여기 있는 항목을 읽고 주제와 요약을 제안합니다.",
+      "suggest": "주제 제안",
+      "noItems": "분석할 항목이 없습니다.",
+      "analysed": {
+        "other": "항목 {{formatted}}개를 바탕으로 합니다."
+      },
+      "truncated": "에이전트가 읽은 것보다 항목이 더 있습니다.",
+      "summary": "요약",
+      "items": {
+        "other": "항목 {{formatted}}개"
+      },
+      "apply": "선택한 주제 추가",
+      "applied": {
+        "other": "주제 {{formatted}}개를 추가했습니다"
+      },
+      "appliedSummary": "요약을 추가했습니다"
+    },
+    "profiles": {
+      "heading": "AI 프로필 제안",
+      "intro": "AI 에이전트가 이 프로필의 직위, 학위, 출판물을 읽고 소개, 연구 분야, 키워드를 제안합니다.",
+      "suggest": "프로필 항목 제안",
+      "noMaterial": "먼저 프로필에 직위, 학위 또는 출판물을 추가하세요. AI 에이전트는 이를 바탕으로 제안합니다.",
+      "nothing": "AI 에이전트가 이 프로필에 추가할 내용을 찾지 못했습니다.",
+      "overview": "소개",
+      "replacesOverview": "보관하면 현재 소개를 대체합니다.",
+      "researchAreas": "연구 분야",
+      "keywords": "키워드",
+      "apply": "프로필에 추가",
+      "applied": "프로필을 업데이트했습니다"
+    },
+    "topology": {
+      "open": "토폴로지 제안",
+      "heading": "토폴로지 제안",
+      "intro": "자료를 설명하세요. AI 에이전트가 기존 토폴로지를 추천하거나 검토용 새 토폴로지 초안을 만듭니다.",
+      "description": "자료",
+      "placeholder": "예: 디지털화한 편지. 각 편지에 여러 페이지의 스캔과 전사본이 있음",
+      "sample": "예시 컨테이너 (선택)",
+      "samplePlaceholder": "collections/letters/letter-1",
+      "sampleHint": "이미 예시가 들어 있는 컨테이너의 경로",
+      "suggest": "제안",
+      "existing": "기존 토폴로지 ‘{{name}}’ 사용",
+      "new": "새 토폴로지: ‘{{name}}’",
+      "errors": "저장하기 전에 편집기에서 다음 문제를 해결하세요:",
+      "view": "토폴로지 열기",
+      "edit": "편집기에서 검토"
+    }
+  },
+  "review": {
+    "heading": "수집한 레코드 검토",
+    "intro": "AI 에이전트가 수집한 각 레코드의 위치를 제안합니다. 승인하기 전까지는 아무것도 옮겨지지 않습니다.",
+    "source": "소스",
+    "allSources": "모든 소스",
+    "status": "표시할 레코드",
+    "open": "검토 대기",
+    "all": "전체",
+    "readOnly": "제안을 볼 수는 있지만 결정할 권한은 없습니다.",
+    "uncertain": "불확실",
+    "failed": "분류 실패: {{reason}}",
+    "placement": "위치:",
+    "topology": "토폴로지:",
+    "alternatives": "다른 후보 컬렉션:",
+    "useThis": "이것 사용",
+    "placedAt": "배치 위치",
+    "decidedBy": "{{agent}}이(가) 결정함",
+    "collectionPath": "컬렉션 경로",
+    "collectionHint": "예: communities/library/rare-books",
+    "noTopology": "토폴로지 없음",
+    "place": "배치",
+    "accept": "승인",
+    "createAndAccept": "만들고 승인",
+    "choose": "다른 곳에 배치",
+    "reject": "거부",
+    "retry": "다시 분류",
+    "emptyOpen": "검토를 기다리는 레코드가 없습니다.",
+    "empty": "분류된 레코드가 없습니다.",
+    "previous": "이전",
+    "next": "다음",
+    "range": "{{total}}개 중 {{from}}–{{to}}",
+    "newCollection": "{{community}}의 새 컬렉션 ‘{{title}}’",
+    "newCommunity": "컬렉션 ‘{{collection}}’이(가) 있는 새 커뮤니티 ‘{{title}}’",
+    "newSubCommunity": "{{community}}에 컬렉션 ‘{{collection}}’이(가) 있는 새 커뮤니티 ‘{{title}}’",
+    "newTopology": "새 토폴로지 ‘{{name}}’: {{description}}",
+    "noPlacement": "맞는 컬렉션이 없음",
+    "confirmCreate": "만든 뒤 레코드를 그곳에 배치할까요? {{placement}}",
+    "confirmReject": "‘{{title}}’에 대한 제안을 거부할까요? 레코드는 수집된 위치에 남습니다.",
+    "accepted": "‘{{title}}’을(를) 배치했습니다",
+    "rejected": "‘{{title}}’에 대한 제안을 거부했습니다",
+    "retried": "‘{{title}}’을(를) 다시 분류했습니다",
+    "state": {
+      "PENDING": "대기 중",
+      "PLACING": "배치 중",
+      "ACCEPTED": "승인됨",
+      "REJECTED": "거부됨",
+      "FAILED": "실패"
     }
   }
 }

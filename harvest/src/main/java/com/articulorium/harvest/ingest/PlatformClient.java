@@ -3,6 +3,9 @@ package com.articulorium.harvest.ingest;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -23,6 +26,8 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
+
+import tools.jackson.databind.JsonNode;
 
 /**
  * The harvester's LDP client of the platform.
@@ -112,6 +117,36 @@ public class PlatformClient {
     }
 
     /**
+     * Creates a resource in a container ({@code POST} with a {@code Slug}); the platform picks
+     * another name when the slug is taken.
+     *
+     * @param parent   the container's path
+     * @param slug     the suggested name
+     * @param ntriples the body (N-Triples; the new resource is the empty relative IRI {@code <>})
+     * @param type     the interaction model
+     * @return the new resource's path
+     */
+    public String create(final String parent, final String slug, final String ntriples, final String type) {
+        final ResponseEntity<Void> response = call("create a resource in /" + ResourcePaths.normalize(parent),
+            () -> client.post()
+                .uri(URI.create(iri(parent)))
+                .headers(headers -> {
+                    headers(headers);
+                    headers.add(HttpHeaders.LINK, "<" + type + ">; rel=\"type\"");
+                    headers.set("Slug", slug);
+                })
+                .contentType(MediaType.parseMediaType("text/turtle"))
+                .body(ntriples.getBytes(StandardCharsets.UTF_8))
+                .retrieve()
+                .toBodilessEntity());
+        final URI location = response.getHeaders().getLocation();
+        final Optional<String> path = location == null ? Optional.empty() : pathOf(URI.create(iri(parent)).resolve(location)
+            .toString());
+        return path.orElseThrow(() -> new PlatformFailure("The platform created a resource in /" + parent
+            + " without a usable Location", false, 502, null));
+    }
+
+    /**
      * Deletes a resource.
      *
      * @param path the path
@@ -179,6 +214,86 @@ public class PlatformClient {
             .body(update.getBytes(StandardCharsets.UTF_8))
             .retrieve()
             .toBodilessEntity());
+    }
+
+    /**
+     * Returns a client that presents other credentials: a caller's own, so that the platform's Web
+     * Access Control decides what the caller may change (the harvester's credentials are never
+     * used on a caller's behalf).
+     *
+     * @param callerAuthorization the caller's {@code Authorization} header, {@code null} when anonymous
+     * @return the client
+     */
+    public PlatformClient as(final String callerAuthorization) {
+        return new PlatformClient(client, base, PlatformAuthorization.fixed(callerAuthorization));
+    }
+
+    /**
+     * Turns an IRI of the platform into a path below the LDP root.
+     *
+     * @param iri the IRI
+     * @return the path, or empty for IRIs elsewhere
+     */
+    public Optional<String> pathOf(final String iri) {
+        if (iri == null || !iri.startsWith(base) || iri.contains("#")) {
+            return Optional.empty();
+        }
+        return Optional.of(ResourcePaths.normalize(iri.substring(base.length())));
+    }
+
+    /**
+     * Searches resources with the platform's search API ({@code fcr:search}), most recently
+     * modified first.
+     *
+     * @param conditions the conditions, combined with AND (for example
+     *                   {@code rdf_type=https://...#ReviewPending})
+     * @param offset     results skipped
+     * @param limit      results wanted
+     * @return the paths found and the number of matches
+     */
+    public SearchPage search(final List<String> conditions, final int offset, final int limit) {
+        final StringBuilder uri = new StringBuilder(base).append("fcr:search?order_by=modified&order=desc")
+            // the platform may answer only the rest of a page after an offset inside it: ask for enough
+            .append("&max_results=").append(offset + limit).append("&offset=").append(offset);
+        conditions.forEach(condition -> uri.append("&condition=").append(URLEncoder.encode(condition,
+            StandardCharsets.UTF_8)));
+        final JsonNode body = call("search", () -> client.get().uri(URI.create(uri.toString()))
+            .headers(this::headers)
+            .accept(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .body(JsonNode.class));
+        final List<String> paths = new ArrayList<>();
+        if (body != null) {
+            for (final JsonNode item : body.path("items")) {
+                final String id = item.path("fedora_id").asString(null);
+                if (id != null && paths.size() < limit) {
+                    pathOf(id).or(() -> id.startsWith("info:fedora/")
+                        ? Optional.of(ResourcePaths.normalize(id.substring("info:fedora/".length())))
+                        : Optional.empty()).ifPresent(paths::add);
+                }
+            }
+        }
+        final long total = body == null ? 0 : body.path("pagination").path("totalResults").asLong(paths.size());
+        return new SearchPage(paths, total);
+    }
+
+    /**
+     * Returns the HTTP status of a failed platform request.
+     *
+     * @param e the failure
+     * @return the status, or 0 when there was no response
+     */
+    public static int statusOf(final HarvestException e) {
+        return status(e);
+    }
+
+    /**
+     * A page of search results.
+     *
+     * @param paths the resources' paths
+     * @param total the number of matching resources
+     */
+    public record SearchPage(List<String> paths, long total) {
     }
 
     /**

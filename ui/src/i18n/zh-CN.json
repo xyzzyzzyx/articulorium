@@ -58,7 +58,8 @@
     "none": "无",
     "loading": "正在加载…",
     "noValue": "—",
-    "backToResource": "返回资源"
+    "backToResource": "返回资源",
+    "close": "关闭"
   },
   "breadcrumb": {
     "label": "面包屑导航",
@@ -636,6 +637,174 @@
       "signIn": "请登录以查看收割情况。",
       "forbidden": "您无法查看收割情况：这需要对已收割记录的读取权限。",
       "unavailable": "无法连接收割服务。它可能已停止或未部署。"
+    }
+  },
+  "ai": {
+    "thinking": "正在询问 AI 代理…",
+    "discard": "放弃",
+    "review": "保留前请逐条检查建议：AI 代理可能会出错。",
+    "fromFile": "来自文件",
+    "suggested": "建议",
+    "confidence": "置信度 {{percent}}%",
+    "reason": {
+      "INVALID_REQUEST": "AI 代理无法使用此请求。",
+      "UNAUTHENTICATED": "请登录后使用 AI 代理。",
+      "FORBIDDEN": "AI 代理只为有权修改此资源的人提供帮助。",
+      "NOT_FOUND": "AI 代理找不到此资源。",
+      "TOO_LARGE": "此文件对 AI 代理来说太大。",
+      "UNSUPPORTED": "AI 代理无法描述这种类型的文件。",
+      "BUSY": "AI 代理正忙，请稍后重试。",
+      "MODEL_ERROR": "AI 模型出错，请稍后重试。",
+      "INVALID_OUTPUT": "AI 模型给出的回答无法使用，请重试。",
+      "DISABLED": "AI 代理已关闭。",
+      "CAPABILITY_DISABLED": "此 AI 功能已关闭。",
+      "MODEL_UNAVAILABLE": "没有可用的 AI 模型。",
+      "PLATFORM_UNAVAILABLE": "AI 代理无法连接到存储库，请稍后重试。",
+      "UNREACHABLE": "无法连接到 AI 代理。"
+    },
+    "media": {
+      "heading": "AI 元数据建议",
+      "intro": "AI 代理读取文件中嵌入的元数据并建议描述。",
+      "suggest": "建议元数据",
+      "nothing": "AI 代理对此文件没有可建议的内容。",
+      "apply": {
+        "other": "添加 {{formatted}} 条陈述"
+      },
+      "applied": {
+        "other": "已添加 {{formatted}} 条陈述"
+      },
+      "note": {
+        "IMAGE_FORMAT_NOT_SHOWN": "图像格式不受支持，模型未查看图像，而是依据元数据。",
+        "IMAGE_TOO_LARGE_TO_SHOW": "图像过大，模型未查看图像，而是依据元数据。",
+        "IMAGE_NOT_SHOWN": "模型未查看图像，而是依据元数据。",
+        "VIDEO_NOT_SHOWN": "模型未观看视频，而是依据元数据和上下文。",
+        "FILE_NOT_READ": "文件过大无法读取，建议仅基于其上下文。",
+        "TEXT_FROM_FIRST_PAGES": "只读取了 PDF 的前几页。",
+        "TEXT_SHORTENED": "文本在发送给模型前已被截短。",
+        "NO_TEXT": "此 PDF 没有文本。",
+        "TEXT_NOT_EXTRACTABLE": "无法提取 PDF 的文本。",
+        "ENCRYPTED": "PDF 已加密，无法读取其文本。",
+        "UNREADABLE_METADATA": "文件的部分元数据无法读取。"
+      }
+    },
+    "term": {
+      "abstract": "摘要",
+      "alternative": "其他题名",
+      "contributor": "贡献者",
+      "created": "创建日期",
+      "creator": "创建者",
+      "date": "日期",
+      "description": "描述",
+      "extent": "数量",
+      "issued": "发布日期",
+      "language": "语言",
+      "rights": "权利",
+      "spatial": "地点",
+      "subject": "主题",
+      "temporal": "时期",
+      "title": "题名",
+      "type": "类型",
+      "width": "宽度",
+      "height": "高度",
+      "duration": "时长",
+      "frameRate": "帧率"
+    },
+    "topics": {
+      "heading": "AI 主题",
+      "intro": "AI 代理阅读此处的条目，并建议其主题和摘要。",
+      "suggest": "建议主题",
+      "noItems": "这里没有可分析的条目。",
+      "analysed": {
+        "other": "基于 {{formatted}} 个条目。"
+      },
+      "truncated": "条目数量超过了代理读取的范围。",
+      "summary": "摘要",
+      "items": {
+        "other": "{{formatted}} 个条目"
+      },
+      "apply": "添加所选主题",
+      "applied": {
+        "other": "已添加 {{formatted}} 个主题"
+      },
+      "appliedSummary": "已添加摘要"
+    },
+    "profiles": {
+      "heading": "AI 档案建议",
+      "intro": "AI 代理读取此档案中的职位、学位和出版物，并建议简介、研究领域和关键词。",
+      "suggest": "建议档案内容",
+      "noMaterial": "请先在档案中添加职位、学位或出版物：AI 代理依据这些内容提出建议。",
+      "nothing": "AI 代理没有找到可添加到此档案的内容。",
+      "overview": "简介",
+      "replacesOverview": "保留后将替换当前简介。",
+      "researchAreas": "研究领域",
+      "keywords": "关键词",
+      "apply": "添加到档案",
+      "applied": "档案已更新"
+    },
+    "topology": {
+      "open": "建议拓扑",
+      "heading": "建议拓扑",
+      "intro": "描述资料：AI 代理会推荐现有拓扑，或起草新的拓扑供你审阅。",
+      "description": "资料",
+      "placeholder": "例如：数字化信件，每封都有多页扫描件和一份转录",
+      "sample": "示例容器（可选）",
+      "samplePlaceholder": "collections/letters/letter-1",
+      "sampleHint": "已包含示例的容器路径",
+      "suggest": "建议",
+      "existing": "使用现有拓扑“{{name}}”",
+      "new": "新拓扑：“{{name}}”",
+      "errors": "保存前请在编辑器中修正以下问题：",
+      "view": "打开拓扑",
+      "edit": "在编辑器中审阅"
+    }
+  },
+  "review": {
+    "heading": "审阅采集的记录",
+    "intro": "AI 代理建议每条采集记录的归属。在你接受之前不会移动任何内容。",
+    "source": "来源",
+    "allSources": "所有来源",
+    "status": "显示哪些记录",
+    "open": "待审阅",
+    "all": "全部",
+    "readOnly": "你可以查看建议，但无权作出决定。",
+    "uncertain": "不确定",
+    "failed": "分类失败：{{reason}}",
+    "placement": "归属：",
+    "topology": "拓扑：",
+    "alternatives": "其他可能的馆藏：",
+    "useThis": "使用此项",
+    "placedAt": "已放置于",
+    "decidedBy": "由 {{agent}} 决定",
+    "collectionPath": "馆藏路径",
+    "collectionHint": "例如 communities/library/rare-books",
+    "noTopology": "无拓扑",
+    "place": "放置",
+    "accept": "接受",
+    "createAndAccept": "创建并接受",
+    "choose": "放到其他位置",
+    "reject": "拒绝",
+    "retry": "重新分类",
+    "emptyOpen": "没有待审阅的记录。",
+    "empty": "尚未分类任何记录。",
+    "previous": "上一页",
+    "next": "下一页",
+    "range": "第 {{from}}–{{to}} 条，共 {{total}} 条",
+    "newCollection": "在 {{community}} 中新建馆藏“{{title}}”",
+    "newCommunity": "新建社区“{{title}}”，含馆藏“{{collection}}”",
+    "newSubCommunity": "在 {{community}} 中新建社区“{{title}}”，含馆藏“{{collection}}”",
+    "newTopology": "新拓扑“{{name}}”：{{description}}",
+    "noPlacement": "没有合适的馆藏",
+    "confirmCreate": "创建并将记录放在那里？{{placement}}",
+    "confirmReject": "拒绝对“{{title}}”的建议？记录将保留在采集的位置。",
+    "accepted": "已放置“{{title}}”",
+    "rejected": "已拒绝对“{{title}}”的建议",
+    "retried": "已重新分类“{{title}}”",
+    "state": {
+      "PENDING": "等待中",
+      "PLACING": "放置中",
+      "ACCEPTED": "已接受",
+      "REJECTED": "已拒绝",
+      "FAILED": "失败"
     }
   }
 }

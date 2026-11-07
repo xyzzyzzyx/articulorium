@@ -3,7 +3,7 @@
   Articulorium reactor POM.
 
   Defines the shared build for every module: Java level, dependency management (Spring Boot,
-  Spring Cloud, Apache Jena, OCFL, AWS SDK, springdoc, Nimbus JOSE + JWT), annotation processing, test runtime
+  Spring Cloud, Spring AI, Apache Jena, OCFL, AWS SDK, springdoc, Nimbus JOSE + JWT), annotation processing, test runtime
   settings and the GraalVM "native" profile.
 
   Common commands:
@@ -52,6 +52,7 @@
     <module>topology</module>
     <module>oai</module>
     <module>harvest</module>
+    <module>ai</module>
     <module>service</module>
     <module>gateway</module>
   </modules>
@@ -74,6 +75,10 @@
     <ocfl-java.version>2.2.3</ocfl-java.version>
     <aws-sdk.version>2.55.14</aws-sdk.version>
     <tika.version>4.1.0</tika.version>
+    <!-- optional AI agent (ai module): Spring AI, and technical metadata of images, videos and PDFs -->
+    <spring-ai.version>2.0.2</spring-ai.version>
+    <metadata-extractor.version>2.19.0</metadata-extractor.version>
+    <pdfbox.version>3.0.6</pdfbox.version>
     <!-- JOSE / JWT validation of OpenID Connect access tokens (platform WebAC) -->
     <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
     <!-- heap of the GraalVM native-image builder (its default is most of the machine's memory,
@@ -109,6 +114,13 @@
         <scope>import</scope>
       </dependency>
 
+      <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-bom</artifactId>
+        <version>${spring-ai.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
         <artifactId>bom</artifactId>

@@ -8,6 +8,7 @@
 #   /auth/**          the OpenID Connect provider (Keycloak in docker compose; not in Consul)
 #   /oai              oai (OAI-PMH 2.0 data provider; the repository's base URL)
 #   /harvest/**       harvest (sources, harvests and reports for the user interface)
+#   /ai/**            ai (optional AI agent: suggestions of topologies, metadata, topics, classifications)
 #   /swagger-ui.html  Swagger UI for the OpenAPI descriptions of every service above
 
 logging:
@@ -46,6 +47,8 @@ springdoc:
         url: /topology/v3/api-docs
       - name: oai
         url: /oai/v3/api-docs
+      - name: ai
+        url: /ai/v3/api-docs
       - name: service
         url: /ui/api/docs
 
@@ -129,6 +132,15 @@ spring:
               uri: lb://articulorium-harvest
               predicates:
                 - Path=/harvest/**
+              filters:
+                - StripPrefix=1
+            # optional AI agent (suggestions reviewed before they are applied); the agent checks the
+            # caller's access against the platform's WebAC. Without the ai service the route
+            # answers 503 and the user interface hides the AI actions
+            - id: articulorium-ai
+              uri: lb://articulorium-ai
+              predicates:
+                - Path=/ai/**
               filters:
                 - StripPrefix=1
             # /ui is redirected here (relative to the gateway's address): the service's own

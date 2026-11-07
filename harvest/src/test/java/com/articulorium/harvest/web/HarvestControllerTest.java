@@ -217,4 +217,15 @@ class HarvestControllerTest {
         assertThat(client.get().retrieve().toBodilessEntity().getStatusCode().value()).isEqualTo(503);
     }
 
+    @Test
+    void servesNoReviewQueueWithoutClassification() {
+        when(harvests.statuses()).thenReturn(List.of(REPO));
+
+        assertThat(client.get().retrieve().body(JsonNode.class).path("classification").asBoolean()).isFalse();
+        final ResponseEntity<JsonNode> queue = RestClient.builder().baseUrl("http://localhost:" + port)
+            .defaultStatusHandler(HttpStatusCode::isError, (request, response) -> { }).build()
+            .get().uri("/classifications").retrieve().toEntity(JsonNode.class);
+        assertThat(queue.getStatusCode().value()).isEqualTo(404);
+    }
+
 }

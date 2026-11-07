@@ -1,0 +1,37 @@
+# Test configuration: no Consul, no provider (tests supply a scripted chat model), plain HTTP
+# clients towards a mocked platform and topology service.
+articulorium:
+  ai:
+    enabled: true
+    platform-url: http://platform.test/
+    topology-url: http://topology.test/
+    load-balanced: false
+
+management:
+  server:
+    port: 0
+
+spring:
+  application:
+    name: ai
+  ai:
+    # this file replaces the main application.yml in tests: turn off the same model kinds, or the
+    # OpenAI starter (profile ai-openai) builds audio, image, embedding and moderation clients that
+    # need an API key
+    model:
+      chat: none
+      embedding: none
+      image: none
+      audio:
+        speech: none
+        transcription: none
+      moderation: none
+  cloud:
+    consul:
+      enabled: false
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+  config:
+    import: ""

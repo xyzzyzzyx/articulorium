@@ -2,7 +2,7 @@ import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { TEST_BASE, TEST_HARVEST, TEST_TOPOLOGY, TEST_TRANSFORM, provideTestConfig } from '../../testing/test-config';
+import { TEST_AI, TEST_BASE, TEST_HARVEST, TEST_TOPOLOGY, TEST_TRANSFORM, provideTestConfig } from '../../testing/test-config';
 import { authInterceptor } from './auth.interceptor';
 import { AuthService, TOKEN_KEY } from './auth.service';
 
@@ -35,7 +35,13 @@ describe('authInterceptor', () => {
     auth.signIn(' secret ');
     expect(sessionStorage.getItem(TOKEN_KEY)).toBe('secret');
 
-    for (const url of [`${TEST_BASE}books`, `${TEST_TOPOLOGY}topologies`, `${TEST_TRANSFORM}iiif/x`, `${TEST_HARVEST}sources`]) {
+    for (const url of [
+      `${TEST_BASE}books`,
+      `${TEST_TOPOLOGY}topologies`,
+      `${TEST_TRANSFORM}iiif/x`,
+      `${TEST_HARVEST}sources`,
+      `${TEST_AI}media-metadata`,
+    ]) {
       client.get(url).subscribe();
       expect(http.expectOne(url).request.headers.get('Authorization')).toBe('Bearer secret');
     }

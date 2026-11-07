@@ -3,6 +3,7 @@ package com.articulorium.harvest.web;
 import java.util.List;
 import java.util.Locale;
 
+import com.articulorium.harvest.config.HarvestProperties;
 import com.articulorium.harvest.core.HarvestMode;
 import com.articulorium.harvest.service.HarvestRequestException;
 import com.articulorium.harvest.service.HarvestRequestException.Reason;
@@ -56,24 +57,31 @@ public class HarvestController {
 
     private final HarvestAccess access;
 
+    private final boolean classification;
+
     /**
      * Creates the controller.
      *
-     * @param harvests the harvest service
-     * @param access   decides who may do what
+     * @param harvests   the harvest service
+     * @param access     decides who may do what
+     * @param properties the harvest settings
      */
-    public HarvestController(final HarvestService harvests, final HarvestAccess access) {
+    public HarvestController(final HarvestService harvests, final HarvestAccess access,
+            final HarvestProperties properties) {
         this.harvests = harvests;
         this.access = access;
+        this.classification = properties.getClassification().isEnabled();
     }
 
     /**
      * Every source, in configuration order.
      *
-     * @param sources the sources with their harvests in progress and latest reports
-     * @param operate whether the caller may start and cancel harvests
+     * @param sources        the sources with their harvests in progress and latest reports
+     * @param operate        whether the caller may start and cancel harvests
+     * @param classification whether harvested records are classified by the AI agent (the review
+     *                       queue is served at {@code /classifications})
      */
-    public record SourceList(List<SourceStatus> sources, boolean operate) {
+    public record SourceList(List<SourceStatus> sources, boolean operate, boolean classification) {
     }
 
     /**
@@ -94,7 +102,7 @@ public class HarvestController {
     public SourceList list(@RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false)
             @Nullable final String authorization) {
         final Caller caller = access.require(authorization, Operation.VIEW);
-        return new SourceList(harvests.statuses(), caller.may(Operation.OPERATE));
+        return new SourceList(harvests.statuses(), caller.may(Operation.OPERATE), classification);
     }
 
     /**

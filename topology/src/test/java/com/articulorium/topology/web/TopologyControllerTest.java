@@ -101,6 +101,30 @@ class TopologyControllerTest {
     }
 
     @Test
+    void checksDraftsWithoutSavingThem() throws Exception {
+        when(platform.bytes(eq("topologies/herbarium"), any())).thenReturn(Optional.empty());
+
+        mvc.perform(post("/topologies/validation").contentType(MediaType.APPLICATION_JSON).content("""
+                {"id": "herbarium", "name": "Herbarium", "root": {"key": "sheet", "label": "Sheet", "pcdmType": "Object",
+                 "files": [{"use": "http://pcdm.org/use#OriginalFile", "label": "Scan"}]}}
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.valid").value(true))
+            .andExpect(jsonPath("$.exists").value(false))
+            .andExpect(jsonPath("$.errors").isEmpty());
+        mvc.perform(post("/topologies/validation").contentType(MediaType.APPLICATION_JSON).content("""
+                {"id": "book", "name": "Book", "root": {"key": "Page", "label": "Page", "pcdmType": "Thing"}}
+                """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.valid").value(false))
+            .andExpect(jsonPath("$.exists").value(true))
+            .andExpect(jsonPath("$.errors", hasItem("A topology book already exists")))
+            .andExpect(jsonPath("$.errors.length()").value(org.hamcrest.Matchers.greaterThan(1)));
+        org.mockito.Mockito.verify(platform, org.mockito.Mockito.never()).put(anyString(), any(), anyString(), anyList(),
+            any());
+    }
+
+    @Test
     void buildsInstances() throws Exception {
         when(platform.create(anyString(), anyString(), anyString(), anyList(), any()))
             .thenAnswer(call -> ResourcePaths.child(call.getArgument(0), call.getArgument(1)));

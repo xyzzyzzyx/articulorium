@@ -86,4 +86,30 @@ class ResourcePathsTest {
         assertFalse(ResourcePaths.isSelfOrDescendant("books", "books/1"));
     }
 
+
+    @Test
+    void acceptsOrdinaryPathsAsSafe() {
+        assertTrue(ResourcePaths.isSafe("communities/lib/rare-books"));
+        assertTrue(ResourcePaths.isSafe("/books/my%20file.pdf/"));
+        assertTrue(ResourcePaths.isSafe("profiles/marie-curie"));
+        assertTrue(ResourcePaths.isSafe("bücher/émile"));
+        assertTrue(ResourcePaths.isSafe(""));
+        assertTrue(ResourcePaths.isSafe("a/..b/c."));
+    }
+
+    @Test
+    void refusesPathsThatAddressSomethingElse() {
+        assertFalse(ResourcePaths.isSafe(null));
+        assertFalse(ResourcePaths.isSafe("communities/../secret"));
+        assertFalse(ResourcePaths.isSafe("./books"));
+        assertFalse(ResourcePaths.isSafe("books?offset=1"));
+        assertFalse(ResourcePaths.isSafe("books#x"));
+        assertFalse(ResourcePaths.isSafe("books\\1"));
+        assertFalse(ResourcePaths.isSafe("my file"));
+        assertFalse(ResourcePaths.isSafe("books\n1"));
+        assertFalse(ResourcePaths.isSafe("books/<1>"));
+        assertFalse(ResourcePaths.isSafe("books/100%"));
+        assertFalse(ResourcePaths.isSafe("books/%zz"));
+    }
+
 }

@@ -8,6 +8,8 @@ import { of } from 'rxjs';
 import { BINARY_NT, CONTAINER_NT, TEST_BASE, provideTestConfig } from '../testing/test-config';
 import { ResourcePageComponent } from './resource-page.component';
 import { provideTestI18n } from '../testing/test-i18n';
+import { offerAi, provideTestAi } from '../testing/test-ai';
+import { AiService } from '../core/ai/ai.service';
 
 describe('ResourcePageComponent', () => {
   let fixture: ComponentFixture<ResourcePageComponent>;
@@ -39,6 +41,7 @@ describe('ResourcePageComponent', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         provideTestConfig(),
+        provideTestAi(),
         { provide: MatDialog, useValue: dialog },
       ],
     });
@@ -79,6 +82,31 @@ describe('ResourcePageComponent', () => {
     expect(element.querySelector('a[href="/fixity/books/cover.png"]')).not.toBeNull();
     expect(element.querySelector('ui-create-child-form')).toBeNull();
     expect(element.textContent).toContain('Update content');
+  });
+
+  it('offers AI metadata suggestions on binaries the user may describe, when the agent does', async () => {
+    offerAi(TestBed.inject(AiService), ['media']);
+    await open('books/cover.png');
+    http
+      .expectOne({ method: 'GET', url: `${TEST_BASE}books/cover.png` })
+      .flush(BINARY_NT, { headers: { 'WAC-Allow': 'user="read write"' } });
+    http
+      .expectOne({ method: 'HEAD', url: `${TEST_BASE}books/cover.png` })
+      .flush(null, { headers: { Allow: 'GET, HEAD, PUT, DELETE', 'WAC-Allow': 'user="read write"' } });
+    const element = await settle();
+    expect(element.querySelector('.ui-ai-card')?.textContent).toContain('AI metadata suggestions');
+    expect(element.querySelector('ui-media-suggestion .ui-ai-suggest')).not.toBeNull();
+  });
+
+  it('offers no AI metadata suggestions to readers', async () => {
+    offerAi(TestBed.inject(AiService), ['media']);
+    await open('books/cover.png');
+    http
+      .expectOne({ method: 'GET', url: `${TEST_BASE}books/cover.png` })
+      .flush(BINARY_NT, { headers: { 'WAC-Allow': 'user="read"' } });
+    http.expectOne({ method: 'HEAD', url: `${TEST_BASE}books/cover.png` }).flush(null, { headers: { 'WAC-Allow': 'user="read"' } });
+    const element = await settle();
+    expect(element.querySelector('.ui-ai-card')).toBeNull();
   });
 
   it('reports load failures', async () => {

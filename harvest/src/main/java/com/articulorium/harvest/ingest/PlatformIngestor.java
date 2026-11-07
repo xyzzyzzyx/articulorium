@@ -93,7 +93,7 @@ public class PlatformIngestor implements RecordIngestor {
      * @param iri      the IRI of the copy
      * @return the N-Triples
      */
-    String body(final String sourceId, final HarvestedRecord record, final String iri) {
+    public String body(final String sourceId, final HarvestedRecord record, final String iri) {
         final Model out = ModelFactory.createDefaultModel();
         final Resource copy = out.createResource(iri);
         for (final Statement statement : record.metadata().listStatements().toList()) {
@@ -157,7 +157,7 @@ public class PlatformIngestor implements RecordIngestor {
      * @param statement the statement
      * @return {@code true} for {@code ldp:} and {@code fedora:} predicates and types
      */
-    static boolean serverManaged(final Statement statement) {
+    public static boolean serverManaged(final Statement statement) {
         final String predicate = statement.getPredicate().getURI();
         if (predicate.startsWith(Ldp.NAMESPACE) || predicate.startsWith(Fedora.NAMESPACE)) {
             return true;
