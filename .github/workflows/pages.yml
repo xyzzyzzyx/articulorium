@@ -1,0 +1,97 @@
+# Validates the marketing site in docs/ and publishes it to GitHub Pages.
+#
+# Pull requests: the site is checked and uploaded as the "site-preview" artifact; nothing is
+# deployed. Pushes to main (and manual runs on main): the same checks, then a Pages deployment.
+#
+# One-time repository setting: Settings > Pages > Build and deployment > Source: "GitHub Actions"
+# (docs/README.md).
+
+name: pages
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'site-check/**'
+      - '.github/workflows/pages.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'site-check/**'
+      - '.github/workflows/pages.yml'
+      # the page links to sections of these files; the checks catch a link that a rename broke
+      - '*.md'
+      - '*/README.md'
+  workflow_dispatch:
+
+# least privilege: only the deploy job gets more, and only what a Pages deployment needs
+permissions:
+  contents: read
+
+jobs:
+
+  validate:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages-validate-${{ github.ref }}
+      cancel-in-progress: true
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Unit tests of the site checks
+        run: node --test site-check/check-site.test.mjs
+      - name: Check metadata, structure and links
+        # problems are annotated on the changed lines and listed in the run summary
+        run: node site-check/check-site.mjs --site docs --root .
+      - name: Validate the HTML
+        run: >
+          npx --yes html-validate@11.21.1 --config site-check/htmlvalidate.json
+          --formatter text docs/index.html
+      - name: Assemble the site
+        # everything in docs/ except its README, which documents the site and is not part of it
+        run: |
+          mkdir _site
+          rsync -a --exclude README.md docs/ _site/
+          ls -la _site
+      - name: Upload the preview
+        if: env.PUBLISH != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-preview
+          path: _site
+          retention-days: 7
+          if-no-files-found: error
+      - name: Preview instructions
+        if: env.PUBLISH != 'true'
+        run: >
+          echo "Preview: download the **site-preview** artifact of this run, unpack it and open
+          \`index.html\`. Nothing was deployed." >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the Pages artifact
+        if: env.PUBLISH == 'true'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    # only what has been merged into main is ever published
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write      # create the Pages deployment
+      id-token: write   # prove that the deployment comes from this workflow
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

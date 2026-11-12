@@ -13,7 +13,8 @@ an Angular user interface at feature parity with the Fedora Commons web UI.
 
 You can find the official documentation site at: [https://xyzzyzzyx.github.io/articulorium/](https://xyzzyzzyx.github.io/articulorium/)
 
-The documentation site is automatically deployed from the `docs` directory using GitHub Pages.
+The site is the static page in [docs/](docs/README.md). The `pages` workflow checks it on pull requests and
+publishes it to GitHub Pages when changes are merged into `main`.
 
 On top of plain LDP, Articulorium offers academic profiles described with the VIVO ontology and
 digital library structures: communities, sub-communities

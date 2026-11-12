@@ -19,3 +19,6 @@ discovery-ui/dist
 discovery-ui/.angular
 # end-to-end tests run in their own container (cypress/included), not in the service images
 e2e
+# the GitHub Pages marketing site and its checks are not part of any image
+docs
+site-check
