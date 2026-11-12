@@ -3,6 +3,7 @@ package com.articulorium.ai.web;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.articulorium.agent.AgentRegistry;
+import com.articulorium.ai.config.AiConfiguration;
 import com.articulorium.ai.support.Files;
 import com.articulorium.ai.support.Platform;
 import com.articulorium.ai.support.ScriptedChatModel;
@@ -10,11 +11,13 @@ import com.articulorium.ai.support.ScriptedChatModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +46,8 @@ class AgentControllerTest {
         }
 
         @Bean
+        @Primary
+        @Qualifier(AiConfiguration.SERVICES)
         RestClient.Builder restClientBuilder() {
             final RestClient.Builder builder = RestClient.builder();
             platform = Platform.bindTo(builder);

@@ -26,6 +26,7 @@ import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.jspecify.annotations.Nullable;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.stereotype.Service;
 
 /**
@@ -40,6 +41,7 @@ import org.springframework.stereotype.Service;
  * profile's entity tag), so research areas become the editor's own {@code skos:Concept}s.</p>
  */
 @Service
+@RegisterReflectionForBinding(ProfileEnhancer.Answer.class)
 public class ProfileEnhancer extends CapabilityAgent {
 
     /** FOAF: the class of every profile. */

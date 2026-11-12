@@ -338,6 +338,8 @@ services:
       ARTICULORIUM_AI_PROVIDER: ${ARTICULORIUM_AI_PROVIDER:-ollama}
       SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
       SPRING_AI_OLLAMA_CHAT_MODEL: ${ARTICULORIUM_AI_MODEL:-qwen2.5vl:3b}
+      # context window of the model in tokens (Ollama silently truncates longer prompts)
+      SPRING_AI_OLLAMA_CHAT_NUM_CTX: ${ARTICULORIUM_AI_CONTEXT:-8192}
     depends_on:
       consul:
         condition: service_healthy

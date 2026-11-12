@@ -135,9 +135,14 @@ The chat model is Spring AI's own configuration; choose the provider with `sprin
 
 | Provider | Settings |
 |----------|----------|
-| `ollama` (compose default) | `SPRING_AI_OLLAMA_BASE_URL`, `SPRING_AI_OLLAMA_CHAT_MODEL` (`ARTICULORIUM_AI_MODEL`, default `qwen2.5vl:3b`). A vision model (qwen2.5vl, llama3.2-vision) describes images; others describe them from their metadata. Models are pulled by the `ollama-model` service, never at start-up. |
+| `ollama` (compose default) | `SPRING_AI_OLLAMA_BASE_URL`, `SPRING_AI_OLLAMA_CHAT_MODEL` (`ARTICULORIUM_AI_MODEL`, default `qwen2.5vl:3b`). A vision model (qwen2.5vl, llama3.2-vision) describes images; others describe them from their metadata. Models are pulled by the `ollama-model` service, never at start-up. `SPRING_AI_OLLAMA_CHAT_NUM_CTX` (`ARTICULORIUM_AI_CONTEXT`, default 8192) is the context window in tokens: Ollama silently drops what does not fit, so raise it (memory permitting) before raising the capabilities' limits. Ollama is reached at its URL, never through the Consul load balancer; `spring.http.clients.read-timeout` (10 minutes) bounds one model call. |
 | `openai` | OpenAI or any OpenAI-compatible endpoint (vLLM, LM Studio, LiteLLM, a hosted provider): `SPRING_AI_OPENAI_API_KEY`, `SPRING_AI_OPENAI_BASE_URL`, `SPRING_AI_OPENAI_CHAT_MODEL`. Keep keys in an `.env` file or Consul, **never in source control**. Build without the OpenAI SDK with `-Dai.openai.skip`. |
 | `none` (application default) | No model: the agent answers 503 `MODEL_UNAVAILABLE` and the user interface hides it. |
+
+A GraalVM native image has the provider it was **built** with (Spring AOT fixes the beans at build
+time): `application-native.yml` builds it for Ollama, and `ARTICULORIUM_AI_PROVIDER` in the build
+environment chooses another. Changing the provider of a running native container has no effect
+(see [GRAALVM_NATIVE_BUILDS.md](../GRAALVM_NATIVE_BUILDS.md)).
 
 Agent settings (`articulorium.ai.*`):
 

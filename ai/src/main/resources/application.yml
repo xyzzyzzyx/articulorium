@@ -110,6 +110,11 @@ spring:
       chat:
         model: qwen2.5vl:3b
         temperature: 0.2
+        # the context window in tokens. Ollama's own default (4096) is smaller than the larger
+        # prompts of the topics, media and classification capabilities, and Ollama drops what does
+        # not fit without an error, so the model would answer without part of its material or
+        # instructions. A larger window needs more memory (SPRING_AI_OLLAMA_CHAT_NUM_CTX)
+        num-ctx: 8192
       init:
         # never pull models at start-up (the deployment pulls them, see docker-compose.yml)
         pull-model-strategy: never
@@ -117,6 +122,20 @@ spring:
       chat:
         model: gpt-4o-mini
         temperature: 0.2
+    # A failing model is retried once, then reported (502 MODEL_ERROR). Spring AI's default (10
+    # attempts, waiting up to 3 minutes between them) would hold the agent's only model slot for
+    # many minutes while every other request waits and is refused as busy
+    retry:
+      max-attempts: 2
+      backoff:
+        initial-interval: 2s
+
+  # HTTP client of the Ollama provider (Spring Boot's RestClient.Builder). Models on CPUs take
+  # minutes to answer; an unreachable Ollama is reported at once
+  http:
+    clients:
+      connect-timeout: 10s
+      read-timeout: 10m
 
   config:
     import: "optional:consul:"

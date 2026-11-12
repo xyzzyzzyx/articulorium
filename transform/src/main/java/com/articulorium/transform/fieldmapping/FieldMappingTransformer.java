@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import com.articulorium.transform.config.TransformProperties;
+import com.articulorium.transform.config.TransformRuntimeHints;
 import com.articulorium.transform.spi.TransformationContext;
 import com.articulorium.transform.spi.Transformer;
 
@@ -23,6 +24,7 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 
@@ -36,6 +38,7 @@ import org.springframework.stereotype.Component;
  * the platform ships with every change event, so no request back to the platform is needed.</p>
  */
 @Component
+@ImportRuntimeHints(TransformRuntimeHints.class)
 public class FieldMappingTransformer implements Transformer {
 
     /** Name of this transformer. */

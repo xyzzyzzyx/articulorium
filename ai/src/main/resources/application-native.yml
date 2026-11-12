@@ -8,3 +8,11 @@ spring:
       config:
         watch:
           enabled: false
+
+  # Spring AOT decides which beans exist when the image is built, so the chat model provider is
+  # fixed then: an image built without one has no chat model whatever ARTICULORIUM_AI_PROVIDER says
+  # when it runs. The native image is therefore built for Ollama, the deployment's provider; set
+  # ARTICULORIUM_AI_PROVIDER while building for another one.
+  ai:
+    model:
+      chat: ${ARTICULORIUM_AI_PROVIDER:ollama}

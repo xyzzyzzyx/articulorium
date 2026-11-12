@@ -26,6 +26,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import org.apache.jena.rdf.model.Model;
 import org.jspecify.annotations.Nullable;
 import org.springframework.ai.content.Media;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeType;
 
@@ -41,6 +42,7 @@ import org.springframework.util.MimeType;
  * has are left out.</p>
  */
 @Service
+@RegisterReflectionForBinding(MediaDescriber.Answer.class)
 public class MediaDescriber extends CapabilityAgent {
 
     /** Dates the model may suggest: a year, a month, a day, or a range of years. */

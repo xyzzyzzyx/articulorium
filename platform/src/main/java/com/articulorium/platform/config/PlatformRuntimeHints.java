@@ -21,7 +21,8 @@ import org.springframework.context.annotation.ImportRuntimeHints;
  * property and resource files from its jars. This registrar, which runs at build time during
  * Spring AOT processing, includes those resources in the image and registers every class listed
  * in Jena's service files for reflective instantiation. The platform's own class path resources
- * are included as well.</p>
+ * ({@link #PLATFORM_RESOURCES}) are included as well: a native image holds only the resources it
+ * is told about, so one that is missing here cannot be opened at run time.</p>
  *
  * <p>Jena does not officially support native images. If a native build reports missing
  * reflection or resource metadata at run time, run the application once on the JVM with the
@@ -38,14 +39,26 @@ public class PlatformRuntimeHints {
         "META-INF/services/org.apache.jena.riot.system.stream.LocatorFactory",
     };
 
+    /**
+     * Class path resources the platform opens at run time: the namespace prefixes and the root
+     * container's description (start-up), the LDP constraints document, and the root access control
+     * lists selectable with {@code articulorium.webac.root-acl}.
+     */
+    static final String[] PLATFORM_RESOURCES = {
+        "namespaces.yml",
+        "root.ttl",
+        "ldp-constraints.txt",
+        "webac/*.ttl",
+    };
+
     /** Registers the hints. */
     static class Registrar implements RuntimeHintsRegistrar {
 
         @Override
         public void registerHints(final RuntimeHints hints, final ClassLoader classLoader) {
-            hints.resources().registerPattern("namespaces.yml");
-            hints.resources().registerPattern("root.ttl");
-            hints.resources().registerPattern("ldp-constraints.txt");
+            for (final String resource : PLATFORM_RESOURCES) {
+                hints.resources().registerPattern(resource);
+            }
             hints.resources().registerPattern("META-INF/services/org.apache.jena.*");
             hints.resources().registerPattern("org/apache/jena/**");
             for (final String serviceFile : JENA_SERVICE_FILES) {

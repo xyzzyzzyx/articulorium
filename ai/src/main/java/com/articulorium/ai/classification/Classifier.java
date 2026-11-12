@@ -23,6 +23,7 @@ import com.articulorium.ai.classification.StructureCatalog.Kind;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 import org.jspecify.annotations.Nullable;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -36,6 +37,7 @@ import org.springframework.util.StringUtils;
  * description): they are created when a person accepts the proposal.</p>
  */
 @Service
+@RegisterReflectionForBinding(Classifier.Answer.class)
 public class Classifier extends CapabilityAgent {
 
     private final AgentModel model;

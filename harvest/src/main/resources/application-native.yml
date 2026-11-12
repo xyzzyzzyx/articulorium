@@ -8,3 +8,12 @@ spring:
       config:
         watch:
           enabled: false
+
+# Spring AOT decides which beans exist when the image is built, so whether harvested records are
+# classified by the AI agent is fixed then. The native image is built with classification, as the
+# compose stack runs it; set ARTICULORIUM_HARVEST_CLASSIFICATION_ENABLED=false while building for an
+# image without it.
+articulorium:
+  harvest:
+    classification:
+      enabled: ${ARTICULORIUM_HARVEST_CLASSIFICATION_ENABLED:true}

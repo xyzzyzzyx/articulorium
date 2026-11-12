@@ -30,6 +30,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 import org.apache.jena.rdf.model.Model;
 import org.jspecify.annotations.Nullable;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.stereotype.Service;
 
 /**
@@ -44,6 +45,7 @@ import org.springframework.stereotype.Service;
  * ({@code dcterms:subject}, {@code dcterms:abstract}).</p>
  */
 @Service
+@RegisterReflectionForBinding(TopicModeler.Answer.class)
 public class TopicModeler extends CapabilityAgent {
 
     private final AgentModel model;

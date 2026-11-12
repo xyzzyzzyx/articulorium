@@ -4,9 +4,12 @@
 #
 #   docker build -f Dockerfile.native --build-arg MODULE=gateway -t articulorium/gateway:native .
 #
-# Supported modules: gateway, platform, transform, index, triplestore, topology, oai and service.
-# Native compilation is memory hungry: each build uses up to NATIVE_MAX_HEAP (default 8g) plus
+# Supported modules: gateway, platform, transform, index, triplestore, topology, oai, service,
+# harvest, discovery and ai.
+# Native compilation is memory hungry: each build uses up to NATIVE_MAX_HEAP (default 10g) plus
 # overhead, so build the images one at a time (see docker-compose.native.yml).
+# Spring AOT fixes the beans of the image while it is built: settings that turn beans on or off
+# (see GRAALVM_NATIVE_BUILDS.md) take the values of the build, not of the container.
 
 ARG MODULE=gateway
 ARG NATIVE_MAX_HEAP=10g

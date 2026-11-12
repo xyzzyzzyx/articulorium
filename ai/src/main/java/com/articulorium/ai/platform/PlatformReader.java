@@ -11,6 +11,7 @@ import java.util.Set;
 
 import com.articulorium.ai.AgentException;
 import com.articulorium.ai.AgentException.Reason;
+import com.articulorium.ai.config.AiConfiguration;
 import com.articulorium.ai.config.AiProperties;
 import com.articulorium.domain.rdf.ResourcePaths;
 
@@ -22,6 +23,7 @@ import org.apache.jena.riot.RiotException;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -64,10 +66,11 @@ public class PlatformReader {
     /**
      * Creates the reader.
      *
-     * @param builder    the HTTP client builder (load balanced when configured)
+     * @param builder    the builder of service clients (load balanced when configured)
      * @param properties the agent settings
      */
-    public PlatformReader(final RestClient.Builder builder, final AiProperties properties) {
+    public PlatformReader(@Qualifier(AiConfiguration.SERVICES) final RestClient.Builder builder,
+            final AiProperties properties) {
         this.client = builder.clone().build();
         this.base = properties.getPlatformUrl().endsWith("/") ? properties.getPlatformUrl()
             : properties.getPlatformUrl() + "/";

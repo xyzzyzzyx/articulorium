@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 import org.apache.jena.rdf.model.Model;
 import org.jspecify.annotations.Nullable;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -41,6 +42,7 @@ import tools.jackson.databind.json.JsonMapper;
  * topology editor, changes it and saves it there.</p>
  */
 @Service
+@RegisterReflectionForBinding({TopologyAssistant.Advice.class, TopologyDraft.class})
 public class TopologyAssistant extends CapabilityAgent {
 
     /** Largest number of existing topologies shown with their structure. */

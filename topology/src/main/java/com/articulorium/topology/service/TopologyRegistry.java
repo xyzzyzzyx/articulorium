@@ -13,11 +13,13 @@ import java.util.Optional;
 import com.articulorium.domain.rdf.ResourcePaths;
 import com.articulorium.domain.vocabulary.Ldp;
 import com.articulorium.topology.config.TopologyProperties;
+import com.articulorium.topology.config.TopologyRuntimeHints;
 import com.articulorium.topology.model.Topology;
 import com.articulorium.topology.platform.PlatformClient;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
+import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @Slf4j
 @Service
+@ImportRuntimeHints(TopologyRuntimeHints.class)
 public class TopologyRegistry {
 
     /** Media type of stored topologies. */
@@ -204,7 +207,7 @@ public class TopologyRegistry {
         final List<Topology> loaded = new ArrayList<>();
         try {
             for (final Resource resource : new PathMatchingResourcePatternResolver()
-                    .getResources("classpath*:topologies/*.json")) {
+                    .getResources("classpath*:" + TopologyRuntimeHints.BUILT_INS)) {
                 try (InputStream in = resource.getInputStream()) {
                     final Topology topology = json.readValue(in, Topology.class);
                     final Topology builtIn = topology.with(topology.id(), true);

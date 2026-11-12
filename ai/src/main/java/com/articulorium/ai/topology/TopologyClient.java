@@ -6,11 +6,14 @@ import java.util.Optional;
 
 import com.articulorium.ai.AgentException;
 import com.articulorium.ai.AgentException.Reason;
+import com.articulorium.ai.config.AiConfiguration;
 import com.articulorium.ai.config.AiProperties;
 
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -27,6 +30,7 @@ import org.springframework.web.util.UriComponentsBuilder;
  * the API applies when a topology is saved.
  */
 @Component
+@RegisterReflectionForBinding({TopologySummary.class, TopologyDraft.class, TopologyValidation.class})
 public class TopologyClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(TopologyClient.class);
@@ -41,10 +45,11 @@ public class TopologyClient {
     /**
      * Creates the client.
      *
-     * @param builder    the HTTP client builder (load balanced when configured)
+     * @param builder    the builder of service clients (load balanced when configured)
      * @param properties the agent settings
      */
-    public TopologyClient(final RestClient.Builder builder, final AiProperties properties) {
+    public TopologyClient(@Qualifier(AiConfiguration.SERVICES) final RestClient.Builder builder,
+            final AiProperties properties) {
         this.client = builder.clone().build();
         this.base = properties.getTopologyUrl().endsWith("/") ? properties.getTopologyUrl()
             : properties.getTopologyUrl() + "/";

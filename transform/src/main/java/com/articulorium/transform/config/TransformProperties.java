@@ -29,6 +29,6 @@ public class TransformProperties {
     private String baseUri;
 
     /** Location of the field mapping definitions used by the {@code field-mapping} transformer. */
-    private String fieldMappings = "classpath:transform/field-mappings.yml";
+    private String fieldMappings = "classpath:" + TransformRuntimeHints.FIELD_MAPPINGS;
 
 }

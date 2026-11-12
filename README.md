@@ -742,7 +742,9 @@ docker compose --profile e2e run --rm e2e # E2E_ARGS="--spec cypress/e2e/search.
 
 ## GraalVM native images
 
-Every service has a `native` profile (Spring AOT + GraalVM Native Build Tools).
+Every service has a `native` profile (Spring AOT + GraalVM Native Build Tools). Class path
+resources need hints and some settings are fixed when an image is built: see
+[GRAALVM_NATIVE_BUILDS.md](GRAALVM_NATIVE_BUILDS.md).
 
 ```bash
 # with a local GraalVM 25
