@@ -58,3 +58,18 @@ services:
     image: articulorium/service:native
     build:
       dockerfile: Dockerfile.native
+
+  discovery:
+    image: articulorium/discovery:native
+    build:
+      dockerfile: Dockerfile.native
+
+  harvest:
+    image: articulorium/harvest:native
+    build:
+      dockerfile: Dockerfile.native
+
+  ai:
+    image: articulorium/ai:native
+    build:
+      dockerfile: Dockerfile.native

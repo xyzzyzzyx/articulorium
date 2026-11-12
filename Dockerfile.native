@@ -9,11 +9,13 @@
 # overhead, so build the images one at a time (see docker-compose.native.yml).
 
 ARG MODULE=gateway
-ARG NATIVE_MAX_HEAP=8g
+ARG NATIVE_MAX_HEAP=10g
+ARG NATIVE_PARALLELISM=4
 
 FROM ghcr.io/graalvm/native-image-community:25 AS build
 ARG MODULE
 ARG NATIVE_MAX_HEAP
+ARG NATIVE_PARALLELISM
 ARG MAVEN_VERSION=3.9.11
 RUN microdnf install -y findutils gzip tar && microdnf clean all \
  && curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
@@ -22,8 +24,12 @@ RUN microdnf install -y findutils gzip tar && microdnf clean all \
 WORKDIR /workspace
 COPY . .
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -ntp -Pnative -Dnative.max-heap="${NATIVE_MAX_HEAP}" -pl "${MODULE}" -am package -DskipTests \
- && cp "${MODULE}/target/${MODULE}" /workspace/service
+    mvn -B -ntp -Pnative \
+        -Dnative.max-heap="${NATIVE_MAX_HEAP}" \
+        -Dnative.parallelism="${NATIVE_PARALLELISM}" \
+        -DskipTests \
+        -pl "${MODULE}" -am package \
+ && cp "${MODULE}/target/${MODULE}" /workspace/app-native-binary
 
 FROM oraclelinux:9-slim
 ARG MODULE
@@ -35,7 +41,7 @@ RUN (command -v curl >/dev/null 2>&1 || microdnf install -y curl-minimal) \
  && microdnf install -y shadow-utils && microdnf clean all \
  && useradd --system --uid 10001 --home-dir /app articulorium
 WORKDIR /app
-COPY --from=build /workspace/service /app/service
+COPY --from=build /workspace/app-native-binary /app/service
 RUN mkdir -p /app/data && chown -R articulorium /app
 USER articulorium
 ENV SPRING_PROFILES_ACTIVE=native

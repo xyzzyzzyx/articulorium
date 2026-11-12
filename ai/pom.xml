@@ -146,6 +146,29 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>native</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>process-aot</id>
+                <configuration>
+                  <profiles>native</profiles>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <!--
       OpenAI, and any OpenAI-compatible endpoint (vLLM, LM Studio, LiteLLM, a hosted provider)
       through spring.ai.openai.base-url (spring.ai.model.chat=openai). Active unless

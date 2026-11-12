@@ -87,7 +87,8 @@
     <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
     <!-- heap of the GraalVM native-image builder (its default is most of the machine's memory,
          which exhausts Docker when several images are built at once) -->
-    <native.max-heap>8g</native.max-heap>
+    <native.max-heap>10g</native.max-heap>
+    <native.parallelism>4</native.parallelism>
 
     <!-- Angular build (ui module) -->
     <node.version>v24.21.0</node.version>
@@ -321,6 +322,7 @@
                   <buildArg>--no-fallback</buildArg>
                   <buildArg>-H:+ReportExceptionStackTraces</buildArg>
                   <buildArg>-J-Xmx${native.max-heap}</buildArg>
+                  <buildArg>--parallelism=${native.parallelism}</buildArg>
                 </buildArgs>
               </configuration>
             </plugin>

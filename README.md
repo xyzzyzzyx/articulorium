@@ -761,12 +761,9 @@ docker compose -f docker-compose.yml -f docker-compose.native.yml build triplest
 docker compose -f docker-compose.yml -f docker-compose.native.yml build topology
 docker compose -f docker-compose.yml -f docker-compose.native.yml build oai
 docker compose -f docker-compose.yml -f docker-compose.native.yml build service
-# JVM images (no native override yet) and the discovery layer's Node.js image
 docker compose -f docker-compose.yml -f docker-compose.native.yml build harvest
 docker compose -f docker-compose.yml -f docker-compose.native.yml build discovery
-docker compose -f docker-compose.yml -f docker-compose.native.yml build discovery-ui
-# only with the optional AI agent (then add --profile ai to "up" as well)
-docker compose -f docker-compose.yml -f docker-compose.native.yml --profile ai build ai
+docker compose -f docker-compose.yml -f docker-compose.native.yml build ai
 docker compose -f docker-compose.yml -f docker-compose.native.yml up
 ```
 
