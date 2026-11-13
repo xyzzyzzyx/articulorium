@@ -17,6 +17,7 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
@@ -35,7 +36,12 @@ import tools.jackson.databind.json.JsonMapper;
  *
  * <p>The record is described by its texts (titles, descriptions, subjects, creators, dates, Dublin
  * Core types), its {@code rdf:type}s, its sets in the source and the media types of its files.</p>
+ *
+ * <p>The request and the suggestion are bound by Jackson and named in no controller signature, so
+ * they are registered for reflection here: without the hint a GraalVM native harvester finds no
+ * serializer for the request and classifies nothing.</p>
  */
+@RegisterReflectionForBinding({AgentClient.Request.class, Suggestion.class})
 public class AgentClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(AgentClient.class);
