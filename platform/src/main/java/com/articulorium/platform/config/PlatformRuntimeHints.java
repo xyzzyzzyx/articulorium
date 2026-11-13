@@ -7,6 +7,11 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 
+import com.articulorium.platform.search.SearchService;
+import com.articulorium.platform.service.HistoryService;
+import com.articulorium.platform.web.ExtensionHandler;
+
+import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.RuntimeHintsRegistrar;
@@ -110,8 +115,26 @@ public class PlatformRuntimeHints {
         "db/*/*.ddl.tmpl",
     };
 
+    /**
+     * Records the extension endpoints ({@code fcr:search}, {@code fcr:fixity}, {@code fcr:versions},
+     * the inbox and outbox) answer as JSON. Their handlers return {@code ResponseEntity<?>}, so
+     * Spring AOT cannot tell the body types from the controller: without a hint Jackson finds no
+     * serializer for them in a native image and the request fails with 500.
+     */
+    static final Class<?>[] JSON_BODIES = {
+        SearchService.SearchResult.class,
+        SearchService.Pagination.class,
+        HistoryService.FixityReport.class,
+        ExtensionHandler.VersionList.class,
+        ExtensionHandler.VersionEntry.class,
+        ExtensionHandler.NotificationList.class,
+        ExtensionHandler.NotificationSummary.class,
+    };
+
     /** Registers the hints. */
     static class Registrar implements RuntimeHintsRegistrar {
+
+        private final BindingReflectionHintsRegistrar bindingRegistrar = new BindingReflectionHintsRegistrar();
 
         @Override
         public void registerHints(final RuntimeHints hints, final ClassLoader classLoader) {
@@ -126,6 +149,7 @@ public class PlatformRuntimeHints {
             for (final String resource : OCFL_RESOURCES) {
                 hints.resources().registerPattern(resource);
             }
+            bindingRegistrar.registerReflectionHints(hints.reflection(), JSON_BODIES);
             for (final Class<?> type : OCFL_TYPES) {
                 hints.reflection().registerType(type, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
                     MemberCategory.INVOKE_PUBLIC_METHODS, MemberCategory.ACCESS_DECLARED_FIELDS);

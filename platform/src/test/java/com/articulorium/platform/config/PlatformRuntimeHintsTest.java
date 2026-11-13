@@ -8,6 +8,9 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 
+import com.articulorium.platform.search.SearchService;
+import com.articulorium.platform.service.HistoryService;
+import com.articulorium.platform.web.ExtensionHandler;
 import com.articulorium.platform.webac.WebAcProperties;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -68,6 +71,21 @@ class PlatformRuntimeHintsTest {
             assertThat(resources).isNotEmpty().allSatisfy(resource ->
                 assertThat(RuntimeHintsPredicates.resource().forResource(resource)).as(resource).accepts(hints));
         }
+    }
+
+    /**
+     * The extension endpoints answer {@code ResponseEntity<?>}: nothing but a hint tells a native
+     * image that Jackson serializes these records (a search without it answers 500).
+     */
+    @Test
+    void registersTheJsonBodiesOfTheExtensionEndpointsForJackson() {
+        assertThat(List.of(SearchService.SearchResult.class, SearchService.Pagination.class,
+            HistoryService.FixityReport.class, ExtensionHandler.VersionList.class, ExtensionHandler.VersionEntry.class,
+            ExtensionHandler.NotificationList.class, ExtensionHandler.NotificationSummary.class))
+            .allSatisfy(type -> assertThat(RuntimeHintsPredicates.reflection().onType(type)).as(type.getName())
+                .accepts(hints));
+        assertThat(RuntimeHintsPredicates.reflection().onMethodInvocation(SearchService.SearchResult.class, "items"))
+            .as("the accessors Jackson serializes a search result by").accepts(hints);
     }
 
     @Test
