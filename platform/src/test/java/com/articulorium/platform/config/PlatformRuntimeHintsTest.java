@@ -16,6 +16,11 @@ import org.springframework.aot.hint.RuntimeHints;
 import org.springframework.aot.hint.predicate.RuntimeHintsPredicates;
 import org.springframework.core.io.ClassPathResource;
 
+import io.ocfl.core.extension.OcflExtensionRegistry;
+import io.ocfl.core.extension.storage.layout.OcflStorageLayoutExtension;
+import io.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
+import io.ocfl.core.model.Inventory;
+
 /**
  * Tests the GraalVM native-image hints of the platform: a native image holds only the class path
  * resources named by a hint, so every resource the platform opens at run time must be covered.
@@ -70,6 +75,39 @@ class PlatformRuntimeHintsTest {
         assertThat(hints.reflection().typeHints()).isNotEmpty();
         assertThat(RuntimeHintsPredicates.resource()
             .forResource("META-INF/services/org.apache.jena.sys.JenaSubsystemLifecycle")).accepts(hints);
+    }
+
+    /**
+     * ocfl-java instantiates the layout extension named by the storage root, and that extension's
+     * configuration, through their no-argument constructors.
+     */
+    @Test
+    void registersTheDefaultOcflLayoutExtensionAndItsConfigurationForInstantiation() {
+        final OcflStorageLayoutExtension extension = OcflExtensionRegistry
+            .<OcflStorageLayoutExtension>lookup(new HashedNTupleLayoutConfig().getExtensionName())
+            .orElseThrow();
+
+        assertThat(List.of(extension.getClass(), extension.getExtensionConfigClass())).allSatisfy(type ->
+            assertThat(RuntimeHintsPredicates.reflection().onConstructorInvocation(type.getDeclaredConstructor()))
+                .as(type.getName()).accepts(hints));
+    }
+
+    @Test
+    void registersTheOcflInventoryModelForJackson() throws NoSuchMethodException {
+        assertThat(RuntimeHintsPredicates.reflection()
+            .onMethodInvocation(Inventory.JacksonBuilder.class.getMethod("withId", String.class))).accepts(hints);
+        assertThat(RuntimeHintsPredicates.reflection()
+            .onMethodInvocation(Inventory.class.getMethod("getId"))).accepts(hints);
+    }
+
+    @Test
+    void includesTheResourcesOcflReadsFromItsJar() {
+        assertThat(List.of("ocfl-specs/ocfl_1.1.md", "ocfl-specs/0004-hashed-n-tuple-storage-layout.md",
+                "db/postgresql/ocfl_object_lock.ddl.tmpl"))
+            .allSatisfy(resource -> {
+                assertThat(new ClassPathResource(resource).exists()).as("%s exists", resource).isTrue();
+                assertThat(RuntimeHintsPredicates.resource().forResource(resource)).as(resource).accepts(hints);
+            });
     }
 
 }

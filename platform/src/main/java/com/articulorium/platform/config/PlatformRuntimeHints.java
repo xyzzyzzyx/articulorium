@@ -14,6 +14,24 @@ import org.springframework.aot.hint.TypeReference;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportRuntimeHints;
 
+import io.ocfl.api.model.DigestAlgorithm;
+import io.ocfl.api.model.InventoryType;
+import io.ocfl.api.model.VersionNum;
+import io.ocfl.core.extension.storage.layout.FlatLayoutExtension;
+import io.ocfl.core.extension.storage.layout.FlatOmitPrefixLayoutExtension;
+import io.ocfl.core.extension.storage.layout.HashedNTupleIdEncapsulationLayoutExtension;
+import io.ocfl.core.extension.storage.layout.HashedNTupleLayoutExtension;
+import io.ocfl.core.extension.storage.layout.NTupleOmitPrefixStorageLayoutExtension;
+import io.ocfl.core.extension.storage.layout.OcflLayout;
+import io.ocfl.core.extension.storage.layout.config.FlatLayoutConfig;
+import io.ocfl.core.extension.storage.layout.config.FlatOmitPrefixLayoutConfig;
+import io.ocfl.core.extension.storage.layout.config.HashedNTupleIdEncapsulationLayoutConfig;
+import io.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
+import io.ocfl.core.extension.storage.layout.config.NTupleOmitPrefixStorageLayoutConfig;
+import io.ocfl.core.model.Inventory;
+import io.ocfl.core.model.User;
+import io.ocfl.core.model.Version;
+
 /**
  * GraalVM native-image hints for the platform.
  *
@@ -23,6 +41,12 @@ import org.springframework.context.annotation.ImportRuntimeHints;
  * in Jena's service files for reflective instantiation. The platform's own class path resources
  * ({@link #PLATFORM_RESOURCES}) are included as well: a native image holds only the resources it
  * is told about, so one that is missing here cannot be opened at run time.</p>
+ *
+ * <p>ocfl-java instantiates its storage layout extensions and their configuration through
+ * {@code getDeclaredConstructor().newInstance()}, reads and writes {@code ocfl_layout.json}, the
+ * extension configuration and every object inventory with Jackson, and copies the OCFL
+ * specifications and its lock table DDL from its jar. Those types ({@link #OCFL_TYPES}) and
+ * resources ({@link #OCFL_RESOURCES}) are registered here too.</p>
  *
  * <p>Jena does not officially support native images. If a native build reports missing
  * reflection or resource metadata at run time, run the application once on the JVM with the
@@ -51,6 +75,41 @@ public class PlatformRuntimeHints {
         "webac/*.ttl",
     };
 
+    /**
+     * ocfl-java types reached reflectively: the layout extensions in its registry (instantiated
+     * by name of the storage root's layout), their configuration, and the Jackson bound model of
+     * {@code ocfl_layout.json} and {@code inventory.json}.
+     */
+    static final Class<?>[] OCFL_TYPES = {
+        HashedNTupleLayoutExtension.class,
+        HashedNTupleIdEncapsulationLayoutExtension.class,
+        FlatLayoutExtension.class,
+        FlatOmitPrefixLayoutExtension.class,
+        NTupleOmitPrefixStorageLayoutExtension.class,
+        HashedNTupleLayoutConfig.class,
+        HashedNTupleIdEncapsulationLayoutConfig.class,
+        FlatLayoutConfig.class,
+        FlatOmitPrefixLayoutConfig.class,
+        NTupleOmitPrefixStorageLayoutConfig.class,
+        OcflLayout.class,
+        Inventory.class,
+        Inventory.JacksonBuilder.class,
+        Version.class,
+        User.class,
+        VersionNum.class,
+        InventoryType.class,
+        DigestAlgorithm.class,
+    };
+
+    /**
+     * Resources ocfl-java reads from its own jar: the specifications it copies into a new storage
+     * root and the DDL of the database object lock (and object details) tables.
+     */
+    static final String[] OCFL_RESOURCES = {
+        "ocfl-specs/*",
+        "db/*/*.ddl.tmpl",
+    };
+
     /** Registers the hints. */
     static class Registrar implements RuntimeHintsRegistrar {
 
@@ -63,6 +122,13 @@ public class PlatformRuntimeHints {
             hints.resources().registerPattern("org/apache/jena/**");
             for (final String serviceFile : JENA_SERVICE_FILES) {
                 registerServiceImplementations(hints, classLoader, serviceFile);
+            }
+            for (final String resource : OCFL_RESOURCES) {
+                hints.resources().registerPattern(resource);
+            }
+            for (final Class<?> type : OCFL_TYPES) {
+                hints.reflection().registerType(type, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+                    MemberCategory.INVOKE_PUBLIC_METHODS, MemberCategory.ACCESS_DECLARED_FIELDS);
             }
         }
 
