@@ -182,7 +182,7 @@ services:
       kafka:
         condition: service_healthy
       solr:
-        condition: service_started
+        condition: service_healthy
 
   triplestore:
     <<: *service
@@ -398,10 +398,8 @@ services:
     depends_on:
       consul:
         condition: service_healthy
-      # Solr has no healthcheck (like the index service, wait for it to start; searches answer 503
-      # until it is ready)
       solr:
-        condition: service_started
+        condition: service_healthy
 
   discovery-ui:
     # The public discovery and presentation layer: Angular rendered on the server (Node.js) for
@@ -626,6 +624,14 @@ services:
     depends_on:
       zookeeper:
         condition: service_healthy
+    healthcheck:
+      # the node's own health check: 200 once it is connected to ZooKeeper and listed as a live
+      # node (collections can be created and searched), 503 before. wget ships with the image.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8983/solr/admin/info/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
 
   qlever:
     # SPARQL store (QLever) holding one named graph per resource; derived data that the
