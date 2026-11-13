@@ -22,7 +22,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>Options: {@code metadata-prefix} (default {@code oai_dc}; needs an {@link OaiMetadataMapper}),
  * {@code set} (harvest one set), {@code granularity} ({@code day} or {@code second}; read with
- * Identify when unset). The url is the provider's base URL. Credentials, when set, are sent as an
+ * Identify when unset), {@code file-pattern} with {@code file-url} and optionally
+ * {@code file-media-type} (the files of a record, derived from its identifiers: {@link FileRule}).
+ * The url is the provider's base URL. Credentials, when set, are sent as an
  * {@code Authorization} header.</p>
  */
 @Component
@@ -31,7 +33,8 @@ public class OaiPmhSourceFactory implements HarvestSourceFactory {
     /** The type name. */
     public static final String TYPE = "oai-pmh";
 
-    private static final Set<String> OPTIONS = Set.of("metadata-prefix", "set", "granularity");
+    private static final Set<String> OPTIONS = Set.of("metadata-prefix", "set", "granularity", "file-pattern",
+        "file-url", "file-media-type");
 
     private final SourceRestClients clients;
 
@@ -71,7 +74,27 @@ public class OaiPmhSourceFactory implements HarvestSourceFactory {
             }
         }).orElse(null);
         return new OaiPmhSource(settings, SourceHttp.of(clients.builder(), settings, true), mapper,
-            settings.option("set").orElse(null), granularity);
+            settings.option("set").orElse(null), granularity, fileRule(settings));
+    }
+
+    private static FileRule fileRule(final SourceSettings settings) {
+        final String pattern = settings.option("file-pattern").orElse(null);
+        final String url = settings.option("file-url").orElse(null);
+        if (pattern == null && url == null) {
+            if (settings.option("file-media-type").isPresent()) {
+                throw new IllegalArgumentException("Source " + settings.id()
+                    + ": file-media-type needs file-pattern and file-url");
+            }
+            return null;
+        }
+        if (pattern == null || url == null) {
+            throw new IllegalArgumentException("Source " + settings.id() + ": file-pattern and file-url go together");
+        }
+        try {
+            return new FileRule(pattern, url, settings.option("file-media-type").orElse(null));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Source " + settings.id() + ": " + e.getMessage(), e);
+        }
     }
 
 }

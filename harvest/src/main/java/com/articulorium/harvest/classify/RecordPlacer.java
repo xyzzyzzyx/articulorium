@@ -13,6 +13,7 @@ import com.articulorium.domain.vocabulary.Articulorium;
 import com.articulorium.domain.vocabulary.Ldp;
 import com.articulorium.domain.vocabulary.Pcdm;
 import com.articulorium.domain.vocabulary.Rdf;
+import com.articulorium.harvest.ingest.FileCopier;
 import com.articulorium.harvest.ingest.PlatformClient;
 import com.articulorium.harvest.ingest.PlatformIngestor;
 import com.articulorium.harvest.source.DublinCore;
@@ -40,7 +41,9 @@ import tools.jackson.databind.JsonNode;
  * <li>the record's triples move to the item, which keeps its structural statements;</li>
  * <li>the copy where the record was harvested becomes a pointer to the item
  * ({@code art:HarvestPlacement}), so the record is held once and later harvests update the item;</li>
- * <li>the classification is {@code ACCEPTED}.</li>
+ * <li>the classification is {@code ACCEPTED};</li>
+ * <li>the record's files are copied into the item (sources with {@code copy-files}:
+ * {@link FileCopier}), so the IIIF manifest and the discovery layer present them.</li>
  * </ol>
  *
  * <p>Every write uses the credentials of whoever accepted the record, so the platform's Web Access
@@ -60,17 +63,47 @@ public class RecordPlacer {
 
     private final Clock clock;
 
+    private final FileCopier files;
+
     /**
-     * Creates the placer.
+     * Creates a placer that copies no files.
      *
      * @param store      the classifications
      * @param topologies the topology API
      * @param clock      the clock
      */
     public RecordPlacer(final ClassificationStore store, final TopologyClient topologies, final Clock clock) {
+        this(store, topologies, clock, null);
+    }
+
+    /**
+     * Creates the placer.
+     *
+     * @param store      the classifications
+     * @param topologies the topology API
+     * @param clock      the clock
+     * @param files      copies the files of placed records into their items, may be {@code null}
+     */
+    public RecordPlacer(final ClassificationStore store, final TopologyClient topologies, final Clock clock,
+            final FileCopier files) {
         this.store = store;
         this.topologies = topologies;
         this.clock = clock;
+        this.files = files;
+    }
+
+    /**
+     * Copies the files an item's record references and the item does not hold yet (sources with
+     * {@code copy-files}). Never fails: a file that cannot be copied stays referenced.
+     *
+     * @param platform the platform with the credentials to write with
+     * @param source   the record's source
+     * @param item     the item's path
+     */
+    public void copyFiles(final PlatformClient platform, final String source, final String item) {
+        if (files != null && source != null) {
+            files.copy(platform, source, item);
+        }
     }
 
     /**
@@ -96,7 +129,9 @@ public class RecordPlacer {
         if (stagingSubject.hasProperty(stagingModel.createProperty(Rdf.TYPE),
                 stagingModel.createResource(Articulorium.HARVEST_PLACEMENT)) && item != null) {
             // moved already: only the decision was not recorded
-            return accept(platform, classification, item, decidedBy);
+            final Classification recorded = accept(platform, classification, item, decidedBy);
+            copyFiles(platform, classification.source(), item);
+            return recorded;
         }
         final String target = ResourcePaths.normalize(collection);
         final Model collectionModel = platform.rdf(target).orElseThrow(() -> new TopologyClient.PlacementException(422,
@@ -126,7 +161,9 @@ public class RecordPlacer {
         platform.put(staging, stub(platform, staging, item, classification, title), Ldp.BASIC_CONTAINER, false);
         LOG.info("Placed harvested record {} of {} at /{} (decided by {})", classification.identifier(),
             classification.source(), item, decidedBy);
-        return accept(platform, classification, item, decidedBy);
+        final Classification accepted = accept(platform, classification, item, decidedBy);
+        copyFiles(platform, classification.source(), item);
+        return accepted;
     }
 
     /**

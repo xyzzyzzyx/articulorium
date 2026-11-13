@@ -52,6 +52,8 @@ final class FakePlatform {
 
     private final Map<String, JsonNode> topologies = new LinkedHashMap<>();
 
+    private final Map<String, String> binaries = new LinkedHashMap<>();
+
     private final List<String> requests = new ArrayList<>();
 
     private final JsonMapper json = JsonMapper.builder().build();
@@ -90,6 +92,11 @@ final class FakePlatform {
     /** Returns a topology's definition, {@code null} when there is none. */
     JsonNode topology(final String id) {
         return topologies.get(id);
+    }
+
+    /** The files stored: "media type, size, file name" by path. */
+    Map<String, String> binaries() {
+        return binaries;
     }
 
     /** Fails the next PUT requests with 503. */
@@ -154,7 +161,15 @@ final class FakePlatform {
             for (int n = 2; resources.containsKey(child); n++) {
                 child = path + "/" + slug + "-" + n;
             }
-            resources.put(child, turtle(body, BASE + child));
+            final MediaType type = request.getHeaders().getContentType();
+            if (type != null && !"turtle".equals(type.getSubtype())) {
+                // a file: no triples of its own, its bytes and media type are kept
+                resources.put(child, ModelFactory.createDefaultModel());
+                binaries.put(child, type + " " + mock.getBodyAsBytes().length + " "
+                    + request.getHeaders().getContentDisposition().getFilename());
+            } else {
+                resources.put(child, turtle(body, BASE + child));
+            }
             final MockClientHttpResponse created = new MockClientHttpResponse(new byte[0], HttpStatus.CREATED);
             created.getHeaders().setLocation(URI.create(BASE + child));
             return created;

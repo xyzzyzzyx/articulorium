@@ -135,6 +135,8 @@ public class ClassifyingIngestor implements RecordIngestor {
                 return IngestAction.DELETED;
             }
             placer.writeRecord(platform, item, RecordPlacer.parse(delegate.body(sourceId, record, platform.iri(item))));
+            // files the item does not hold yet: new ones, and those that could not be copied before
+            placer.copyFiles(platform, sourceId, item);
             return IngestAction.UPDATED;
         }
         final IngestAction action = delegate.ingest(sourceId, record);

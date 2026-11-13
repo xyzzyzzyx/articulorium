@@ -21,6 +21,12 @@ articulorium:
     http:
       connect-timeout: 10s
       read-timeout: 2m
+    # files of placed records copied into their items (sources with copy-files), so the IIIF
+    # manifest and the discovery layer present them
+    files:
+      max-size: 50MB
+      max-per-record: 5
+      delay: 1s
     history: 10
     concurrency: 2
     # the harvest API of the user interface (/sources on the service port, /harvest on the
@@ -37,9 +43,13 @@ articulorium:
     #       harvest-on-startup: true
     #       initial-window: P7D           # the first harvest reads the last week only
     #       auto-accept: true             # place classified records at once (classification.enabled)
+    #       copy-files: true              # copy the files of placed records into their items
     #       page-size: 100
     #       options:
     #         set: cs
+    #         file-pattern: "https?://arxiv[.]org/abs/(.+)"       # the PDF of a record, from its
+    #         file-url: "https://export.arxiv.org/pdf/{1}"        # identifier
+    #         file-media-type: application/pdf
     sources: {}
 
 logging:

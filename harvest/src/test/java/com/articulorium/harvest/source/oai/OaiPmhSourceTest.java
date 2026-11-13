@@ -190,6 +190,53 @@ class OaiPmhSourceTest {
     }
 
     @Test
+    void derivesTheFilesOfARecordFromItsIdentifiers() {
+        server.expect(requestTo(BASE + "?verb=ListRecords&metadataPrefix=oai_dc"))
+            .andRespond(withSuccess(Fixtures.bytes("oai/list-page1.xml"), xml()));
+        final HarvestSource source = source(Map.of("file-pattern", "https://repo[.]test/item/(.+)",
+            "file-url", "https://files.repo.test/pdf/{1}", "file-media-type", "application/pdf"), null);
+
+        final HarvestedRecord record = source.fetch(HarvestWindow.ALL, null).records().get(0);
+
+        assertThat(record.files()).singleElement().satisfies(file -> {
+            assertThat(file.location()).hasToString("https://files.repo.test/pdf/1");
+            assertThat(file.name()).isEqualTo("1.pdf");
+            assertThat(file.mediaType()).isEqualTo("application/pdf");
+        });
+    }
+
+    @Test
+    void derivesOneFileFromIdentifiersLeadingToTheSameAddress() {
+        // arXiv lists the abstract page with http and https
+        final FileRule arxiv = new FileRule("https?://arxiv[.]org/abs/(.+)", "https://export.arxiv.org/pdf/{1}",
+            "application/pdf");
+
+        assertThat(arxiv.files(List.of("http://arxiv.org/abs/2611.17233", "https://arxiv.org/abs/2611.17233",
+            "doi:10.1000/x", "see https://arxiv.org/abs/2611.17233 for more")))
+            .singleElement().satisfies(file -> {
+                assertThat(file.location()).hasToString("https://export.arxiv.org/pdf/2611.17233");
+                assertThat(file.name()).isEqualTo("2611.17233.pdf");
+            });
+        assertThat(arxiv.files(List.of("http://arxiv.org/abs/hep th/9901001"))).as("no URL").isEmpty();
+    }
+
+    @Test
+    void rejectsFileOptionsThatCannotWork() {
+        assertThatThrownBy(() -> source(Map.of("file-pattern", "x(.+)"), null))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("go together");
+        assertThatThrownBy(() -> source(Map.of("file-media-type", "application/pdf"), null))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("file-pattern");
+        assertThatThrownBy(() -> source(Map.of("file-pattern", "x(", "file-url", "https://f.test/{1}"), null))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("regular expression");
+        assertThatThrownBy(() -> source(Map.of("file-pattern", "x(.+)", "file-url", "https://f.test/{2}"), null))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("{2}");
+        assertThatThrownBy(() -> source(Map.of("file-pattern", "x(.+)", "file-url", "ftp://f.test/{1}"), null))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("http");
+        assertThatThrownBy(() -> source(Map.of("file-pattern", "x(.+)", "file-url", "/pdf/{1}"), null))
+            .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("absolute");
+    }
+
+    @Test
     void rejectsUnknownOptionsFormatsAndGranularities() {
         assertThatThrownBy(() -> source(Map.of("sett", "x"), null))
             .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("sett");

@@ -53,7 +53,9 @@
 #                                     topologies the agent proposes (ARXIV_AUTO_ACCEPT=false or
 #                                     ARTICULORIUM_HARVEST_AUTO_ACCEPT=false: they wait for review
 #                                     on the Harvest page; ARTICULORIUM_HARVEST_CLASSIFICATION=false:
-#                                     no classification)
+#                                     no classification). The PDF of a placed arXiv record is
+#                                     copied into its item, so its IIIF manifest and the discovery
+#                                     layer show it (ARXIV_COPY_FILES=false: referenced only)
 #
 # Credentials can be overridden with environment variables or an .env file next to this file.
 # docker-compose.acl.yml turns on Consul ACLs and accepts Consul tokens as WebAC identities.
@@ -296,7 +298,11 @@ services:
       # arxiv: harvested incrementally every night (ARXIV_SCHEDULE: cron with seconds, UTC; empty
       # for on demand only) and when the service starts (ARXIV_HARVEST_ON_STARTUP), the first time
       # reaching back ARXIV_INITIAL_WINDOW. Its records are accepted automatically (ARXIV_AUTO_ACCEPT,
-      # or ARTICULORIUM_HARVEST_AUTO_ACCEPT=false to review everything).
+      # or ARTICULORIUM_HARVEST_AUTO_ACCEPT=false to review everything). The PDF of every placed
+      # record is copied into its item (ARXIV_COPY_FILES), so the IIIF manifest and the discovery
+      # layer show it: from export.arxiv.org, arXiv's host for programmatic access, one download a
+      # second at most, files up to 50 MB. The papers stay under their authors' licences: turn it
+      # off for a repository that may not redistribute them.
       # Sources (add more here or in Consul, config/harvest/articulorium/harvest/sources/...):
       SPRING_APPLICATION_JSON: >-
         {
@@ -310,8 +316,12 @@ services:
                   "harvest-on-startup": "${ARXIV_HARVEST_ON_STARTUP:-true}",
                   "initial-window": "${ARXIV_INITIAL_WINDOW:-P7D}",
                   "auto-accept": "${ARXIV_AUTO_ACCEPT:-${ARTICULORIUM_HARVEST_AUTO_ACCEPT:-true}}",
+                  "copy-files": "${ARXIV_COPY_FILES:-true}",
                   "options": {
-                    "set": "${ARXIV_SET:-cs:cs:DL}"
+                    "set": "${ARXIV_SET:-cs:cs:DL}",
+                    "file-pattern": "https?://arxiv[.]org/abs/(.+)",
+                    "file-url": "https://export.arxiv.org/pdf/{1}",
+                    "file-media-type": "application/pdf"
                   }
                 },
                 "self-oai": {

@@ -73,6 +73,8 @@ records modified at or after the last one read and skips those already read at t
 | `metadata-prefix` | `oai_dc` | the format to harvest; needs an `OaiMetadataMapper` (only `oai_dc` is shipped) |
 | `set`             |          | harvest one set                                                         |
 | `granularity`     |          | `day` or `second`; read with `Identify` when unset                     |
+| `file-pattern`, `file-url` |  | the files of a record, derived from its identifiers (Dublin Core names none): every `dc:identifier` the regular expression `file-pattern` matches as a whole yields the file at `file-url`, where `{1}`, `{2}` … stand for the pattern's groups. arXiv: `https?://arxiv[.]org/abs/(.+)` → `https://export.arxiv.org/pdf/{1}` |
+| `file-media-type` |          | the media type of those files (`application/pdf`)                      |
 
 The record's subject is its OAI identifier (OAI-PMH identifiers are URIs). `oai_dc` elements map to
 the `dcterms:` property of the same name, keeping `xml:lang`. A record whose metadata cannot be
@@ -226,6 +228,27 @@ diagnostics written for operators (they name the record and the HTTP status) and
 credentials. Set `articulorium.harvest.api.enabled=false` to turn the API off (the page then says
 the harvest service cannot be reached); the actuator endpoint stays.
 
+### Files of placed records (IIIF and the discovery layer)
+
+A harvested record references its files where the source keeps them (`art:harvestFile`). For a
+source with `copy-files: true`, a record that is placed in a collection (accepted automatically or
+from the review queue) gets them as files of its item: they are downloaded and stored in the item's
+`files` container, an LDP direct container that makes each a `pcdm:hasFile` of the item, exactly as
+for items built in the user interface. The item's IIIF manifest (`/transform/iiif/<item>`) then
+paints its images and its PDF, and the discovery layer shows them in its viewer; nothing else is
+needed. Files are copied once (they are named after their address); one that could not be copied is
+tried again whenever the record is harvested again, so a **full harvest** also gives the items placed
+before this was turned on their files.
+
+Copying never fails a harvest or a placement. A file is left referenced, logged and counted
+(`harvest.files` by `source` and `outcome`: `copied`, `too-large`, `skipped`, `failed`, `refused`)
+when it is larger than `files.max-size`, of a media type that is not copied, missing, a web page
+served in place of the announced file, or on a host the source's settings do not name. Files are
+only downloaded from the host of the source's `url` and of its `file-url` option, over http(s) and
+without credentials: file addresses come from the source's metadata, which must not be able to make
+the harvester fetch from the deployment's own network. Mind the rights of what you copy: a
+repository shows these files to everyone who may read the item.
+
 ### Review queue (classification by the AI agent)
 
 With `articulorium.harvest.classification.enabled=true` (on in the compose stack) the AI agent
@@ -299,6 +322,10 @@ Actuator write operations need `Content-Type: application/json`, even with an em
 | `sources.<id>.page-size`         | `100`                          | records asked for per page where the protocol lets the client choose |
 | `sources.<id>.username`, `password`, `token` |                    | credentials (see each type)                                   |
 | `sources.<id>.options.*`         |                                | type options (above); unknown options fail the startup       |
+| `sources.<id>.copy-files`        | `false`                        | copy the files of the source's records into their items when they are placed in a collection (below) |
+| `files.max-size`, `files.max-per-record` | `50MB`, `5`            | largest file and number of files copied per record; the rest stays referenced |
+| `files.delay`                    | `1s`                           | pause before each download after the first                    |
+| `files.media-types`              |                                | media types copied (`application/pdf`, `image/*` …); any when empty |
 | `sources.<id>.classify`          | `true`                         | classify the source's records when classification is enabled  |
 | `sources.<id>.auto-accept`       | `classification.auto-accept`   | place the source's classified records without a person        |
 | `classification.enabled`         | `false`                        | classify new records with the AI agent ([ai/README.md](../ai/README.md#classifying-harvested-records)) |
@@ -318,8 +345,12 @@ articulorium:
         harvest-on-startup: true
         initial-window: P7D           # the first harvest reads the last week only
         auto-accept: true             # classified records are placed at once (compose default)
+        copy-files: true              # the PDF of a placed record is copied into its item
         options:
           set: cs:cs:DL               # group:archive:CATEGORY; "cs" is every computer science paper
+          file-pattern: "https?://arxiv[.]org/abs/(.+)"
+          file-url: "https://export.arxiv.org/pdf/{1}"     # arXiv's host for programmatic access
+          file-media-type: application/pdf
       demo-dspace:
         type: dspace
         url: https://demo.dspace.org/server/api
@@ -369,7 +400,9 @@ Another OAI-PMH metadata format only needs an `OaiMetadataMapper` bean for its p
 
 ## Limitations and follow-ups
 
-* Files are referenced, not copied: the bytes stay in the source.
+* Files are copied only for sources with `copy-files`, only when a record is placed in a collection,
+  and without the source's credentials (public files); a file replaced in the source under the same
+  address is not copied again.
 * Links between records of one source keep pointing at the originals (only a record's own subject
   is renamed to its copy). VIVO profiles are stored below `/harvested`, not in the profile editor's
   container.

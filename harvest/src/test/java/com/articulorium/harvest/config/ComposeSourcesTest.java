@@ -10,10 +10,12 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.articulorium.harvest.classify.SourcePolicy;
+import com.articulorium.harvest.ingest.FileCopier;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -79,6 +81,13 @@ class ComposeSourcesTest {
         assertThat(arxiv.isHarvestOnStartup()).isTrue();
         assertThat(arxiv.getInitialWindow()).isEqualTo(Duration.ofDays(7));
         assertThat(arxiv.getAutoAccept()).isTrue();
+        // its PDFs are copied into the placed items, from arXiv's host for programmatic access
+        assertThat(arxiv.isCopyFiles()).isTrue();
+        assertThat(FileCopier.hostsOf(properties, "arxiv")).isEqualTo(Set.of("oaipmh.arxiv.org", "export.arxiv.org"));
+        assertThat(arxiv.getOptions().get("file-media-type")).isEqualTo("application/pdf");
+        assertThat(java.util.regex.Pattern.matches(arxiv.getOptions().get("file-pattern"),
+            "http://arxiv.org/abs/2611.17233")).isTrue();
+        assertThat(properties.getSources().get("self-oai").isCopyFiles()).isFalse();
         final SourcePolicy policy = SourcePolicy.of(properties, "arxiv");
         assertThat(policy.classify()).isTrue();
         assertThat(policy.autoAccept()).isTrue();
@@ -97,7 +106,8 @@ class ComposeSourcesTest {
         assertThat(reviewed.getAutoAccept()).as("ARTICULORIUM_HARVEST_AUTO_ACCEPT=false reviews arXiv too").isFalse();
 
         final HarvestProperties.Source manual = compose(Map.of("ARXIV_SCHEDULE", "", "ARXIV_HARVEST_ON_STARTUP",
-            "false", "ARXIV_AUTO_ACCEPT", "false")).getSources().get("arxiv");
+            "false", "ARXIV_AUTO_ACCEPT", "false", "ARXIV_COPY_FILES", "false")).getSources().get("arxiv");
+        assertThat(manual.isCopyFiles()).isFalse();
         assertThat(manual.getSchedule()).as("an empty ARXIV_SCHEDULE harvests on demand only").isNullOrEmpty();
         assertThat(manual.isHarvestOnStartup()).isFalse();
         assertThat(manual.getAutoAccept()).isFalse();

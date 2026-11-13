@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.articulorium.domain.rdf.ResourcePaths;
+import com.articulorium.domain.vocabulary.Ldp;
 import com.articulorium.harvest.core.HarvestException;
 import com.articulorium.harvest.source.SourceHttp;
 
@@ -18,6 +19,7 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.riot.RiotException;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -144,6 +146,40 @@ public class PlatformClient {
             .toString());
         return path.orElseThrow(() -> new PlatformFailure("The platform created a resource in /" + parent
             + " without a usable Location", false, 502, null));
+    }
+
+    /**
+     * Stores a file in a container ({@code POST} of a non-RDF source with a {@code Slug}).
+     *
+     * @param parent    the container's path
+     * @param slug      the suggested name
+     * @param content   the bytes
+     * @param mediaType the media type
+     * @param filename  the file name, may be {@code null}
+     * @return the new file's path
+     */
+    public String createBinary(final String parent, final String slug, final byte[] content, final String mediaType,
+            final String filename) {
+        final ResponseEntity<Void> response = call("store a file in /" + ResourcePaths.normalize(parent),
+            () -> client.post()
+                .uri(URI.create(iri(parent)))
+                .headers(headers -> {
+                    headers(headers);
+                    headers.add(HttpHeaders.LINK, "<" + Ldp.NON_RDF_SOURCE + ">; rel=\"type\"");
+                    headers.set("Slug", slug);
+                    if (filename != null) {
+                        headers.setContentDisposition(ContentDisposition.attachment()
+                            .filename(filename, StandardCharsets.UTF_8).build());
+                    }
+                })
+                .contentType(MediaType.parseMediaType(mediaType))
+                .body(content)
+                .retrieve()
+                .toBodilessEntity());
+        final URI location = response.getHeaders().getLocation();
+        return (location == null ? Optional.<String>empty() : pathOf(URI.create(iri(parent)).resolve(location).toString()))
+            .orElseThrow(() -> new PlatformFailure("The platform stored a file in /" + parent
+                + " without a usable Location", false, 502, null));
     }
 
     /**

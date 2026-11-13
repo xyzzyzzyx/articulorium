@@ -12,10 +12,13 @@ import com.articulorium.harvest.classify.ReviewService;
 import com.articulorium.harvest.classify.SourcePolicy;
 import com.articulorium.harvest.classify.TopologyClient;
 import com.articulorium.harvest.classify.TopologyProposer;
+import com.articulorium.harvest.ingest.FileCopier;
 import com.articulorium.harvest.ingest.PlatformAuthorization;
 import com.articulorium.harvest.ingest.PlatformClient;
 import com.articulorium.harvest.ingest.PlatformIngestor;
 import com.articulorium.harvest.ingest.RecordPaths;
+
+import com.articulorium.harvest.source.SourceRestClients;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,12 +91,40 @@ public class ClassificationConfiguration {
      * @param store      the classifications
      * @param topologies the topology API
      * @param clock      the clock
+     * @param files      copies the files of placed records
      * @return the placer
      */
     @Bean
     public RecordPlacer recordPlacer(final ClassificationStore store, final TopologyClient topologies,
-            final Clock clock) {
-        return new RecordPlacer(store, topologies, clock);
+            final Clock clock, final FileCopier files) {
+        return new RecordPlacer(store, topologies, clock, files);
+    }
+
+    /**
+     * Copies the files of placed records into their items, for the sources with {@code copy-files}.
+     *
+     * @param clients    the HTTP client builder of the sources (their timeouts and user agent)
+     * @param properties the harvest settings
+     * @param meters     the meter registry
+     * @return the copier
+     */
+    @Bean
+    public FileCopier fileCopier(final SourceRestClients clients, final HarvestProperties properties,
+            final MeterRegistry meters) {
+        properties.getSources().keySet().forEach(source -> {
+            final java.util.Set<String> hosts = FileCopier.hostsOf(properties, source);
+            if (!hosts.isEmpty()) {
+                LOG.info("Files of placed records of {} are copied from {}", source, new java.util.TreeSet<>(hosts));
+            }
+        });
+        return new FileCopier(clients.builder().build(), properties.getFiles(),
+            source -> FileCopier.hostsOf(properties, source), delay -> {
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }, meters);
     }
 
     /**

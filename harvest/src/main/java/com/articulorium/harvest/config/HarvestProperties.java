@@ -1,10 +1,13 @@
 package com.articulorium.harvest.config;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.util.unit.DataSize;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -50,6 +53,36 @@ public class HarvestProperties {
 
     /** Classification of harvested records by the AI agent (the {@code ai} service). */
     private Classification classification = new Classification();
+
+    /** Copying the files of harvested records into the repository. */
+    private Files files = new Files();
+
+    /**
+     * Copying the files of harvested records: a record placed in a collection gets the files its
+     * source serves (its PDF, images ...) as PCDM files of its item, so the repository's viewers
+     * (the IIIF manifest, the discovery layer) present them. Only for sources with
+     * {@code copy-files}; the limits here apply to all of them.
+     */
+    @Getter
+    @Setter
+    public static class Files {
+
+        /** Largest file copied; larger files stay referenced only. */
+        private DataSize maxSize = DataSize.ofMegabytes(50);
+
+        /** Files copied per record (the first ones the source lists). */
+        private int maxPerRecord = 5;
+
+        /** Pause before each download after the first of a harvest, out of consideration for the source. */
+        private Duration delay = Duration.ofSeconds(1);
+
+        /**
+         * Media types copied ({@code application/pdf}, {@code image/*} ...); empty (the default)
+         * for any type.
+         */
+        private List<String> mediaTypes = new ArrayList<>();
+
+    }
 
     /**
      * Classification of harvested records: the AI agent suggests the collection and topology of
@@ -253,6 +286,14 @@ public class HarvestProperties {
          * {@code classification.auto-accept}.
          */
         private Boolean autoAccept;
+
+        /**
+         * Whether the files of the source's records are copied into the repository when a record
+         * is placed in a collection (see {@link Files}); otherwise they are referenced only. Files
+         * are downloaded without the source's credentials, from the host of {@link #url} or of the
+         * {@code file-url} option only.
+         */
+        private boolean copyFiles;
 
     }
 

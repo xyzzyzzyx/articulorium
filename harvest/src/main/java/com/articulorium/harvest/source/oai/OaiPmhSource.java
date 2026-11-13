@@ -18,6 +18,7 @@ import com.articulorium.harvest.core.HarvestedRecord;
 import com.articulorium.harvest.core.RecordFailure;
 import com.articulorium.harvest.core.SourceCapabilities;
 import com.articulorium.harvest.core.SourceSettings;
+import com.articulorium.harvest.source.DublinCore;
 import com.articulorium.harvest.source.SourceHttp;
 import com.articulorium.harvest.source.Timestamps;
 import com.articulorium.harvest.source.Xml;
@@ -53,6 +54,8 @@ public class OaiPmhSource implements HarvestSource {
 
     private final OaiMetadataMapper mapper;
 
+    private final FileRule fileRule;
+
     private final String set;
 
     /** Read once with Identify; runs of one source follow each other on different threads. */
@@ -66,9 +69,11 @@ public class OaiPmhSource implements HarvestSource {
      * @param mapper      the mapper of the harvested metadata format
      * @param set         the set to harvest, may be {@code null}
      * @param granularity the provider's datestamp granularity, or {@code null} to ask with Identify
+     * @param fileRule    derives the files of a record from its identifiers, may be {@code null}
      */
     OaiPmhSource(final SourceSettings settings, final SourceHttp http, final OaiMetadataMapper mapper,
-            final String set, final Granularity granularity) {
+            final String set, final Granularity granularity, final FileRule fileRule) {
+        this.fileRule = fileRule;
         this.settings = settings;
         this.http = http;
         this.mapper = mapper;
@@ -164,7 +169,24 @@ public class OaiPmhSource implements HarvestSource {
         }
         final Model model = ModelFactory.createDefaultModel();
         mapper.map(roots.get(0), model.createResource(subject));
-        return HarvestedRecord.of(identifier, subject, datestamp, model).withSets(sets);
+        final HarvestedRecord harvested = HarvestedRecord.of(identifier, subject, datestamp, model).withSets(sets);
+        return fileRule == null ? harvested : harvested.withFiles(fileRule.files(identifiers(model, subject)));
+    }
+
+    private static List<String> identifiers(final Model model, final String subject) {
+        final List<String> identifiers = new ArrayList<>();
+        for (final String predicate : List.of(DublinCore.DCTERMS + "identifier", DublinCore.DC_ELEMENTS + "identifier")) {
+            model.listObjectsOfProperty(model.createResource(subject), model.createProperty(predicate))
+                .forEachRemaining(node -> {
+                    if (node.isLiteral()) {
+                        identifiers.add(node.asLiteral().getLexicalForm());
+                    } else if (node.isURIResource()) {
+                        identifiers.add(node.asResource().getURI());
+                    }
+                });
+        }
+        identifiers.sort(null);
+        return identifiers;
     }
 
     /**

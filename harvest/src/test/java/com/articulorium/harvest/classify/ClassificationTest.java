@@ -697,6 +697,40 @@ class ClassificationTest {
     }
 
     @Test
+    void copiesTheFilesOfAPlacedRecordIntoItsItemOnce() {
+        properties.getClassification().setAutoAccept(true);
+        properties.getSources().get("repo").setUrl("https://repo.test/oai");
+        properties.getSources().get("repo").setCopyFiles(true);
+        final org.springframework.web.client.RestClient.Builder builder = org.springframework.web.client.RestClient.builder();
+        final org.springframework.test.web.client.MockRestServiceServer source =
+            org.springframework.test.web.client.MockRestServiceServer.bindTo(builder).build();
+        source.expect(org.springframework.test.web.client.ExpectedCount.once(),
+                org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo("https://repo.test/1.pdf"))
+            .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess(
+                new byte[] {37, 80, 68, 70}, org.springframework.http.MediaType.APPLICATION_PDF));
+        final RecordPlacer placer = new RecordPlacer(store, platform.topologies(), FakePlatform.clock(),
+            new com.articulorium.harvest.ingest.FileCopier(builder.build(), properties.getFiles(),
+                id -> com.articulorium.harvest.ingest.FileCopier.hostsOf(properties, id), delay -> { }, meters));
+        final ClassifyingIngestor copying = new ClassifyingIngestor(new PlatformIngestor(harvester, paths,
+            FakePlatform.clock()), harvester, com.articulorium.harvest.ingest.PlatformAuthorization.fixed("Bearer harvester"),
+            paths, store, agent, placer, new TopologyProposer(agent, platform.topologies(), meters),
+            properties.getClassification(), id -> SourcePolicy.of(properties, id), FakePlatform.clock(), meters);
+        answers.add(preprint(null));
+
+        copying.ingest("repo", record("Quantum dots"));
+        // harvested again: the item is updated, its file is not fetched a second time
+        assertThat(copying.ingest("repo", record("Quantum dots, revised"))).isEqualTo(IngestAction.UPDATED);
+
+        final String item = store.read(harvester, STAGING).orElseThrow().placedAt();
+        assertThat(platform.binaries()).hasSize(1).allSatisfy((path, file) -> {
+            assertThat(path).startsWith(item + "/files/1-").endsWith(".pdf");
+            assertThat(file).isEqualTo("application/pdf 4 1.pdf");
+        });
+        assertThat(title(item)).isEqualTo("Quantum dots, revised");
+        source.verify();
+    }
+
+    @Test
     void namesProposedTopologiesAsTheTopologyApiWantsIds() {
         assertThat(TopologyProposer.idOf("Preprint")).isEqualTo("preprint");
         assertThat(TopologyProposer.idOf("  Conférence Paper (2026) ")).isEqualTo("conference-paper-2026");
