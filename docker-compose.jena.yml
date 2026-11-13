@@ -1,0 +1,52 @@
+# Apache Jena Fuseki as the SPARQL store, instead of QLever.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.jena.yml up --build
+#
+# The triplestore service mirrors resources into a Fuseki dataset (articulorium.triplestore.backend,
+# see README.md, "SPARQL store"). Without this file the stack uses QLever. QLever still starts (the
+# base file's triplestore service depends on it) but is not used.
+#
+# Fuseki creates the dataset "articulorium" on first start (FUSEKI_DATASET_1) and keeps it in the
+# fuseki-data volume. Its administration needs the admin password (FUSEKI_ADMIN_PASSWORD, default
+# articulorium-fuseki); the triplestore service sends the same credentials.
+#
+# The Cypress tests run against this stack too:
+#   docker compose -f docker-compose.yml -f docker-compose.jena.yml --profile e2e run --rm e2e
+
+services:
+
+  triplestore:
+    environment:
+      ARTICULORIUM_TRIPLESTORE_BACKEND: jena
+      ARTICULORIUM_TRIPLESTORE_JENA_SERVICE_URL: http://fuseki:3030
+      ARTICULORIUM_TRIPLESTORE_JENA_DATASET: articulorium
+      ARTICULORIUM_TRIPLESTORE_JENA_USERNAME: admin
+      ARTICULORIUM_TRIPLESTORE_JENA_PASSWORD: ${FUSEKI_ADMIN_PASSWORD:-articulorium-fuseki}
+    depends_on:
+      # no healthcheck: the triplestore service is healthy itself only when the dataset can be
+      # queried
+      fuseki:
+        condition: service_started
+
+  e2e:
+    environment:
+      # the indexing pipeline spec reads the SPARQL store directly
+      E2E_TRIPLESTORE_BACKEND: jena
+
+  fuseki:
+    # user interface and SPARQL endpoints: http://localhost:3030/
+    image: stain/jena-fuseki:5.1.0
+    restart: unless-stopped
+    environment:
+      ADMIN_PASSWORD: ${FUSEKI_ADMIN_PASSWORD:-articulorium-fuseki}
+      FUSEKI_DATASET_1: articulorium
+      JVM_ARGS: -Xmx1g
+    ports:
+      - "3030:3030"
+    volumes:
+      - fuseki-data:/fuseki
+    networks:
+      - cloud
+
+volumes:
+  fuseki-data:

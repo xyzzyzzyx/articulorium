@@ -13,7 +13,7 @@ import { PLATFORM, unique } from '../support/e2e';
 /**
  * The search index the index service writes (articulorium.index.backend): Solr, or Elasticsearch
  * when the stack runs with docker-compose.elasticsearch.yml, which sets E2E_INDEX_BACKEND
- * (docker/run.sh passes it on: cypress run --expose indexBackend=elasticsearch).
+ * (docker/run.sh passes it on: cypress run --expose indexBackend=elasticsearch,...).
  */
 const BACKEND = String(Cypress.expose('indexBackend') ?? 'solr').toLowerCase();
 
@@ -23,8 +23,29 @@ const SOLR = 'http://solr:8983/solr/articulorium';
 /** Elasticsearch index the index service writes (articulorium.elasticsearch.*). */
 const ELASTICSEARCH = 'http://elasticsearch:9200/articulorium';
 
-/** QLever SPARQL endpoint the triplestore service writes (articulorium.triplestore.*). */
-const QLEVER = 'http://qlever:7001/';
+/**
+ * The SPARQL store the triplestore service writes (articulorium.triplestore.backend): QLever, or
+ * Blazegraph or Apache Jena Fuseki when the stack runs with docker-compose.blazegraph.yml or
+ * docker-compose.jena.yml, which set E2E_TRIPLESTORE_BACKEND (docker/run.sh passes it on:
+ * cypress run --expose indexBackend=solr,triplestoreBackend=jena).
+ */
+const TRIPLESTORE = String(Cypress.expose('triplestoreBackend') ?? 'qlever').toLowerCase();
+
+/** SPARQL query endpoints of the stores (articulorium.triplestore.*), by backend. */
+const SPARQL_ENDPOINTS: Record<string, string> = {
+  qlever: 'http://qlever:7001/',
+  blazegraph: 'http://blazegraph:8080/bigdata/namespace/articulorium/sparql',
+  jena: 'http://fuseki:3030/articulorium/sparql',
+};
+
+/** SPARQL query endpoint of the store the stack runs with. */
+function sparqlEndpoint(): string {
+  const endpoint = SPARQL_ENDPOINTS[TRIPLESTORE];
+  if (!endpoint) {
+    throw new Error(`Unknown triplestore backend ${TRIPLESTORE}`);
+  }
+  return endpoint;
+}
 
 /** How long the pipeline may take to apply a change. */
 const ATTEMPTS = 30;
@@ -83,7 +104,7 @@ function indexDocuments(iri: string): Cypress.Chainable<IndexDocument[]> {
 function graphSize(iri: string): Cypress.Chainable<number> {
   return cy
     .request({
-      url: QLEVER,
+      url: sparqlEndpoint(),
       qs: { query: `SELECT (COUNT(*) AS ?n) WHERE { GRAPH <${iri}> { ?s ?p ?o } }` },
       headers: { Accept: 'application/sparql-results+json' },
     })

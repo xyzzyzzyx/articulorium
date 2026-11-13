@@ -22,6 +22,7 @@ same as in a browser on the host, waits for the user interface, the platform and
 | `E2E_VIDEO`   | `false`  | `true` records what the browser shows to `cypress/videos`           |
 | `E2E_ARGS`    |          | extra `cypress run` arguments, e.g. `--spec cypress/e2e/search.cy.ts` |
 | `E2E_INDEX_BACKEND` | `solr` | the search index the stack runs with: `solr` or `elasticsearch` (set by `docker-compose.elasticsearch.yml`) |
+| `E2E_TRIPLESTORE_BACKEND` | `qlever` | the SPARQL store the stack runs with: `qlever`, `blazegraph` or `jena` (set by `docker-compose.blazegraph.yml` and `docker-compose.jena.yml`) |
 
 ```bash
 E2E_ARGS="--spec cypress/e2e/versions.cy.ts" docker compose --profile e2e run --rm e2e
@@ -35,13 +36,23 @@ docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml up --bu
 docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml --profile e2e run --rm e2e
 ```
 
+With Blazegraph or Apache Jena Fuseki as the SPARQL store (the indexing spec then reads that store
+instead of QLever; the compose files set `E2E_TRIPLESTORE_BACKEND`):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.jena.yml up --build -d --wait
+docker compose -f docker-compose.yml -f docker-compose.jena.yml --profile e2e run --rm e2e
+```
+
 Screenshots of failing tests land in `cypress/screenshots`. GitHub Actions runs the suite in the
 `compose` job after starting the stack and uploads those screenshots when it fails.
 
 Running Cypress on the host instead (with the stack up): `npm ci`, then `npm test`, or `npm run
 open` for the interactive runner. `CYPRESS_BASE_URL` points the tests elsewhere; add `-- --expose
-indexBackend=elasticsearch` to `npm test` when the stack runs with Elasticsearch (the indexing spec
-also needs the compose service names `solr`, `elasticsearch` and `qlever` to resolve).
+indexBackend=elasticsearch` to `npm test` when the stack runs with Elasticsearch, and
+`triplestoreBackend=blazegraph` or `triplestoreBackend=jena` (comma separated in the same `--expose`)
+when it runs with one of those stores (the indexing spec also needs the compose service names
+`solr`, `elasticsearch`, `qlever`, `blazegraph` and `fuseki` to resolve).
 
 ## Specs
 
@@ -63,7 +74,7 @@ also needs the compose service names `solr`, `elasticsearch` and `qlever` to res
 | `topologies.cy.ts`  | built-in topologies, duplicating, editing and deleting a custom one, building from the topology aside |
 | `notifications.cy.ts` | COAR Notify inbox listing and details, sending with recorded delivery failures, invalid notifications |
 | `iiif.cy.ts`        | IIIF Manifest of a book (image uploaded through the topology aside) and Collection of the communities |
-| `indexing.cy.ts`    | the event pipeline: LDP changes reach the search index (created, updated, removed search documents in Solr, or in Elasticsearch with `docker-compose.elasticsearch.yml`) and QLever (named graphs created and dropped), read directly on the compose network |
+| `indexing.cy.ts`    | the event pipeline: LDP changes reach the search index (created, updated, removed search documents in Solr, or in Elasticsearch with `docker-compose.elasticsearch.yml`) and the SPARQL store (named graphs created and dropped in QLever, or in Blazegraph or Fuseki with `docker-compose.blazegraph.yml` or `docker-compose.jena.yml`), read directly on the compose network |
 | `oai.cy.ts`         | OAI-PMH through the gateway: Identify, a book built in a collection harvested as Dublin Core with its community and collection as sets (pages excluded), resumption tokens, protocol errors |
 
 Each test creates its own uniquely named resources through the LDP API, so the suite runs

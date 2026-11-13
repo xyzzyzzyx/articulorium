@@ -96,6 +96,28 @@ jobs:
         run: >-
           docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml --profile e2e
           run --rm -e E2E_ARGS="--spec cypress/e2e/indexing.cy.ts,cypress/e2e/discovery.cy.ts" e2e
+      # the same stack with Blazegraph, then Apache Jena Fuseki, as its SPARQL store: only the
+      # triplestore service is recreated, and the spec that reads the store runs again
+      - name: Switch the SPARQL store to Blazegraph
+        run: >-
+          docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml -f docker-compose.blazegraph.yml
+          up -d --wait --wait-timeout 600 blazegraph triplestore
+      - name: End-to-end tests of the event pipeline on Blazegraph
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml -f docker-compose.blazegraph.yml \
+            exec -T triplestore curl -fsS http://localhost:8000/actuator/health | grep -q '"blazegraph"'
+          docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml -f docker-compose.blazegraph.yml \
+            --profile e2e run --rm -e E2E_ARGS="--spec cypress/e2e/indexing.cy.ts" e2e
+      - name: Switch the SPARQL store to Apache Jena Fuseki
+        run: >-
+          docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml -f docker-compose.jena.yml
+          up -d --wait --wait-timeout 600 fuseki triplestore
+      - name: End-to-end tests of the event pipeline on Apache Jena Fuseki
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml -f docker-compose.jena.yml \
+            exec -T triplestore curl -fsS http://localhost:8000/actuator/health | grep -q '"jena"'
+          docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml -f docker-compose.jena.yml \
+            --profile e2e run --rm -e E2E_ARGS="--spec cypress/e2e/indexing.cy.ts" e2e
       - name: End-to-end screenshots
         if: failure()
         uses: actions/upload-artifact@v4
@@ -105,7 +127,11 @@ jobs:
           if-no-files-found: ignore
       - name: Logs
         if: always()
-        run: docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml logs --no-color | tail -n 400
+        run: >-
+          docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml
+          -f docker-compose.blazegraph.yml -f docker-compose.jena.yml logs --no-color | tail -n 400
       - name: Stop the stack
         if: always()
-        run: docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml down -v
+        run: >-
+          docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml
+          -f docker-compose.blazegraph.yml -f docker-compose.jena.yml down -v

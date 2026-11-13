@@ -4,13 +4,13 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
-import com.articulorium.triplestore.config.TriplestoreProperties;
+import com.articulorium.triplestore.backend.TripleStore;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -19,55 +19,88 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * Client of the SPARQL store (QLever by default).
+ * Client of a SPARQL store over the standard protocols, the base of the store implementations.
  *
- * <p>Each LDP resource is kept in a named graph of its own, named by the resource's IRI. Graphs
- * are replaced and dropped with the SPARQL 1.1 Graph Store HTTP Protocol
- * ({@code PUT}/{@code DELETE <endpoint>?graph=<iri>}); queries use the SPARQL 1.1 Protocol. The
- * configured access token is sent as {@code Authorization: Bearer} with every request.</p>
+ * <p>Graphs are replaced and dropped with the SPARQL 1.1 Graph Store HTTP Protocol
+ * ({@code PUT}/{@code DELETE <endpoint>?graph=<iri>}); queries and updates use the SPARQL 1.1
+ * Protocol. Subclasses name the endpoints and the authentication of their store and override what
+ * it does differently.</p>
  */
-@Component
-public class SparqlStoreClient {
+public abstract class SparqlStoreClient implements TripleStore {
 
     /** Media type of SPARQL JSON results. */
-    static final MediaType SPARQL_RESULTS_JSON = MediaType.parseMediaType("application/sparql-results+json");
+    public static final MediaType SPARQL_RESULTS_JSON = MediaType.parseMediaType("application/sparql-results+json");
 
     /** Media type of SPARQL Update requests. */
-    static final MediaType SPARQL_UPDATE = MediaType.parseMediaType("application/sparql-update");
+    public static final MediaType SPARQL_UPDATE = MediaType.parseMediaType("application/sparql-update");
 
     /** Media type of graph uploads; N-Triples is a subset of Turtle. */
-    static final MediaType TURTLE = new MediaType("text", "turtle", StandardCharsets.UTF_8);
+    public static final MediaType TURTLE = new MediaType("text", "turtle", StandardCharsets.UTF_8);
 
     private static final ParameterizedTypeReference<Map<String, Object>> JSON_OBJECT =
         new ParameterizedTypeReference<>() { };
 
     private final RestClient client;
 
-    private final TriplestoreProperties properties;
+    private final Endpoints endpoints;
+
+    /**
+     * The endpoints of a store.
+     *
+     * @param query      SPARQL query endpoint
+     * @param update     SPARQL update endpoint
+     * @param graphStore Graph Store HTTP Protocol endpoint
+     */
+    public record Endpoints(String query, String update, String graphStore) {
+    }
 
     /**
      * Creates the client.
      *
-     * @param builder    HTTP client builder
-     * @param properties store settings
+     * @param builder        HTTP client builder
+     * @param endpoints      the store's endpoints
+     * @param authentication adds the store's credentials to the headers of every request
      */
-    public SparqlStoreClient(final RestClient.Builder builder, final TriplestoreProperties properties) {
-        this.properties = properties;
-        this.client = builder
-            .defaultHeaders(headers -> {
-                if (StringUtils.hasText(properties.getAccessToken())) {
-                    headers.setBearerAuth(properties.getAccessToken());
-                }
-            })
-            .build();
+    protected SparqlStoreClient(final RestClient.Builder builder, final Endpoints endpoints,
+            final Consumer<HttpHeaders> authentication) {
+        this.endpoints = endpoints;
+        this.client = builder.defaultHeaders(authentication).build();
     }
 
     /**
-     * Replaces the content of a named graph (creating it when missing); an empty graph is dropped.
+     * HTTP Basic authentication, when a user name is configured.
      *
-     * @param graph    the graph IRI
-     * @param nTriples the new content
+     * @param username the user name, may be empty
+     * @param password the password, may be empty
+     * @return the header customizer
      */
+    protected static Consumer<HttpHeaders> basicAuthentication(final String username, final String password) {
+        return headers -> {
+            if (StringUtils.hasText(username)) {
+                headers.setBasicAuth(username, password == null ? "" : password, StandardCharsets.UTF_8);
+            }
+        };
+    }
+
+    /**
+     * The HTTP client, carrying the store's credentials.
+     *
+     * @return the client
+     */
+    protected RestClient client() {
+        return client;
+    }
+
+    /**
+     * The store's endpoints.
+     *
+     * @return the endpoints
+     */
+    protected Endpoints endpoints() {
+        return endpoints;
+    }
+
+    @Override
     public void replaceGraph(final String graph, final String nTriples) {
         if (nTriples == null || nTriples.isBlank()) {
             dropGraph(graph);
@@ -81,11 +114,7 @@ public class SparqlStoreClient {
             .toBodilessEntity();
     }
 
-    /**
-     * Drops a named graph; a missing graph is not an error.
-     *
-     * @param graph the graph IRI
-     */
+    @Override
     public void dropGraph(final String graph) {
         try {
             client.delete()
@@ -97,36 +126,23 @@ public class SparqlStoreClient {
         }
     }
 
-    /**
-     * Runs a SPARQL 1.1 Update.
-     *
-     * @param update the update
-     */
+    @Override
     public void update(final String update) {
         client.post()
-            .uri(properties.sparqlEndpoint())
+            .uri(endpoints.update())
             .contentType(SPARQL_UPDATE)
             .body(update)
             .retrieve()
             .toBodilessEntity();
     }
 
-    /**
-     * Runs an ASK query.
-     *
-     * @param query the query
-     * @return the answer
-     */
+    @Override
     public boolean ask(final String query) {
         final Map<String, Object> response = query(query);
         return response != null && Boolean.TRUE.equals(response.get("boolean"));
     }
 
-    /**
-     * Counts the named graphs (one per mirrored resource).
-     *
-     * @return the number of graphs, or -1 when the answer cannot be read
-     */
+    @Override
     @SuppressWarnings("unchecked")
     public long countGraphs() {
         final Map<String, Object> response = query("SELECT (COUNT(DISTINCT ?g) AS ?graphs) WHERE { GRAPH ?g { ?s ?p ?o } }");
@@ -141,15 +157,13 @@ public class SparqlStoreClient {
     }
 
     /**
-     * Checks that the store answers its liveness probe ({@code GET /ping} on QLever).
+     * Checks that the store answers a query; stores with a liveness probe override this.
      *
-     * @return {@code true} when the probe succeeded
+     * @return {@code true} when the query was answered
      */
+    @Override
     public boolean ping() {
-        client.get()
-            .uri(join(properties.getServiceUrl(), "ping"))
-            .retrieve()
-            .toBodilessEntity();
+        query("ASK { ?s ?p ?o }");
         return true;
     }
 
@@ -157,7 +171,7 @@ public class SparqlStoreClient {
         final MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("query", query);
         return client.post()
-            .uri(properties.sparqlEndpoint())
+            .uri(endpoints.query())
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .accept(SPARQL_RESULTS_JSON, MediaType.APPLICATION_JSON)
             .header(HttpHeaders.ACCEPT_CHARSET, StandardCharsets.UTF_8.name())
@@ -172,16 +186,12 @@ public class SparqlStoreClient {
      * @param graph the graph IRI
      * @return {@code <endpoint>?graph=<encoded iri>}
      */
-    URI graphUri(final String graph) {
-        return UriComponentsBuilder.fromUriString(properties.graphStoreEndpoint())
+    public URI graphUri(final String graph) {
+        return UriComponentsBuilder.fromUriString(endpoints.graphStore())
             .queryParam("graph", "{graph}")
             .encode()
             .buildAndExpand(graph)
             .toUri();
-    }
-
-    private static String join(final String url, final String path) {
-        return (url.endsWith("/") ? url : url + "/") + path;
     }
 
 }

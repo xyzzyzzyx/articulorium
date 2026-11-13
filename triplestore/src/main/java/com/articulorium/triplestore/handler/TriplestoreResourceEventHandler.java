@@ -5,8 +5,8 @@ import com.articulorium.domain.rdf.Iris;
 import com.articulorium.domain.rdf.NTriplesSerializer;
 import com.articulorium.event.ResourceEvent;
 import com.articulorium.event.handler.ResourceEventHandler;
+import com.articulorium.triplestore.backend.TripleStore;
 import com.articulorium.triplestore.config.TriplestoreProperties;
-import com.articulorium.triplestore.sparql.SparqlStoreClient;
 
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -25,17 +25,17 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class TriplestoreResourceEventHandler implements ResourceEventHandler {
 
-    private final SparqlStoreClient store;
+    private final TripleStore store;
 
     private final TriplestoreProperties properties;
 
     /**
      * Creates the handler.
      *
-     * @param store      the SPARQL store client
+     * @param store      the SPARQL store
      * @param properties store settings
      */
-    public TriplestoreResourceEventHandler(final SparqlStoreClient store, final TriplestoreProperties properties) {
+    public TriplestoreResourceEventHandler(final TripleStore store, final TriplestoreProperties properties) {
         this.store = store;
         this.properties = properties;
     }

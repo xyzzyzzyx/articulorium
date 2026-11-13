@@ -15,9 +15,9 @@ import com.articulorium.domain.vocabulary.Ldp;
 import com.articulorium.event.EventAction;
 import com.articulorium.event.EventDestinations;
 import com.articulorium.event.ResourceEvent;
+import com.articulorium.triplestore.backend.TripleStore;
 import com.articulorium.triplestore.config.TriplestoreProperties;
 import com.articulorium.triplestore.handler.TriplestoreResourceEventHandler;
-import com.articulorium.triplestore.sparql.SparqlStoreClient;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,7 @@ import org.springframework.web.client.RestClientException;
  */
 class TriplestoreResourceEventHandlerTest {
 
-    private SparqlStoreClient store;
+    private TripleStore store;
 
     private TriplestoreProperties properties;
 
@@ -36,7 +36,7 @@ class TriplestoreResourceEventHandlerTest {
 
     @BeforeEach
     void setUp() {
-        store = mock(SparqlStoreClient.class);
+        store = mock(TripleStore.class);
         properties = new TriplestoreProperties();
         handler = new TriplestoreResourceEventHandler(store, properties);
     }

@@ -4,23 +4,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.articulorium.triplestore.config.TriplestoreProperties;
-import com.articulorium.triplestore.health.QleverHealthIndicator;
-import com.articulorium.triplestore.sparql.SparqlStoreClient;
+import java.util.Map;
 
+import com.articulorium.triplestore.backend.TripleStore;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.Status;
 import org.springframework.web.client.ResourceAccessException;
 
 /**
- * Unit tests for {@link QleverHealthIndicator}.
+ * Unit tests for {@link TriplestoreHealthIndicator}.
  */
-class QleverHealthIndicatorTest {
+class TriplestoreHealthIndicatorTest {
 
-    private final SparqlStoreClient store = mock(SparqlStoreClient.class);
+    private final TripleStore store = mock(TripleStore.class);
 
-    private final QleverHealthIndicator indicator = new QleverHealthIndicator(store, new TriplestoreProperties());
+    private final TriplestoreHealthIndicator indicator = new TriplestoreHealthIndicator(store);
+
+    @BeforeEach
+    void setUp() {
+        when(store.location()).thenReturn(Map.of("endpoint", "http://qlever:7001/"));
+    }
 
     @Test
     void upWithGraphCount() {
@@ -36,6 +42,17 @@ class QleverHealthIndicatorTest {
     @Test
     void downWhenUnreachable() {
         when(store.ping()).thenThrow(new ResourceAccessException("refused"));
+
+        final Health health = indicator.health(true);
+
+        assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+        assertThat(health.getDetails()).containsEntry("endpoint", "http://qlever:7001/");
+    }
+
+    @Test
+    void downWhenTheGraphsCannotBeQueried() {
+        when(store.ping()).thenReturn(true);
+        when(store.countGraphs()).thenThrow(new ResourceAccessException("timeout"));
 
         assertThat(indicator.health(true).getStatus()).isEqualTo(Status.DOWN);
     }

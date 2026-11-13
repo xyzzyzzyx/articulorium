@@ -52,7 +52,7 @@ For comprehensive documentation, please visit: [https://xyzzyzzyx.github.io/arti
 | `harvest`     | Harvests OAI-PMH, DSpace, Fedora Commons and VIVO repositories into the platform; source-independent harvest and ingest abstractions ([harvest/README.md](harvest/README.md)) |
 | `ai`          | Optional Spring AI agent: topology suggestions, metadata of images, videos and PDFs, topic models of communities and collections, academic profile suggestions, classification of harvested records, all reviewed before they are applied; each capability is an `AgentContributor` of the agent registry ([ai/README.md](ai/README.md)) |
 | `index`       | Keeps the search index in sync: a Solr collection or an Elasticsearch index ([Search index](#search-index-solr-or-elasticsearch)) |
-| `triplestore` | Mirrors every resource into a SPARQL 1.1 store ([QLever](https://github.com/ad-freiburg/qlever)), one named graph each |
+| `triplestore` | Mirrors every resource into a SPARQL 1.1 store, one named graph each: QLever, or Blazegraph or Apache Jena Fuseki ([SPARQL store](#sparql-store-qlever-blazegraph-or-apache-jena)) |
 
 ```
 browser ──> gateway ──> service (UI)
@@ -65,7 +65,7 @@ browser ──> gateway ──> service (UI)
                │  harvest (other repositories) (LDP)──┤
                └─────> platform <─────────────────────┘
                           │   └──(resource-bus)──> transform ──(document-bus)──> index ──> Solr or Elasticsearch
-                          │   └──(resource-bus)──> triplestore ──> QLever
+                          │   └──(resource-bus)──> triplestore ──> QLever, Blazegraph or Jena
                           └──> PostgreSQL (metadata, ACLs, notifications)   OCFL on MinIO/S3 or disk (content, versions)
 ```
 
@@ -791,7 +791,7 @@ dependency:
 | topology      | (none beyond the common ones)                                   |
 | oai           | (none beyond the common ones); metric `oai.requests` by verb and outcome |
 | index         | `solr` (ping, document count) or, with Elasticsearch as the search index, `elasticsearch` (document count); `kafka` |
-| triplestore   | `qlever` (`/ping`, graph count), `kafka`                        |
+| triplestore   | `qlever` (`/ping`, graph count; `blazegraph` or `jena` with those stores), `kafka` |
 | all           | `consul`, `diskSpace`, `ping`                                   |
 
 Disable one with `management.health.<name>.enabled=false`.
@@ -801,15 +801,42 @@ outside the LDP namespace), transform `/v3/api-docs`, topology `/v3/api-docs`, o
 service `/api/docs`; the gateway's `/swagger-ui.html` lists all five and is what the UI's **API**
 link opens.
 
-### SPARQL store (QLever)
+### SPARQL store (QLever, Blazegraph or Apache Jena)
 
-The triplestore service keeps one named graph per resource in [QLever](https://github.com/ad-freiburg/qlever)
-(Blazegraph is no longer maintained), replacing graphs with the SPARQL 1.1 Graph Store HTTP
-Protocol and authenticating with QLever's access token (`QLEVER_ACCESS_TOKEN`, sent as
-`Authorization: Bearer`). Compose runs the `adfreiburg/qlever` image with
-[triplestore/qlever/entrypoint.sh](triplestore/qlever/README.md), which builds an empty index on
-first start and persists updates. Any store implementing the same protocols works:
-`articulorium.triplestore.service-url`, `sparql-path`, `graph-store-path`, `access-token`.
+The triplestore service keeps one named graph per resource, named by the resource's IRI, in a
+SPARQL store. `articulorium.triplestore.backend` selects it; an unknown value stops the start-up.
+
+| `backend`    | Store | Settings (`articulorium.triplestore.*`) |
+|--------------|-------|------------------------------------------|
+| `qlever` (default) | [QLever](https://github.com/ad-freiburg/qlever) | `service-url` (`http://qlever:7001`), `sparql-path`, `graph-store-path` (both the root), `access-token` (`QLEVER_ACCESS_TOKEN`, sent as `Authorization: Bearer`) |
+| `blazegraph` | [Blazegraph](https://github.com/blazegraph/database) | `blazegraph.service-url` (`http://blazegraph:8080/bigdata`), `blazegraph.namespace` (`articulorium`), `blazegraph.username`, `blazegraph.password` |
+| `jena`       | [Apache Jena Fuseki](https://jena.apache.org/documentation/fuseki2/) | `jena.service-url` (`http://fuseki:3030`), `jena.dataset` (`articulorium`), `jena.username`, `jena.password` |
+
+Without the setting nothing changes: QLever, with the settings and requests it had before. The
+settings can be given as environment variables (`ARTICULORIUM_TRIPLESTORE_BACKEND=jena`,
+`ARTICULORIUM_TRIPLESTORE_JENA_SERVICE_URL=...`). `articulorium.triplestore.base-uri` (the base
+graph names are minted under) applies to every backend.
+
+* **QLever.** Graphs are replaced with the SPARQL 1.1 Graph Store HTTP Protocol. Compose runs the
+  `adfreiburg/qlever` image with [triplestore/qlever/entrypoint.sh](triplestore/qlever/README.md),
+  which builds an empty index on first start and persists updates.
+* **Blazegraph.** `service-url` is the web application (`.../bigdata` in the Docker images,
+  `http://localhost:9999/blazegraph` for `blazegraph.jar`). The service creates the namespace in
+  quads mode when it does not exist; an existing namespace must be in quads mode (the default `kb`
+  namespace is not, and the service logs an error for it). Blazegraph has no Graph Store Protocol:
+  a graph is dropped with a SPARQL update and its new content posted, two requests that are not one
+  transaction. Blazegraph is no longer maintained; the backend is for deployments that already run it.
+  `docker compose -f docker-compose.yml -f docker-compose.blazegraph.yml up --build` runs the stack
+  on it (workbench on <http://localhost:8889/bigdata/>).
+* **Apache Jena Fuseki.** The dataset must exist and allow updates; its `sparql`, `update` and
+  `data` services are used (`<service-url>/<dataset>/sparql`, ...), the names Fuseki gives them by
+  default. `docker compose -f docker-compose.yml -f docker-compose.jena.yml up --build` runs the
+  stack on it (<http://localhost:3030/>, admin password `FUSEKI_ADMIN_PASSWORD`).
+
+A user name and password are sent with HTTP Basic authentication when set. The health component is
+named after the backend (`qlever`, `blazegraph` or `jena`) and reports the SPARQL endpoint and the
+number of graphs. Switching the backend does not copy graphs: a resource reaches the new store
+when it is next modified.
 
 ## Building and testing
 

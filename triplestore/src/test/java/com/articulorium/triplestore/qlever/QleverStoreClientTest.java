@@ -1,4 +1,4 @@
-package com.articulorium.triplestore.sparql;
+package com.articulorium.triplestore.qlever;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,9 +22,9 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
 /**
- * Unit tests for {@link SparqlStoreClient} against a mocked QLever server.
+ * Unit tests for {@link QleverStoreClient} against a mocked QLever server.
  */
-class SparqlStoreClientTest {
+class QleverStoreClientTest {
 
     private static final String SERVICE = "http://qlever:7001";
 
@@ -32,7 +32,7 @@ class SparqlStoreClientTest {
 
     private MockRestServiceServer server;
 
-    private SparqlStoreClient client;
+    private QleverStoreClient client;
 
     @BeforeEach
     void setUp() {
@@ -41,7 +41,16 @@ class SparqlStoreClientTest {
         final TriplestoreProperties properties = new TriplestoreProperties();
         properties.setServiceUrl(SERVICE + "/");
         properties.setAccessToken("t0ken");
-        client = new SparqlStoreClient(builder, properties);
+        client = new QleverStoreClient(builder, properties);
+    }
+
+    @Test
+    void describesItself() {
+        assertThat(client.name()).isEqualTo("qlever");
+        assertThat(client.target()).isEqualTo("QLever at http://qlever:7001/");
+        assertThat(client.location()).containsOnly(org.assertj.core.api.Assertions.entry("endpoint", SERVICE + "/"));
+        assertThat(client.prepare()).isFalse();
+        server.verify();
     }
 
     @Test
@@ -107,6 +116,18 @@ class SparqlStoreClientTest {
     void pingsTheLivenessProbe() {
         server.expect(requestTo(SERVICE + "/ping")).andRespond(withSuccess());
         assertThat(client.ping()).isTrue();
+    }
+
+    @Test
+    void sendsNoCredentialsWithoutAnAccessToken() {
+        final RestClient.Builder builder = RestClient.builder();
+        final MockRestServiceServer open = MockRestServiceServer.bindTo(builder).build();
+        open.expect(requestTo(SERVICE + "/ping"))
+            .andExpect(request -> assertThat(request.getHeaders().containsHeader("Authorization")).isFalse())
+            .andRespond(withSuccess());
+
+        new QleverStoreClient(builder, new TriplestoreProperties()).ping();
+        open.verify();
     }
 
 }

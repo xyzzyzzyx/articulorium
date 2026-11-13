@@ -1,0 +1,43 @@
+# Blazegraph as the SPARQL store, instead of QLever.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.blazegraph.yml up --build
+#
+# The triplestore service mirrors resources into a Blazegraph namespace
+# (articulorium.triplestore.backend, see README.md, "SPARQL store"). Without this file the stack
+# uses QLever. QLever still starts (the base file's triplestore service depends on it) but is not
+# used.
+#
+# Blazegraph is no longer maintained; this file is for development, the end-to-end tests and
+# deployments that already run it. The triplestore service creates the namespace "articulorium" in
+# quads mode on first start. The journal is kept in the container: the graphs are derived data and
+# are written again as resources change.
+#
+# The Cypress tests run against this stack too:
+#   docker compose -f docker-compose.yml -f docker-compose.blazegraph.yml --profile e2e run --rm e2e
+
+services:
+
+  triplestore:
+    environment:
+      ARTICULORIUM_TRIPLESTORE_BACKEND: blazegraph
+      ARTICULORIUM_TRIPLESTORE_BLAZEGRAPH_SERVICE_URL: http://blazegraph:8080/bigdata
+      ARTICULORIUM_TRIPLESTORE_BLAZEGRAPH_NAMESPACE: articulorium
+    depends_on:
+      # no healthcheck: the triplestore service retries until Blazegraph answers, and is healthy
+      # itself only when the namespace can be queried
+      blazegraph:
+        condition: service_started
+
+  e2e:
+    environment:
+      # the indexing pipeline spec reads the SPARQL store directly
+      E2E_TRIPLESTORE_BACKEND: blazegraph
+
+  blazegraph:
+    # workbench and SPARQL endpoint: http://localhost:8889/bigdata/
+    image: lyrasis/blazegraph:2.1.5
+    restart: unless-stopped
+    ports:
+      - "8889:8080"
+    networks:
+      - cloud
