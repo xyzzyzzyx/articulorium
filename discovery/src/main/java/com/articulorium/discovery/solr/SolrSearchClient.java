@@ -5,12 +5,11 @@ import java.util.List;
 import java.util.Optional;
 
 import com.articulorium.discovery.config.DiscoveryProperties;
+import com.articulorium.discovery.index.IndexUnavailableException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
@@ -24,7 +23,6 @@ import tools.jackson.databind.JsonNode;
  * <p>Parameters are sent as a form ({@code POST}), so long filter lists do not hit URL length
  * limits and user input never needs URL encoding by hand.</p>
  */
-@Component
 public class SolrSearchClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(SolrSearchClient.class);
@@ -40,7 +38,6 @@ public class SolrSearchClient {
      *
      * @param properties the settings
      */
-    @Autowired
     public SolrSearchClient(final DiscoveryProperties properties) {
         this(RestClient.builder(), properties);
     }
@@ -63,7 +60,7 @@ public class SolrSearchClient {
      *
      * @param params the request parameters ({@code wt=json} is added)
      * @return Solr's response
-     * @throws SolrUnavailableException when Solr cannot be reached or refuses the query
+     * @throws IndexUnavailableException when Solr cannot be reached or refuses the query
      */
     public JsonNode select(final MultiValueMap<String, String> params) {
         final MultiValueMap<String, String> form = new LinkedMultiValueMap<>(params);
@@ -77,12 +74,12 @@ public class SolrSearchClient {
                 .retrieve()
                 .body(JsonNode.class);
             if (response == null) {
-                throw new SolrUnavailableException("Solr answered without a body");
+                throw new IndexUnavailableException("Solr answered without a body");
             }
             return response;
         } catch (RestClientException e) {
             LOG.warn("Solr query failed: {}", e.getMessage());
-            throw new SolrUnavailableException("The search index is unavailable");
+            throw new IndexUnavailableException("The search index is unavailable");
         }
     }
 
@@ -90,7 +87,7 @@ public class SolrSearchClient {
      * Reads the collection's field names (Schema API).
      *
      * @return its explicit fields and dynamic field patterns
-     * @throws SolrUnavailableException when Solr cannot be reached
+     * @throws IndexUnavailableException when Solr cannot be reached
      */
     public Schema schema() {
         return new Schema(names(schemaList("fields"), "fields"), names(schemaList("dynamicfields"), "dynamicFields"));
@@ -104,12 +101,12 @@ public class SolrSearchClient {
                 .retrieve()
                 .body(JsonNode.class);
             if (response == null) {
-                throw new SolrUnavailableException("Solr answered without a body");
+                throw new IndexUnavailableException("Solr answered without a body");
             }
             return response;
         } catch (RestClientException e) {
             LOG.warn("Solr schema request failed: {}", e.getMessage());
-            throw new SolrUnavailableException("The search index is unavailable");
+            throw new IndexUnavailableException("The search index is unavailable");
         }
     }
 
@@ -129,7 +126,7 @@ public class SolrSearchClient {
      * @param id the document identifier (the resource's public IRI)
      * @param fields the fields to return ({@code fl})
      * @return the document, empty when the collection has none with that identifier
-     * @throws SolrUnavailableException when Solr cannot be reached
+     * @throws IndexUnavailableException when Solr cannot be reached
      */
     public Optional<JsonNode> get(final String id, final String fields) {
         final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();

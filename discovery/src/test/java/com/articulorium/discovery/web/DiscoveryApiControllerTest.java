@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.articulorium.discovery.index.IndexUnavailableException;
 import com.articulorium.discovery.search.ItemService;
 import com.articulorium.discovery.search.NotFoundException;
 import com.articulorium.discovery.search.ResourceKind;
@@ -22,7 +23,6 @@ import com.articulorium.discovery.search.SearchRequest;
 import com.articulorium.discovery.search.SearchResponse;
 import com.articulorium.discovery.search.SearchService;
 import com.articulorium.discovery.search.SitemapService;
-import com.articulorium.discovery.solr.SolrUnavailableException;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -121,7 +121,7 @@ class DiscoveryApiControllerTest {
     @Test
     void reportsRefusalsAsProblems() throws Exception {
         when(items.item(eq("private"), any(), isNull())).thenThrow(new NotFoundException("private"));
-        when(search.search(any())).thenThrow(new SolrUnavailableException("The search index is unavailable"));
+        when(search.search(any())).thenThrow(new IndexUnavailableException("The search index is unavailable"));
 
         mvc.perform(get("/api/item").param("path", "private"))
             .andExpect(status().isNotFound())

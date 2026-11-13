@@ -9,8 +9,8 @@ import org.springframework.web.client.RestClient;
 /**
  * HTTP clients towards the platform and the transform service. With
  * {@code articulorium.discovery.load-balanced=true} (the default) they resolve Consul service names
- * such as {@code http://articulorium-platform}. Solr is reached with a plain client
- * ({@link com.articulorium.discovery.solr.SolrSearchClient}): it is not registered in Consul.
+ * such as {@code http://articulorium-platform}. The search index is reached with a plain client
+ * ({@link SearchIndexConfiguration}): neither Solr nor Elasticsearch is registered in Consul.
  */
 @Configuration(proxyBeanMethods = false)
 public class DiscoveryClientConfiguration {

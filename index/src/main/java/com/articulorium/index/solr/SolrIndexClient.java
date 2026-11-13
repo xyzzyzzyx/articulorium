@@ -8,11 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.articulorium.index.backend.DocumentIndex;
+import com.articulorium.index.backend.IndexStatus;
 import com.articulorium.index.config.SolrProperties;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -22,8 +23,10 @@ import org.springframework.web.client.RestClient;
  * Jetty version that conflicts with the one managed by Spring Boot, and makes it trivially
  * compatible with GraalVM native images.</p>
  */
-@Component
-public class SolrIndexClient {
+public class SolrIndexClient implements DocumentIndex {
+
+    /** Name of the backend. */
+    public static final String NAME = "solr";
 
     private static final ParameterizedTypeReference<Map<String, Object>> JSON_OBJECT =
         new ParameterizedTypeReference<>() { };
@@ -41,6 +44,41 @@ public class SolrIndexClient {
     public SolrIndexClient(final RestClient.Builder builder, final SolrProperties properties) {
         this.client = builder.baseUrl(properties.getBaseUrl()).build();
         this.properties = properties;
+    }
+
+    @Override
+    public String name() {
+        return NAME;
+    }
+
+    @Override
+    public String target() {
+        return "Solr collection " + properties.getCollection();
+    }
+
+    @Override
+    public Map<String, Object> location() {
+        final Map<String, Object> location = new LinkedHashMap<>();
+        location.put("baseUrl", properties.getBaseUrl());
+        location.put("collection", properties.getCollection());
+        return location;
+    }
+
+    @Override
+    public boolean ensureIndex() {
+        return ensureCollection();
+    }
+
+    @Override
+    public List<String> ensureFields() {
+        return ensureFields(properties.getFields());
+    }
+
+    @Override
+    public IndexStatus status() {
+        final String status = ping();
+        final boolean available = IndexStatus.OK.equalsIgnoreCase(status);
+        return new IndexStatus(available, status, available ? countDocuments() : -1);
     }
 
     /**
@@ -168,6 +206,7 @@ public class SolrIndexClient {
      *
      * @param document the document; its {@code id} field identifies it
      */
+    @Override
     public void add(final Map<String, ?> document) {
         client.post()
             .uri(uri -> uri.path("/{collection}/update")
@@ -185,6 +224,7 @@ public class SolrIndexClient {
      *
      * @param id the document identifier
      */
+    @Override
     public void deleteById(final String id) {
         final Map<String, Object> command = new LinkedHashMap<>();
         command.put("delete", Map.of("id", id));

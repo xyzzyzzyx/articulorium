@@ -71,7 +71,8 @@ are built with:
 | `spring.cloud.loadbalancer.eager-load.clients` (every service with load-balanced clients) | the `articulorium-*` services of the compose stack | edit the service's `application-native.yml`: a load-balanced URL (gateway `lb://` route, `articulorium.*.*-url`) may only name a service listed there |
 
 Settings that are read by beans (URLs, credentials, limits, `articulorium.ai.enabled`, the root ACL
-location, `articulorium.webac.oidc.*` and `articulorium.webac.consul.*`) work at run time as on the
+location, `articulorium.webac.oidc.*` and `articulorium.webac.consul.*`, and the search index backend
+`articulorium.index.backend` / `articulorium.discovery.index.backend`) work at run time as on the
 JVM.
 
 ## Maintenance Status

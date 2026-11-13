@@ -108,6 +108,22 @@ class DiscoverySettingsValidatorTest {
     }
 
     @Test
+    void needsAnElasticsearchAddressOnlyWhenElasticsearchIsTheBackend() {
+        properties.getElasticsearch().setBaseUrl("elasticsearch:9200");
+        properties.getElasticsearch().setIndex(" ");
+        assertThat(DiscoverySettingsValidator.validate(properties)).isEmpty();
+
+        properties.getIndex().setBackend(DiscoveryProperties.Backend.ELASTICSEARCH);
+        assertThat(DiscoverySettingsValidator.validate(properties))
+            .anyMatch(problem -> problem.startsWith("elasticsearch.base-url"))
+            .contains("elasticsearch.index needs a value");
+
+        properties.getElasticsearch().setBaseUrl("https://search.example.org:9243");
+        properties.getElasticsearch().setIndex("articulorium");
+        assertThat(DiscoverySettingsValidator.validate(properties)).isEmpty();
+    }
+
+    @Test
     void needsSearchFields() {
         properties.getSearch().getFields().clear();
         assertThat(DiscoverySettingsValidator.validate(properties)).contains("search.fields must list at least one field");

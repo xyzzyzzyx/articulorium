@@ -25,6 +25,7 @@ import com.articulorium.discovery.config.PublicUrls;
 import com.articulorium.discovery.solr.SolrRequests;
 import com.articulorium.discovery.solr.SolrSchema;
 import com.articulorium.discovery.solr.SolrSearchClient;
+import com.articulorium.discovery.solr.SolrSearchIndex;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -87,8 +88,8 @@ class SearchServiceTest {
         });
         schema = mock(SolrSchema.class);
         when(schema.has(any())).thenReturn(true);
-        service = new SearchService(new SolrSearchClient(builder, properties), schema, access, new PublicUrls(properties),
-            properties, Clock.fixed(Instant.parse("2026-11-07T12:00:00Z"), ZoneOffset.UTC));
+        service = new SearchService(new SolrSearchIndex(new SolrSearchClient(builder, properties), schema), access,
+            new PublicUrls(properties), properties, Clock.fixed(Instant.parse("2026-11-07T12:00:00Z"), ZoneOffset.UTC));
     }
 
     static DiscoveryProperties settings() {

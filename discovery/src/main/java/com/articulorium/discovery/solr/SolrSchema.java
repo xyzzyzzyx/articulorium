@@ -6,10 +6,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+import com.articulorium.discovery.index.IndexUnavailableException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
  * Which fields the Solr collection has.
@@ -21,7 +21,6 @@ import org.springframework.stereotype.Component;
  * {@code *_str}). The answer is remembered for {@value #TTL_SECONDS} seconds, so fields appear in
  * searches shortly after their first document is indexed.</p>
  */
-@Component
 public class SolrSchema {
 
     private static final Logger LOG = LoggerFactory.getLogger(SolrSchema.class);
@@ -40,7 +39,6 @@ public class SolrSchema {
      *
      * @param solr the Solr client
      */
-    @Autowired
     public SolrSchema(final SolrSearchClient solr) {
         this(solr, Clock.systemUTC());
     }
@@ -93,7 +91,7 @@ public class SolrSchema {
                 now.plus(Duration.ofSeconds(TTL_SECONDS)));
             snapshot = fresh;
             return fresh;
-        } catch (SolrUnavailableException e) {
+        } catch (IndexUnavailableException e) {
             LOG.debug("The schema of the Solr collection cannot be read: {}", e.getMessage());
             return cached;
         }

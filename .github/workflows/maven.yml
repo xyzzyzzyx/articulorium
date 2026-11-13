@@ -85,6 +85,17 @@ jobs:
             http://localhost:8000/platform/ | grep -q 401
       - name: End-to-end tests (Cypress, e2e compose service)
         run: docker compose --profile e2e run --rm e2e
+      # the same stack with Elasticsearch as its search index: only the index and discovery services
+      # are recreated, and the specs that exercise the search index run again (they create their own
+      # resources, so the new, empty index is enough)
+      - name: Switch the search index to Elasticsearch
+        run: >-
+          docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml
+          up -d --wait --wait-timeout 600 elasticsearch index discovery
+      - name: End-to-end tests of indexing and discovery on Elasticsearch
+        run: >-
+          docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml --profile e2e
+          run --rm -e E2E_ARGS="--spec cypress/e2e/indexing.cy.ts,cypress/e2e/discovery.cy.ts" e2e
       - name: End-to-end screenshots
         if: failure()
         uses: actions/upload-artifact@v4
@@ -94,7 +105,7 @@ jobs:
           if-no-files-found: ignore
       - name: Logs
         if: always()
-        run: docker compose logs --no-color | tail -n 400
+        run: docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml logs --no-color | tail -n 400
       - name: Stop the stack
         if: always()
-        run: docker compose down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml down -v

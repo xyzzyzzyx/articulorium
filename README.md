@@ -41,7 +41,7 @@ For comprehensive documentation, please visit: [https://xyzzyzzyx.github.io/arti
 | `agent-spring-boot-starter` | Spring Boot auto-configuration for the agent library: `AgentRegistry` bean, `articulorium.agents.*` settings, `/actuator/info` ([README](agent-spring-boot-starter/README.md)) |
 | `i18n-spring-boot-starter` | Shipped locales, `articulorium.i18n.*` settings, locale resolution, message bundles and locale propagation for every service ([README](i18n-spring-boot-starter/README.md), [Internationalization](#internationalization)) |
 | `ui`          | Angular single page application, packaged as static resources ([ui/README.md](ui/README.md)) |
-| `discovery`   | API of the public discovery layer: the deployment's branding, layouts, facets, filters and search precedence (`articulorium.discovery.*`), Solr searches with every hit checked against the platform's WebAC, resource descriptions with IIIF summaries, sitemap entries ([discovery/README.md](discovery/README.md)) |
+| `discovery`   | API of the public discovery layer: the deployment's branding, layouts, facets, filters and search precedence (`articulorium.discovery.*`), searches of the search index (Solr or Elasticsearch) with every hit checked against the platform's WebAC, resource descriptions with IIIF summaries, sitemap entries ([discovery/README.md](discovery/README.md)) |
 | `discovery-ui` | The public discovery and presentation layer: Angular rendered on the server (Node.js) for search engines, themed Angular Material pages in every locale, Mirador for images, audio, video and PDFs ([discovery-ui/README.md](discovery-ui/README.md)) |
 | `platform`    | The LDP server: RDF sources, containers, files, versions, fixity, search, OCFL storage  |
 | `gateway`     | Spring Cloud Gateway; public entry point (`/ui/**`, `/platform/**`, `/transform/**`, `/topology/**`, `/auth/**` for the identity provider) and one Swagger UI for all services |
@@ -51,12 +51,12 @@ For comprehensive documentation, please visit: [https://xyzzyzzyx.github.io/arti
 | `oai`         | OAI-PMH 2.0 data provider: records as Dublin Core, communities and collections as sets ([oai/README.md](oai/README.md)) |
 | `harvest`     | Harvests OAI-PMH, DSpace, Fedora Commons and VIVO repositories into the platform; source-independent harvest and ingest abstractions ([harvest/README.md](harvest/README.md)) |
 | `ai`          | Optional Spring AI agent: topology suggestions, metadata of images, videos and PDFs, topic models of communities and collections, academic profile suggestions, classification of harvested records, all reviewed before they are applied; each capability is an `AgentContributor` of the agent registry ([ai/README.md](ai/README.md)) |
-| `index`       | Keeps a Solr collection in sync                                                         |
+| `index`       | Keeps the search index in sync: a Solr collection or an Elasticsearch index ([Search index](#search-index-solr-or-elasticsearch)) |
 | `triplestore` | Mirrors every resource into a SPARQL 1.1 store ([QLever](https://github.com/ad-freiburg/qlever)), one named graph each |
 
 ```
 browser ──> gateway ──> service (UI)
-               ├─────> discovery-ui (/discover: SSR pages) ──> gateway ──> discovery (/discover/api) ──> Solr
+               ├─────> discovery-ui (/discover: SSR pages) ──> gateway ──> discovery (/discover/api) ──> Solr or Elasticsearch
                │                                                              └──(WebAC, IIIF)──> platform, transform
                ├─────> keycloak (/auth: OpenID Connect login, tokens)
                ├─────> topology ───────────────(LDP)──┐
@@ -64,7 +64,7 @@ browser ──> gateway ──> service (UI)
                ├─────> oai (OAI-PMH) ──────────(LDP)──┤
                │  harvest (other repositories) (LDP)──┤
                └─────> platform <─────────────────────┘
-                          │   └──(resource-bus)──> transform ──(document-bus)──> index ──> Solr
+                          │   └──(resource-bus)──> transform ──(document-bus)──> index ──> Solr or Elasticsearch
                           │   └──(resource-bus)──> triplestore ──> QLever
                           └──> PostgreSQL (metadata, ACLs, notifications)   OCFL on MinIO/S3 or disk (content, versions)
 ```
@@ -428,6 +428,94 @@ and [discovery-ui/README.md](discovery-ui/README.md) for the application.
 Set `DISCOVERY_PUBLIC_URL` to the address visitors use (canonical URLs and sitemaps are built from
 it) and `GATEWAY_ROOT_REDIRECT=/discover/` to make the discovery layer the gateway's home page.
 
+## Search index (Solr or Elasticsearch)
+
+The index service writes the transform service's search documents to a search index, and the
+discovery service searches it. The index is a Solr collection unless configured otherwise;
+Elasticsearch can be used instead. Both services must name the same backend:
+
+| Service   | Setting (environment variable)                                                  | Default |
+|-----------|----------------------------------------------------------------------------------|---------|
+| index     | `articulorium.index.backend` (`ARTICULORIUM_INDEX_BACKEND`)                      | `solr`  |
+| discovery | `articulorium.discovery.index.backend` (`ARTICULORIUM_DISCOVERY_INDEX_BACKEND`)  | `solr`  |
+
+The values are `solr` and `elasticsearch`; any other value stops the service at start-up. Solr
+deployments need no change: without these settings both services work as before, with
+`articulorium.solr.*` and `articulorium.discovery.solr.*`. The backend is read when a service
+starts, in GraalVM native images too.
+
+### Elasticsearch
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml up --build
+```
+
+starts the stack with a single Elasticsearch node (no security: development and tests only) as its
+search index. For a cluster of your own:
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `articulorium.elasticsearch.base-url` (index), `articulorium.discovery.elasticsearch.base-url` | `http://elasticsearch:9200` | a node, or a load balancer in front of the cluster |
+| `articulorium.elasticsearch.index`, `articulorium.discovery.elasticsearch.index` | `articulorium` | the index (or an alias of one index) |
+| `...elasticsearch.api-key` | (none) | an API key, sent as `Authorization: ApiKey <key>`: the Base64 "encoded" value Elasticsearch returns when the key is created |
+| `...elasticsearch.username`, `...elasticsearch.password` | (none) | HTTP basic authentication, when no API key is set |
+| `articulorium.elasticsearch.number-of-shards`, `number-of-replicas`, `refresh-interval` | `1`, `1`, `1s` | of an index the index service creates (`number-of-replicas: 0` on a single node); the refresh interval is how soon changes are searchable, like Solr's `commit-within` |
+| `articulorium.elasticsearch.fields` | `created`, `lastModified`, `date`: `date` | fields declared in the mapping on start-up when missing, by name, with their Elasticsearch type |
+
+Give credentials as environment variables (`ARTICULORIUM_ELASTICSEARCH_API_KEY`,
+`ARTICULORIUM_DISCOVERY_ELASTICSEARCH_API_KEY`) or Consul keys rather than in files. The index
+service creates the index and changes its mapping, and writes and counts documents (the `all`
+privilege on the index is the simplest grant); the discovery service only needs `read`. `https`
+base URLs work with certificates the JVM trusts; add a private certificate authority to the JVM's
+trust store. Neither service uses an Elasticsearch client library: they only call REST APIs that
+Elasticsearch 8 and 9 share.
+
+When the index does not exist, the index service creates it with mappings that give fields the
+names and behaviour they have in Solr's `_default` config set, so **documents and the discovery
+layer's settings are the same for both backends**:
+
+- `<field>` is full text; its values are copied to `<field>_str` (exact values, for facets, filters
+  and sorting) and to `_text_` (everything, the fallback search field);
+- `<field>_txt_<language>` is full text with that language's analyzer;
+- `id` is the exact document identifier;
+- the fields of `articulorium.elasticsearch.fields` are declared with their types. Dates are not
+  detected from values: a field the discovery layer sorts on or builds a year facet from must be
+  declared as `date` there (a value that is not a date is then left out instead of failing its
+  document).
+
+An index (or alias) that already exists is used as it is: only missing declared fields are added.
+
+Base filters, filter queries and boost queries of the discovery settings are written in the Lucene
+query syntax both backends read (`type_str:("a" OR "b")`, `-id:*\/members\/*`, `hasFile_str:*`);
+Solr local parameters (`{!...}`) only work with Solr. What differs:
+
+| | Solr | Elasticsearch |
+|---|---|---|
+| Search terms | `edismax` parser | `simple_query_string` query: the same fields, boosts, phrase boosts and minimum match; operators and ranking differ in details |
+| `<field>_str` copies | the first 256 characters of a value | whole values; values beyond 8191 characters are left out |
+| Fields without a document yet | cannot be searched, sorted or faceted on until declared | are ignored |
+| Deep paging | any depth | the first 10,000 results: `articulorium.discovery.seo.sitemap-limit` above 10,000 has no effect |
+| Japanese | morphological analysis | bigrams (`cjk` analyzer), unless you map `*_txt_ja` to the `kuromoji` plugin's analyzer in an index you create yourself |
+
+### Moving a deployment from Solr to Elasticsearch
+
+1. Start Elasticsearch and give the index service `ARTICULORIUM_INDEX_BACKEND=elasticsearch` and
+   its `articulorium.elasticsearch.*` settings. On start-up it creates the index and reports it as
+   the `elasticsearch` health component (instead of `solr`).
+2. The new index is empty. Documents are written as resources are created and changed; nothing is
+   copied from Solr and there is no command to index existing resources again yet, so resources
+   reach Elasticsearch when they are next modified. Keep Solr and the discovery service on Solr
+   until the index holds what the discovery layer should show (compare the `documents` counts of
+   the health components).
+3. Switch the discovery service (`ARTICULORIUM_DISCOVERY_INDEX_BACKEND=elasticsearch` and its
+   `articulorium.discovery.elasticsearch.*` settings), check a search, a facet selection, a sort
+   order and a resource page, then retire Solr and ZooKeeper.
+4. Custom settings: declare the date fields of your own sorts and year facets in
+   `articulorium.elasticsearch.fields` (the counterpart of `articulorium.solr.fields`), and rewrite
+   filter or boost queries that use Solr local parameters.
+
+Going back is the same in reverse; Solr keeps whatever it held.
+
 ## Notifications (COAR Notify)
 
 Every container (community, collection, ...) has a [Linked Data Notifications](https://www.w3.org/TR/ldn/)
@@ -592,7 +680,7 @@ Every request gets one of the enabled locales, in this order:
 | Platform | HTML view of resources (texts, `lang`/`dir`, sizes, titles in the reader's language), error messages with a code (not found, conflicts, limits) | protocol diagnostics stay in the default locale; `Content-Language` says which, and the user interface then shows its own translated summary of the status first |
 | Topology service | built-in topologies' names, descriptions and labels; problem titles | custom topologies keep their own labels; validation details are in the default locale |
 | Transform service (IIIF) | labels Articulorium writes (`Rights`, `homepage`, `seeAlso`) in the request's locale; every language-tagged title, summary and metadata value keeps its language in IIIF language maps, so viewers pick the reader's | untagged values are `none`; metadata labels derived from property names are English |
-| Search index | language-tagged texts also go to Solr's per-language fields (`title_txt_de`, `title_txt_ja`, Chinese and Korean `_txt_cjk`) with the matching analyzers, and `languages` lists them | languages without an analyzer stay in the language-neutral field only |
+| Search index | language-tagged texts also go to per-language fields (`title_txt_de`, `title_txt_ja`, Chinese and Korean `_txt_cjk`) with the matching analyzers of Solr or Elasticsearch, and `languages` lists them | languages without an analyzer stay in the language-neutral field only |
 | Keycloak | sign-in sends `ui_locales`; the realm enables the shipped locales | Keycloak's own fallback (English) for locales it lacks |
 | Services calling services | topology, transform and OAI pass the user's `Accept-Language` to the platform | calls outside a request (bus events) use the default locale |
 | OAI-PMH | Dublin Core values keep their `xml:lang` | protocol errors are English: the OAI-PMH schema allows no language on them, and harvesters are programs |
@@ -702,7 +790,7 @@ dependency:
 | transform     | `kafka`                                                         |
 | topology      | (none beyond the common ones)                                   |
 | oai           | (none beyond the common ones); metric `oai.requests` by verb and outcome |
-| index         | `solr` (ping, document count), `kafka`                          |
+| index         | `solr` (ping, document count) or, with Elasticsearch as the search index, `elasticsearch` (document count); `kafka` |
 | triplestore   | `qlever` (`/ping`, graph count), `kafka`                        |
 | all           | `consul`, `diskSpace`, `ping`                                   |
 

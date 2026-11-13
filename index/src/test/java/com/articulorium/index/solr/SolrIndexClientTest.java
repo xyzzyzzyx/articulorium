@@ -11,6 +11,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import java.util.List;
 import java.util.Map;
 
+import com.articulorium.index.backend.IndexStatus;
 import com.articulorium.index.config.SolrProperties;
 import com.articulorium.index.solr.SolrIndexClient;
 
@@ -150,6 +151,33 @@ class SolrIndexClientTest {
             .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 
         assertThat(client.countDocuments()).isEqualTo(-1L);
+    }
+
+    @Test
+    void reportsItsConditionFromThePingAndTheDocumentCount() {
+        server.expect(requestTo(BASE + "/articulorium/admin/ping?wt=json"))
+            .andRespond(withSuccess("{\"status\":\"OK\"}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(BASE + "/articulorium/select?q=*:*&rows=0&wt=json"))
+            .andRespond(withSuccess("{\"response\":{\"numFound\":12,\"docs\":[]}}", MediaType.APPLICATION_JSON));
+
+        assertThat(client.status()).isEqualTo(new IndexStatus(true, "OK", 12));
+        server.verify();
+    }
+
+    @Test
+    void isUnavailableWhenThePingReportsAProblem() {
+        server.expect(requestTo(BASE + "/articulorium/admin/ping?wt=json"))
+            .andRespond(withSuccess("{\"status\":\"FAIL\"}", MediaType.APPLICATION_JSON));
+
+        assertThat(client.status()).isEqualTo(new IndexStatus(false, "FAIL", -1));
+        server.verify();
+    }
+
+    @Test
+    void describesItselfAsTheSolrBackend() {
+        assertThat(client.name()).isEqualTo("solr");
+        assertThat(client.target()).isEqualTo("Solr collection articulorium");
+        assertThat(client.location()).containsEntry("baseUrl", BASE).containsEntry("collection", "articulorium");
     }
 
 }

@@ -6,7 +6,7 @@ import java.util.Map;
 
 import com.articulorium.event.DocumentEvent;
 import com.articulorium.event.handler.DocumentEventHandler;
-import com.articulorium.index.solr.SolrIndexClient;
+import com.articulorium.index.backend.DocumentIndex;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
@@ -14,21 +14,21 @@ import org.springframework.web.client.RestClientException;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Applies {@link DocumentEvent}s to the Solr collection.
+ * Applies {@link DocumentEvent}s to the search index (Solr or Elasticsearch).
  */
 @Slf4j
 @Component
 public class IndexDocumentEventHandler implements DocumentEventHandler {
 
-    private final SolrIndexClient solr;
+    private final DocumentIndex index;
 
     /**
      * Creates the handler.
      *
-     * @param solr the Solr client
+     * @param index the search index
      */
-    public IndexDocumentEventHandler(final SolrIndexClient solr) {
-        this.solr = solr;
+    public IndexDocumentEventHandler(final DocumentIndex index) {
+        this.index = index;
     }
 
     @Override
@@ -42,37 +42,37 @@ public class IndexDocumentEventHandler implements DocumentEventHandler {
             switch (event.getAction()) {
                 case CREATED, UPDATED -> {
                     log.info("INDEX {} ({})", id, event.getAction());
-                    solr.add(toSolrDocument(event.getDocument()));
+                    index.add(toIndexDocument(event.getDocument()));
                 }
                 case DELETED -> {
                     log.info("UNINDEX {}", id);
-                    solr.deleteById(id);
+                    index.deleteById(id);
                 }
                 default -> log.debug("Ignoring {}", event.getAction());
             }
         } catch (RestClientException e) {
-            log.warn("Unable to apply {} of {} to Solr: {}", event.getAction(), id, e.getMessage());
-            log.debug("Solr failure", e);
+            log.warn("Unable to apply {} of {} to {}: {}", event.getAction(), id, index.target(), e.getMessage());
+            log.debug("Search index failure", e);
         }
     }
 
     /**
-     * Converts a transform document to a Solr document: the single-valued {@code id} field is
+     * Converts a transform document to an index document: the single-valued {@code id} field is
      * unwrapped; every other field stays multi-valued.
      *
      * @param document the transform document
-     * @return the Solr document
+     * @return the index document
      */
-    static Map<String, Object> toSolrDocument(final Map<String, Collection<?>> document) {
-        final Map<String, Object> solrDocument = new LinkedHashMap<>();
+    static Map<String, Object> toIndexDocument(final Map<String, Collection<?>> document) {
+        final Map<String, Object> indexDocument = new LinkedHashMap<>();
         document.forEach((field, values) -> {
             if (DocumentEvent.ID_FIELD.equals(field) && values != null && !values.isEmpty()) {
-                solrDocument.put(field, String.valueOf(values.iterator().next()));
+                indexDocument.put(field, String.valueOf(values.iterator().next()));
             } else if (values != null && !values.isEmpty()) {
-                solrDocument.put(field, values);
+                indexDocument.put(field, values);
             }
         });
-        return solrDocument;
+        return indexDocument;
     }
 
 }

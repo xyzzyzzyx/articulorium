@@ -11,14 +11,12 @@ import com.articulorium.discovery.config.DiscoveryProperties;
 import com.articulorium.discovery.config.PublicUrls;
 import com.articulorium.discovery.iiif.IiifSummary;
 import com.articulorium.discovery.iiif.IiifSummaryClient;
-import com.articulorium.discovery.solr.SolrSearchClient;
-import com.articulorium.discovery.solr.SolrSyntax;
+import com.articulorium.discovery.index.IndexQuery;
+import com.articulorium.discovery.index.SearchIndex;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import tools.jackson.databind.JsonNode;
 
@@ -39,7 +37,7 @@ public class ItemService {
     /** Longest path accepted. */
     static final int MAX_PATH_LENGTH = 1024;
 
-    private final SolrSearchClient solr;
+    private final SearchIndex index;
 
     private final AccessVerifier access;
 
@@ -54,16 +52,16 @@ public class ItemService {
     /**
      * Creates the service.
      *
-     * @param solr       the Solr client
+     * @param index      the search index
      * @param access     the access checks
      * @param iiif       the IIIF summaries
      * @param urls       the public addresses
      * @param properties the settings
      * @param search     the search (its base filters)
      */
-    public ItemService(final SolrSearchClient solr, final AccessVerifier access, final IiifSummaryClient iiif,
+    public ItemService(final SearchIndex index, final AccessVerifier access, final IiifSummaryClient iiif,
             final PublicUrls urls, final DiscoveryProperties properties, final SearchService search) {
-        this.solr = solr;
+        this.index = index;
         this.access = access;
         this.iiif = iiif;
         this.urls = urls;
@@ -152,14 +150,15 @@ public class ItemService {
     }
 
     private Optional<JsonNode> document(final String path) {
-        final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         // the platform may have identified the resource by its public or its internal address
-        params.add("q", SolrSyntax.anyOf("id", urls.irisOf(path)));
-        search.baseFilters().forEach(filter -> params.add("fq", filter));
-        params.add("rows", "1");
-        params.add("fl", "*");
-        final JsonNode docs = solr.select(params).path("response").path("docs");
-        return docs.isArray() && !docs.isEmpty() ? Optional.of(docs.get(0)) : Optional.empty();
+        final List<JsonNode> docs = index.search(new IndexQuery(null,
+            new IndexQuery.AnyOf(IndexQuery.ID_FIELD, urls.irisOf(path)), baseFilters(), List.of("*"), 0, 1, null,
+            List.of())).documents();
+        return docs.isEmpty() ? Optional.empty() : Optional.of(docs.getFirst());
+    }
+
+    private List<IndexQuery.Filter> baseFilters() {
+        return search.baseFilters().stream().<IndexQuery.Filter>map(IndexQuery.Raw::new).toList();
     }
 
     /**
@@ -179,13 +178,9 @@ public class ItemService {
         }
         final List<String> iris = new ArrayList<>();
         ancestors.forEach(ancestor -> iris.addAll(urls.irisOf(ancestor)));
-        final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("q", SolrSyntax.anyOf("id", iris));
-        search.baseFilters().forEach(filter -> params.add("fq", filter));
-        params.add("rows", Integer.toString(iris.size()));
-        params.add("fl", String.join(",", trailFields(locale)));
         final Map<String, JsonNode> found = new HashMap<>();
-        for (final JsonNode doc : solr.select(params).path("response").path("docs")) {
+        for (final JsonNode doc : index.search(new IndexQuery(null, new IndexQuery.AnyOf(IndexQuery.ID_FIELD, iris),
+                baseFilters(), trailFields(locale), 0, iris.size(), null, List.of())).documents()) {
             final String ancestor = urls.pathOf(doc.path("id").asString(null));
             if (ancestor != null) {
                 found.putIfAbsent(ancestor, doc);
@@ -237,7 +232,7 @@ public class ItemService {
         /**
          * The values of a metadata field.
          *
-         * @param field  the Solr field
+         * @param field  the field of the search index
          * @param values its values
          * @param link   whether the values are links
          */

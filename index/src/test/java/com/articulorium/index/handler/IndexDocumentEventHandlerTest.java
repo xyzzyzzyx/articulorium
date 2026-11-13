@@ -17,8 +17,8 @@ import java.util.Map;
 import com.articulorium.event.DocumentEvent;
 import com.articulorium.event.EventAction;
 import com.articulorium.event.EventDestinations;
+import com.articulorium.index.backend.DocumentIndex;
 import com.articulorium.index.handler.IndexDocumentEventHandler;
-import com.articulorium.index.solr.SolrIndexClient;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,14 +32,14 @@ class IndexDocumentEventHandlerTest {
     private static final Map<String, Collection<?>> DOCUMENT =
         Map.of("id", List.of("http://h/a"), "title", List.of("A", "B"));
 
-    private SolrIndexClient solr;
+    private DocumentIndex index;
 
     private IndexDocumentEventHandler handler;
 
     @BeforeEach
     void setUp() {
-        solr = mock(SolrIndexClient.class);
-        handler = new IndexDocumentEventHandler(solr);
+        index = mock(DocumentIndex.class);
+        handler = new IndexDocumentEventHandler(index);
     }
 
     private static DocumentEvent event(final Map<String, Collection<?>> document, final EventAction action) {
@@ -50,34 +50,34 @@ class IndexDocumentEventHandlerTest {
     void createdAndUpdatedDocumentsAreIndexed() {
         handler.handle(event(DOCUMENT, EventAction.CREATED));
         handler.handle(event(DOCUMENT, EventAction.UPDATED));
-        verify(solr, times(2)).add(Map.of("id", "http://h/a", "title", List.of("A", "B")));
+        verify(index, times(2)).add(Map.of("id", "http://h/a", "title", List.of("A", "B")));
     }
 
     @Test
     void deletedDocumentsAreRemoved() {
         handler.handle(event(Map.of("id", List.of("http://h/a")), EventAction.DELETED));
-        verify(solr).deleteById("http://h/a");
-        verify(solr, never()).add(anyMap());
+        verify(index).deleteById("http://h/a");
+        verify(index, never()).add(anyMap());
     }
 
     @Test
     void documentsWithoutIdAreIgnored() {
         handler.handle(event(Map.of("title", List.of("A")), EventAction.CREATED));
-        verify(solr, never()).add(anyMap());
-        verify(solr, never()).deleteById(anyString());
+        verify(index, never()).add(anyMap());
+        verify(index, never()).deleteById(anyString());
     }
 
     @Test
-    void solrFailuresAreSwallowed() {
-        doThrow(new RestClientException("down")).when(solr).add(any());
+    void indexFailuresAreSwallowed() {
+        doThrow(new RestClientException("down")).when(index).add(any());
         handler.handle(event(DOCUMENT, EventAction.CREATED));
     }
 
     @Test
     void idIsUnwrappedAndEmptyFieldsDropped() {
-        final Map<String, Object> solrDocument = IndexDocumentEventHandler.toSolrDocument(
+        final Map<String, Object> indexDocument = IndexDocumentEventHandler.toIndexDocument(
             Map.of("id", List.of("http://h/a"), "empty", List.of(), "title", List.of("A")));
-        assertThat(solrDocument).containsEntry("id", "http://h/a").containsEntry("title", List.of("A"))
+        assertThat(indexDocument).containsEntry("id", "http://h/a").containsEntry("title", List.of("A"))
             .doesNotContainKey("empty");
     }
 

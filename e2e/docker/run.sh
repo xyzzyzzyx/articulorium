@@ -5,7 +5,8 @@
 # runs Cypress.
 #
 # Environment: E2E_BROWSER (chrome), E2E_VIDEO (false), E2E_ARGS (extra "cypress run" arguments),
-# E2E_FORWARDS (8000:gateway:9000; space separated <local port>:<host>:<port> mappings).
+# E2E_FORWARDS (8000:gateway:9000; space separated <local port>:<host>:<port> mappings),
+# E2E_INDEX_BACKEND (solr; the search index the stack runs with, read by the indexing spec).
 set -euo pipefail
 cd /e2e
 
@@ -27,4 +28,5 @@ node docker/wait.mjs --timeout=300 http://localhost:8000/ui/ http://localhost:80
 
 echo "starting cypress run (${E2E_BROWSER:-chrome}); its first run verifies the Cypress binary, which can take a minute"
 # shellcheck disable=SC2086
-npx cypress run --browser "${E2E_BROWSER:-chrome}" --config "video=${E2E_VIDEO:-false}" ${E2E_ARGS:-}
+npx cypress run --browser "${E2E_BROWSER:-chrome}" --config "video=${E2E_VIDEO:-false}" \
+  --expose "indexBackend=${E2E_INDEX_BACKEND:-solr}" ${E2E_ARGS:-}

@@ -13,8 +13,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Settings of the discovery layer ({@code articulorium.discovery.*}): where it finds Solr, the
- * platform and the IIIF exports, and everything a deployment customizes without touching the user
+ * Settings of the discovery layer ({@code articulorium.discovery.*}): where it finds the search
+ * index (Solr or Elasticsearch), the platform and the IIIF exports, and everything a deployment customizes without touching the user
  * interface's code: the site's identity, its theme (colors, typography, shape, extra styles), page
  * layouts, the viewer, the search (fields and their precedence, facets, filters, sort orders) and
  * the search engine directives.
@@ -63,8 +63,14 @@ public class DiscoveryProperties {
      */
     private List<String> platformIriBases = new ArrayList<>();
 
+    /** Which search index is read. */
+    private Index index = new Index();
+
     /** Solr. */
     private Solr solr = new Solr();
+
+    /** Elasticsearch. */
+    private Elasticsearch elasticsearch = new Elasticsearch();
 
     /** Who may see what. */
     private Access access = new Access();
@@ -89,6 +95,56 @@ public class DiscoveryProperties {
 
     /** Directives and metadata for search engines and social sharing. */
     private Seo seo = new Seo();
+
+    /** Search index backends. */
+    public enum Backend {
+
+        /** Apache Solr ({@link Solr}). */
+        SOLR,
+
+        /** Elasticsearch ({@link Elasticsearch}). */
+        ELASTICSEARCH
+
+    }
+
+    /** The search index. */
+    @Getter
+    @Setter
+    public static class Index {
+
+        /**
+         * The search index that is read: the one the index service writes
+         * ({@code articulorium.index.backend}). Solr unless set.
+         */
+        private Backend backend = Backend.SOLR;
+
+    }
+
+    /** Elasticsearch connection, used when {@link Index#getBackend()} is {@link Backend#ELASTICSEARCH}. */
+    @Getter
+    @Setter
+    public static class Elasticsearch {
+
+        /** Base URL of an Elasticsearch node or of a load balancer in front of the cluster. */
+        private String baseUrl = "http://elasticsearch:9200";
+
+        /** Index (or alias) the index service keeps in sync. */
+        private String index = "articulorium";
+
+        /**
+         * API key ({@code Authorization: ApiKey <key>}): the Base64 "encoded" value Elasticsearch
+         * returns when the key is created; reading the index is all it needs to allow. Used
+         * instead of {@link #username} when set.
+         */
+        private String apiKey;
+
+        /** User of HTTP basic authentication; no credentials are sent when unset. */
+        private String username;
+
+        /** Password of {@link #username}. */
+        private String password;
+
+    }
 
     /** Solr connection. */
     @Getter
@@ -609,7 +665,7 @@ public class DiscoveryProperties {
         /** Label; default: the translation key {@code filters.<id>}. */
         private Text label;
 
-        /** Solr filter query applied while the filter is on. */
+        /** Filter query (Lucene query syntax) applied while the filter is on. */
         private String query;
 
     }
@@ -625,7 +681,7 @@ public class DiscoveryProperties {
         /** Label; default: the translation key {@code sorts.<id>}. */
         private Text label;
 
-        /** Solr sort ({@code score desc}, {@code lastModified desc}); empty sorts by relevance. */
+        /** Sort ({@code score desc}, {@code lastModified desc}); empty sorts by relevance. */
         private String value;
 
     }

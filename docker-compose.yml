@@ -23,7 +23,8 @@
 #   localhost:5432                    PostgreSQL (articulorium / articulorium), the platform database
 #   http://localhost:8500/            Consul UI
 #   http://localhost:9101/            MinIO console (articulorium / articulorium-secret)
-#   http://localhost:8983/            Solr admin
+#   http://localhost:8983/            Solr admin (the search index; docker-compose.elasticsearch.yml uses
+#                                     Elasticsearch instead, on http://localhost:9200/)
 #   http://localhost:7001/            QLever SPARQL endpoint (queries; updates need QLEVER_ACCESS_TOKEN)
 #   http://localhost:8000/topology/topologies
 #                                     PCDM topologies (topology service)

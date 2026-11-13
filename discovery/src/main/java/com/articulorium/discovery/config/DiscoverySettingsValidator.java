@@ -89,6 +89,15 @@ public class DiscoverySettingsValidator implements InitializingBean {
         if (publicUrl == null || !settings.getPublicUrl().endsWith("/")) {
             problems.add("public-url must be an absolute http(s) URL ending with /: " + settings.getPublicUrl());
         }
+        if (settings.getIndex().getBackend() == DiscoveryProperties.Backend.ELASTICSEARCH) {
+            if (absolute(settings.getElasticsearch().getBaseUrl()) == null) {
+                problems.add("elasticsearch.base-url must be an absolute http(s) URL: "
+                    + settings.getElasticsearch().getBaseUrl());
+            }
+            if (!StringUtils.hasText(settings.getElasticsearch().getIndex())) {
+                problems.add("elasticsearch.index needs a value");
+            }
+        }
         link("platform-public-url", settings.getPlatformPublicUrl(), problems);
         link("transform-public-url", settings.getTransformPublicUrl(), problems);
         site(settings.getSite(), problems);

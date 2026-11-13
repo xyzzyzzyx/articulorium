@@ -10,8 +10,18 @@ import { PLATFORM, unique } from '../support/e2e';
  * process of the e2e container, which resolves the compose service names).
  */
 
+/**
+ * The search index the index service writes (articulorium.index.backend): Solr, or Elasticsearch
+ * when the stack runs with docker-compose.elasticsearch.yml, which sets E2E_INDEX_BACKEND
+ * (docker/run.sh passes it on: cypress run --expose indexBackend=elasticsearch).
+ */
+const BACKEND = String(Cypress.expose('indexBackend') ?? 'solr').toLowerCase();
+
 /** Solr collection the index service writes (articulorium.solr.*). */
 const SOLR = 'http://solr:8983/solr/articulorium';
+
+/** Elasticsearch index the index service writes (articulorium.elasticsearch.*). */
+const ELASTICSEARCH = 'http://elasticsearch:9200/articulorium';
 
 /** QLever SPARQL endpoint the triplestore service writes (articulorium.triplestore.*). */
 const QLEVER = 'http://qlever:7001/';
@@ -24,12 +34,17 @@ function iriOf(path: string): string {
   return `${Cypress.config('baseUrl')}${PLATFORM}${path}`;
 }
 
-/** A Solr document: field names to values. */
-type SolrDocument = Record<string, unknown>;
+/** A search document: field names to values, the same in Solr and Elasticsearch. */
+type IndexDocument = Record<string, unknown>;
 
 /** The part of a Solr select response the tests read. */
 interface SolrSelect {
-  readonly response: { readonly docs: SolrDocument[] };
+  readonly response: { readonly docs: IndexDocument[] };
+}
+
+/** The part of an Elasticsearch search response the tests read. */
+interface ElasticsearchSearch {
+  readonly hits: { readonly hits: { readonly _source: IndexDocument }[] };
 }
 
 /** The part of SPARQL 1.1 JSON query results the tests read. */
@@ -42,13 +57,23 @@ function json<T>(body: unknown): T {
   return (typeof body === 'string' ? JSON.parse(body) : body) as T;
 }
 
-/** The values of a field of the first of some Solr documents (single or multi-valued). */
-function values(documents: SolrDocument[], field: string): unknown[] {
+/** The values of a field of the first of some search documents (single or multi-valued). */
+function values(documents: IndexDocument[], field: string): unknown[] {
   return ([] as unknown[]).concat(documents[0]?.[field] ?? []);
 }
 
-/** Yields the Solr documents of a resource: one when it is indexed, none otherwise. */
-function solrDocuments(iri: string): Cypress.Chainable<SolrDocument[]> {
+/** Yields the Elasticsearch documents with an exact value in a field. */
+function elasticsearchDocuments(field: string, value: string): Cypress.Chainable<IndexDocument[]> {
+  return cy
+    .request({ method: 'POST', url: `${ELASTICSEARCH}/_search`, body: { query: { term: { [field]: value } } } })
+    .then((response) => json<ElasticsearchSearch>(response.body).hits.hits.map((hit) => hit._source));
+}
+
+/** Yields the search documents of a resource: one when it is indexed, none otherwise. */
+function indexDocuments(iri: string): Cypress.Chainable<IndexDocument[]> {
+  if (BACKEND === 'elasticsearch') {
+    return elasticsearchDocuments('id', iri);
+  }
   return cy
     .request({ url: `${SOLR}/select`, qs: { q: `id:"${iri}"`, wt: 'json' } })
     .then((response) => json<SolrSelect>(response.body).response.docs);
@@ -97,9 +122,18 @@ describe('Indexing pipeline', () => {
     const title = unique('Moby Dick');
 
     cy.createContainer(title, name);
-    eventually(`the Solr document of ${iri}`, () => solrDocuments(iri), (docs) => docs.length === 1).then((docs) => {
+    eventually(`the search document of ${iri}`, () => indexDocuments(iri), (docs) => docs.length === 1).then((docs) => {
       expect(values(docs, 'title')).to.deep.eq([title]);
     });
+    if (BACKEND === 'elasticsearch') {
+      // the index mappings keep an exact-value copy of text fields, as Solr's _default config set
+      // does: the discovery layer's facets, filters and sort orders rely on <field>_str
+      eventually(
+        `the exact-value copy of the title of ${iri}`,
+        () => elasticsearchDocuments('title_str', title),
+        (docs) => docs.length === 1,
+      );
+    }
 
     cy.request({
       method: 'PATCH',
@@ -108,13 +142,13 @@ describe('Indexing pipeline', () => {
       body: `INSERT DATA { <> <http://purl.org/dc/terms/title> "Ishmael" }`,
     });
     eventually(
-      `the updated Solr document of ${iri}`,
-      () => solrDocuments(iri),
+      `the updated search document of ${iri}`,
+      () => indexDocuments(iri),
       (docs) => values(docs, 'title').includes('Ishmael'),
     );
 
     cy.request({ method: 'DELETE', url: `${PLATFORM}${name}` });
-    eventually(`the removal of the Solr document of ${iri}`, () => solrDocuments(iri), (docs) => docs.length === 0);
+    eventually(`the removal of the search document of ${iri}`, () => indexDocuments(iri), (docs) => docs.length === 0);
   });
 
   it('mirrors a resource into its named graph and drops it on delete', () => {

@@ -27,6 +27,7 @@ import com.articulorium.discovery.iiif.IiifSummaryClient;
 import com.articulorium.discovery.solr.SolrRequests;
 import com.articulorium.discovery.solr.SolrSchema;
 import com.articulorium.discovery.solr.SolrSearchClient;
+import com.articulorium.discovery.solr.SolrSearchIndex;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,9 +72,10 @@ class ItemServiceTest {
         when(access.mayRead(anyString(), any())).thenReturn(true);
         iiif = mock(IiifSummaryClient.class);
         final PublicUrls urls = new PublicUrls(properties);
-        final SolrSearchClient client = new SolrSearchClient(builder, properties);
-        service = new ItemService(client, access, iiif, urls, properties,
-            new SearchService(client, mock(SolrSchema.class), access, urls, properties));
+        final SolrSearchIndex index = new SolrSearchIndex(new SolrSearchClient(builder, properties),
+            mock(SolrSchema.class));
+        service = new ItemService(index, access, iiif, urls, properties,
+            new SearchService(index, access, urls, properties));
         when(access.readable(anyCollection(), any())).thenAnswer(invocation -> invocation.<Collection<String>>getArgument(0)
             .stream().filter(path -> access.mayRead(path, invocation.getArgument(1))).toList());
         // the documents Solr holds, some identified by the platform's internal address; there is

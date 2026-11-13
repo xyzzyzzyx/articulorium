@@ -1,0 +1,64 @@
+# Elasticsearch as the search index, instead of Solr.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml up --build
+#
+# The index service writes search documents to an Elasticsearch index and the discovery service
+# searches it (articulorium.index.backend and articulorium.discovery.index.backend, see README.md,
+# "Search index"). Without this file the stack uses Solr. Solr and ZooKeeper still start (the base
+# file's services depend on them) but are not used.
+#
+# Elasticsearch runs as a single node without security, for development and the end-to-end tests
+# only. A real cluster asks for credentials: give the services an API key
+# (ARTICULORIUM_ELASTICSEARCH_API_KEY, ARTICULORIUM_DISCOVERY_ELASTICSEARCH_API_KEY) or a user and
+# password (..._USERNAME, ..._PASSWORD), and an https base URL.
+#
+# The Cypress tests run against this stack too:
+#   docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml --profile e2e run --rm e2e
+
+services:
+
+  index:
+    environment:
+      ARTICULORIUM_INDEX_BACKEND: elasticsearch
+      ARTICULORIUM_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
+      # a single node has nowhere to put replicas
+      ARTICULORIUM_ELASTICSEARCH_NUMBER_OF_REPLICAS: "0"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  discovery:
+    environment:
+      ARTICULORIUM_DISCOVERY_INDEX_BACKEND: elasticsearch
+      ARTICULORIUM_DISCOVERY_ELASTICSEARCH_BASE_URL: http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  e2e:
+    environment:
+      # the indexing pipeline spec reads the search index directly
+      E2E_INDEX_BACKEND: elasticsearch
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.6
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - cloud
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' > /dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+
+volumes:
+  elasticsearch-data:

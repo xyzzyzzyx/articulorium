@@ -21,16 +21,27 @@ same as in a browser on the host, waits for the user interface, the platform and
 | `E2E_BROWSER` | `chrome` | browser for `cypress run`: `chrome`, `firefox` or `electron`         |
 | `E2E_VIDEO`   | `false`  | `true` records what the browser shows to `cypress/videos`           |
 | `E2E_ARGS`    |          | extra `cypress run` arguments, e.g. `--spec cypress/e2e/search.cy.ts` |
+| `E2E_INDEX_BACKEND` | `solr` | the search index the stack runs with: `solr` or `elasticsearch` (set by `docker-compose.elasticsearch.yml`) |
 
 ```bash
 E2E_ARGS="--spec cypress/e2e/versions.cy.ts" docker compose --profile e2e run --rm e2e
+```
+
+With Elasticsearch as the search index (the indexing spec then reads Elasticsearch instead of
+Solr; the compose file sets `E2E_INDEX_BACKEND=elasticsearch`):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml up --build -d --wait
+docker compose -f docker-compose.yml -f docker-compose.elasticsearch.yml --profile e2e run --rm e2e
 ```
 
 Screenshots of failing tests land in `cypress/screenshots`. GitHub Actions runs the suite in the
 `compose` job after starting the stack and uploads those screenshots when it fails.
 
 Running Cypress on the host instead (with the stack up): `npm ci`, then `npm test`, or `npm run
-open` for the interactive runner. `CYPRESS_BASE_URL` points the tests elsewhere.
+open` for the interactive runner. `CYPRESS_BASE_URL` points the tests elsewhere; add `-- --expose
+indexBackend=elasticsearch` to `npm test` when the stack runs with Elasticsearch (the indexing spec
+also needs the compose service names `solr`, `elasticsearch` and `qlever` to resolve).
 
 ## Specs
 
@@ -52,7 +63,7 @@ open` for the interactive runner. `CYPRESS_BASE_URL` points the tests elsewhere.
 | `topologies.cy.ts`  | built-in topologies, duplicating, editing and deleting a custom one, building from the topology aside |
 | `notifications.cy.ts` | COAR Notify inbox listing and details, sending with recorded delivery failures, invalid notifications |
 | `iiif.cy.ts`        | IIIF Manifest of a book (image uploaded through the topology aside) and Collection of the communities |
-| `indexing.cy.ts`    | the event pipeline: LDP changes reach Solr (created, updated, removed search documents) and QLever (named graphs created and dropped), read directly on the compose network |
+| `indexing.cy.ts`    | the event pipeline: LDP changes reach the search index (created, updated, removed search documents in Solr, or in Elasticsearch with `docker-compose.elasticsearch.yml`) and QLever (named graphs created and dropped), read directly on the compose network |
 | `oai.cy.ts`         | OAI-PMH through the gateway: Identify, a book built in a collection harvested as Dublin Core with its community and collection as sets (pages excluded), resumption tokens, protocol errors |
 
 Each test creates its own uniquely named resources through the LDP API, so the suite runs

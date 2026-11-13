@@ -8,6 +8,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.articulorium.discovery.config.DiscoveryProperties;
+import com.articulorium.discovery.index.IndexUnavailableException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,7 +70,7 @@ class SolrSearchClientTest {
         solr.expect(requestTo("http://solr.test/solr/articulorium/select")).andRespond(withServerError().body("secret trace"));
 
         assertThatThrownBy(() -> client.select(new LinkedMultiValueMap<>()))
-            .isInstanceOf(SolrUnavailableException.class)
+            .isInstanceOf(IndexUnavailableException.class)
             .hasMessage("The search index is unavailable");
     }
 

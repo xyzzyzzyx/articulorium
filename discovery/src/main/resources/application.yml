@@ -19,9 +19,26 @@ articulorium:
     platform-public-url: ../platform/
     transform-public-url: ../transform/
 
+    index:
+      # the search index that is read: solr or elasticsearch, the one the index service writes
+      # (articulorium.index.backend). The settings below (fields, facets, filters, sort orders)
+      # are the same for both. See README.md, "Search index".
+      backend: solr
+
     solr:
       base-url: http://solr:8983/solr
       collection: articulorium
+
+    # used with index.backend: elasticsearch
+    elasticsearch:
+      base-url: http://elasticsearch:9200
+      index: articulorium
+      # credentials, when the cluster asks for them: an API key (the Base64 "encoded" value; read
+      # access to the index is enough), or a user and password (set them with
+      # ARTICULORIUM_DISCOVERY_ELASTICSEARCH_API_KEY or ..._USERNAME and ..._PASSWORD)
+      # api-key:
+      # username:
+      # password:
 
     access:
       # every hit and every resource page is checked against the platform's Web Access Control

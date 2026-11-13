@@ -8,13 +8,12 @@ import java.util.Map;
 import com.articulorium.discovery.access.AccessVerifier;
 import com.articulorium.discovery.config.DiscoveryProperties;
 import com.articulorium.discovery.config.PublicUrls;
-import com.articulorium.discovery.solr.SolrSearchClient;
+import com.articulorium.discovery.index.IndexQuery;
+import com.articulorium.discovery.index.SearchIndex;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -24,10 +23,10 @@ import tools.jackson.databind.JsonNode;
 @Service
 public class SitemapService {
 
-    /** Documents read from Solr per request. */
+    /** Documents read from the search index per request. */
     static final int BATCH = 500;
 
-    private final SolrSearchClient solr;
+    private final SearchIndex index;
 
     private final AccessVerifier access;
 
@@ -40,15 +39,15 @@ public class SitemapService {
     /**
      * Creates the service.
      *
-     * @param solr       the Solr client
+     * @param index      the search index
      * @param access     the access checks
      * @param urls       the public addresses
      * @param properties the settings
      * @param search     the search (its base filters)
      */
-    public SitemapService(final SolrSearchClient solr, final AccessVerifier access, final PublicUrls urls,
+    public SitemapService(final SearchIndex index, final AccessVerifier access, final PublicUrls urls,
             final DiscoveryProperties properties, final SearchService search) {
-        this.solr = solr;
+        this.index = index;
         this.access = access;
         this.urls = urls;
         this.properties = properties;
@@ -71,15 +70,10 @@ public class SitemapService {
         final int limit = Math.max(0, seo.getSitemapLimit());
         int start = 0;
         while (entries.size() < limit) {
-            final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("q", "*:*");
-            search.baseFilters().forEach(filter -> params.add("fq", filter));
-            params.add("fl", "id," + modified);
-            params.add("sort", modified + " desc, id asc");
-            params.add("start", Integer.toString(start));
-            params.add("rows", Integer.toString(BATCH));
-            final JsonNode docs = solr.select(params).path("response").path("docs");
-            if (!docs.isArray() || docs.isEmpty()) {
+            final List<JsonNode> docs = index.search(new IndexQuery(null, null,
+                search.baseFilters().stream().<IndexQuery.Filter>map(IndexQuery.Raw::new).toList(),
+                List.of(IndexQuery.ID_FIELD, modified), start, BATCH, modified + " desc", List.of())).documents();
+            if (docs.isEmpty()) {
                 break;
             }
             final Map<String, String> batch = new LinkedHashMap<>();

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Index module: keeps a Solr collection in sync with the platform.
+  Index module: keeps a search index in sync with the platform: a Solr collection (the default)
+  or an Elasticsearch index (articulorium.index.backend).
 
   Consumes DocumentEvents produced by the transform service and adds, replaces or deletes the
-  corresponding Solr documents through Solr's JSON update API.
+  corresponding documents through the backend's JSON APIs.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -21,7 +22,7 @@
   <packaging>jar</packaging>
 
   <name>Articulorium Index Module</name>
-  <description>Solr indexing of transformed LDP resources.</description>
+  <description>Solr or Elasticsearch indexing of transformed LDP resources.</description>
 
   <dependencies>
 

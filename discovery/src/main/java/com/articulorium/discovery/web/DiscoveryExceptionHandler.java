@@ -2,8 +2,8 @@ package com.articulorium.discovery.web;
 
 import java.util.Locale;
 
+import com.articulorium.discovery.index.IndexUnavailableException;
 import com.articulorium.discovery.search.NotFoundException;
-import com.articulorium.discovery.solr.SolrUnavailableException;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -17,7 +17,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 /**
  * Renders refusals of the discovery API as RFC 9457 problem documents. Details are diagnostics in
  * English ({@code Content-Language: en}); the user interface shows its own translated text for the
- * status. Nothing of Solr's or the platform's own answers is passed on.
+ * status. Nothing of the search index's or the platform's own answers is passed on.
  */
 @RestControllerAdvice(assignableTypes = DiscoveryApiController.class)
 public class DiscoveryExceptionHandler {
@@ -55,8 +55,8 @@ public class DiscoveryExceptionHandler {
      * @param e the exception
      * @return 503
      */
-    @ExceptionHandler(SolrUnavailableException.class)
-    public ResponseEntity<ProblemDetail> unavailable(final SolrUnavailableException e) {
+    @ExceptionHandler(IndexUnavailableException.class)
+    public ResponseEntity<ProblemDetail> unavailable(final IndexUnavailableException e) {
         return respond(HttpStatus.SERVICE_UNAVAILABLE, e.getMessage());
     }
 

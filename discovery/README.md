@@ -2,8 +2,8 @@
 
 The API of the public discovery and presentation layer ([discovery-ui](../discovery-ui/README.md)).
 It serves the deployment's configuration (identity, theme, layouts, viewer, facets, filters, sort
-orders, search engine directives, locales), searches the Solr collection the index service keeps in
-sync, describes single resources for their pages, and lists the public resources for sitemaps. It
+orders, search engine directives, locales), searches the search index the index service keeps in
+sync (a Solr collection, or an Elasticsearch index), describes single resources for their pages, and lists the public resources for sitemaps. It
 holds no state of its own.
 
 The gateway serves it under `/discover/api/` (its OpenAPI description is `/discover/api/docs`,
@@ -51,7 +51,10 @@ link stops the service with a list of problems.
 | `platform-url`, `transform-url`, `load-balanced` | Consul service names | where this service reads the platform (access checks) and the transform service (IIIF summaries) |
 | `platform-public-url`, `transform-public-url` | `../platform/`, `../transform/` | the services as visitors reach them, relative to `public-url`; Solr documents are identified by these public IRIs |
 | `platform-iri-bases` | (none) | further addresses under which indexed resources may be identified. The platform mints IRIs from the address of the request that wrote a resource: through the gateway the public one, from services that reach it directly (topology, harvest) `platform-url`, which is always recognized |
+| `index.backend` | `solr` | the search index that is read: `solr` or `elasticsearch`, the one the index service writes ([Search index](../README.md#search-index-solr-or-elasticsearch)) |
 | `solr.base-url`, `solr.collection` | `http://solr:8983/solr`, `articulorium` | the collection the index service writes |
+| `elasticsearch.base-url`, `elasticsearch.index` | `http://elasticsearch:9200`, `articulorium` | the index the index service writes, with `index.backend: elasticsearch` |
+| `elasticsearch.api-key`, or `elasticsearch.username` and `elasticsearch.password` | (none) | credentials, when the cluster asks for them (read access to the index is enough) |
 | `access.verify`, `access.anonymous-cache-seconds`, `access.parallelism` | `true`, `60`, `8` | access checks (turn off only when the collection holds nothing but public resources) |
 | `iiif.enabled`, `iiif.cache-seconds` | `true`, `300` | IIIF summaries of resource pages (preview image, kinds of media) |
 
@@ -200,8 +203,14 @@ for anything beyond tokens; the built-in components use `disc-*` classes and `--
 
 The base filters keep pages of books and other nested objects out (the topology service builds
 them in `members` containers); remove the second one to list them too. Search terms are read by
-Solr's `edismax` parser with field queries turned off (`uf=-*`); facet values are always quoted and
-filters and sort orders are chosen by identifier, so visitors cannot address other fields.
+Solr's `edismax` parser with field queries turned off (`uf=-*`), or by Elasticsearch's
+`simple_query_string` query, which has no field syntax; facet values are always passed as values
+and filters and sort orders are chosen by identifier, so visitors cannot address other fields.
+
+These settings are the same whether the index is Solr or Elasticsearch (`index.backend`): fields
+have the same names in both, and base filters, filter queries and boost queries are Lucene query
+syntax both read. Do not use Solr local parameters (`{!...}`) in them if the deployment may run on
+Elasticsearch. See [Search index](../README.md#search-index-solr-or-elasticsearch) for what differs.
 
 Facets on `topology_str` and preview images (`thumbnail`) need the transform service's
 `topology` and `thumbnail` field mappings (shipped).
@@ -211,7 +220,9 @@ and sorting or range faceting on a field that does not exist yet fails (`sort pa
 found`). The index service therefore declares `created`, `lastModified` (`pdate`) and `date`
 (`pdates`) on every start when they are missing (`articulorium.solr.fields`); `*_str` fields are
 dynamic fields of the config set and always exist. Fields your own facets or sorts use that are not
-in this list must be declared there too.
+in this list must be declared there too. With Elasticsearch, the same fields are declared as `date`
+(`articulorium.elasticsearch.fields`): a missing field is not an error there, but a year facet and
+a chronological sort need a date field.
 
 ### Search engines
 
@@ -234,6 +245,10 @@ java -jar discovery/target/discovery-1.0.0-SNAPSHOT.jar --spring.cloud.consul.en
   --articulorium.discovery.solr.base-url=http://localhost:8983/solr
 ```
 
-Tests mock Solr, the platform and the transform service with `MockRestServiceServer`; the
+Add `--articulorium.discovery.index.backend=elasticsearch
+--articulorium.discovery.elasticsearch.base-url=http://localhost:9200` to search Elasticsearch.
+
+Tests mock Solr, Elasticsearch, the platform and the transform service with `MockRestServiceServer`
+(the search tests run the same searches against both and expect the same results); the
 controller test starts the application with the shipped settings, so a setting that does not
 validate fails the build.

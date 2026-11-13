@@ -1,6 +1,11 @@
-# Articulorium index: Solr synchronisation of transformed resources.
+# Articulorium index: search index (Solr or Elasticsearch) synchronisation of transformed resources.
 
 articulorium:
+  index:
+    # the search index documents are written to: solr or elasticsearch. The discovery service must
+    # read the same one (articulorium.discovery.index.backend). See README.md, "Search index".
+    backend: solr
+
   solr:
     base-url: http://solr:8983/solr
     collection: articulorium
@@ -14,6 +19,27 @@ articulorium:
       created: pdate
       "[lastModified]": pdate
       date: pdates
+
+  # used with articulorium.index.backend: elasticsearch
+  elasticsearch:
+    base-url: http://elasticsearch:9200
+    index: articulorium
+    # credentials, when the cluster asks for them: an API key (the Base64 "encoded" value), or a
+    # user and password (set them with ARTICULORIUM_ELASTICSEARCH_API_KEY or ..._USERNAME and
+    # ..._PASSWORD rather than in a file)
+    # api-key:
+    # username:
+    # password:
+    # of an index created on start-up (number-of-replicas: 0 on a single node)
+    number-of-shards: 1
+    number-of-replicas: 1
+    refresh-interval: 1s
+    # declared on start-up when missing: every other field is mapped as text when its first
+    # document is indexed, and the discovery layer sorts on these and builds year facets from them
+    fields:
+      created: date
+      "[lastModified]": date
+      date: date
 
 logging:
   level:
@@ -41,7 +67,7 @@ management:
 info:
   application:
     name: ${spring.application.name}
-    description: Solr indexing of search documents
+    description: Indexing of search documents in Solr or Elasticsearch
 
 server:
   port: 9000
