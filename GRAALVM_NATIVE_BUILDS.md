@@ -68,6 +68,7 @@ are built with:
 | `articulorium.harvest.classification.enabled` (harvest) | `true` | `ARTICULORIUM_HARVEST_CLASSIFICATION_ENABLED=false` in the build environment |
 | `articulorium.storage.type` (platform) | `s3` | `ARTICULORIUM_STORAGE_TYPE=filesystem` in the build environment |
 | `articulorium.*.load-balanced` | `true` | the matching environment variable in the build environment |
+| `spring.cloud.loadbalancer.eager-load.clients` (every service with load-balanced clients) | the `articulorium-*` services of the compose stack | edit the service's `application-native.yml`: a load-balanced URL (gateway `lb://` route, `articulorium.*.*-url`) may only name a service listed there |
 
 Settings that are read by beans (URLs, credentials, limits, `articulorium.ai.enabled`, the root ACL
 location, `articulorium.webac.oidc.*` and `articulorium.webac.consul.*`) work at run time as on the

@@ -2,13 +2,20 @@ package com.articulorium.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
+import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.io.ClassPathResource;
 
 /**
  * Verifies that the gateway starts without Consul and exposes the configured routes.
@@ -90,6 +97,31 @@ class GatewayApplicationTest {
         assertThat(routes).filteredOn(route -> route.getId().equals("articulorium-service"))
             .singleElement()
             .satisfies(route -> assertThat(route.getUri().toString()).isEqualTo("lb://articulorium-service"));
+    }
+
+    /**
+     * In a native image the load balancer only has the child contexts AOT prepared at build time:
+     * a routed service missing from the native profile's eager-load list answers 500.
+     */
+    @Test
+    void nativeImageKnowsEveryLoadBalancedService() throws IOException {
+        final MutablePropertySources sources = new MutablePropertySources();
+        new YamlPropertySourceLoader().load("native", new ClassPathResource("application-native.yml"))
+            .forEach(sources::addLast);
+        final List<String> clients = new Binder(ConfigurationPropertySources.from(sources))
+            .bind("spring.cloud.loadbalancer.eager-load.clients", Bindable.listOf(String.class))
+            .orElse(List.of());
+
+        final List<String> routed = routeLocator.getRoutes()
+            .map(Route::getUri)
+            .filter(uri -> "lb".equals(uri.getScheme()))
+            .map(uri -> uri.getHost())
+            .distinct()
+            .collectList()
+            .block();
+
+        assertThat(routed).isNotEmpty();
+        assertThat(clients).containsExactlyInAnyOrderElementsOf(routed);
     }
 
 }

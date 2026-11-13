@@ -4,6 +4,14 @@ spring:
   cloud:
     refresh:
       enabled: false
+    # Spring Cloud LoadBalancer keeps one child context per service id. AOT can only prepare the
+    # contexts it knows of while the image is built: any other id fails on its first request
+    # ("GenericApplicationContext must be an instance of AnnotationConfigRegistry"). List every
+    # Consul service the service calls (articulorium.topology.platform-url).
+    loadbalancer:
+      eager-load:
+        clients:
+          - articulorium-platform
     consul:
       config:
         watch:
