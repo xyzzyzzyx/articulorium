@@ -41,7 +41,8 @@ import tools.jackson.databind.json.JsonMapper;
  * they are registered for reflection here: without the hint a GraalVM native harvester finds no
  * serializer for the request and classifies nothing.</p>
  */
-@RegisterReflectionForBinding({AgentClient.Request.class, Suggestion.class})
+@RegisterReflectionForBinding({AgentClient.Request.class, Suggestion.class, AgentClient.TopologyRequest.class,
+    TopologyProposal.class})
 public class AgentClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(AgentClient.class);
@@ -94,9 +95,35 @@ public class AgentClient {
      * @throws AgentUnavailableException when the agent cannot classify it (the reason says why)
      */
     public Suggestion classify(final String context, final String source, final HarvestedRecord record) {
-        final Request request = request(context, source, record);
+        final Suggestion suggestion = ask("classifications", request(context, source, record), Suggestion.class,
+            "classify " + record.identifier() + " of " + source);
+        if (suggestion == null || suggestion.placement() == null) {
+            throw new AgentUnavailableException("INVALID_OUTPUT", "The agent answered no classification");
+        }
+        return suggestion;
+    }
+
+    /**
+     * Asks the agent for the topology of some material ({@code POST /topology-suggestions}): an
+     * existing topology, or the draft of a new one. Nothing is saved by the agent.
+     *
+     * @param context     the container the caller ingests into (the caller needs write access to it)
+     * @param description the material
+     * @return the agent's suggestion
+     * @throws AgentUnavailableException when the agent cannot suggest one (the reason says why)
+     */
+    public TopologyProposal suggestTopology(final String context, final String description) {
+        final TopologyProposal proposal = ask("topology-suggestions", new TopologyRequest(description, null, context),
+            TopologyProposal.class, "suggest a topology for /" + context);
+        if (proposal == null || proposal.recommendation() == null) {
+            throw new AgentUnavailableException("INVALID_OUTPUT", "The agent answered no topology");
+        }
+        return proposal;
+    }
+
+    private <T> T ask(final String path, final Object body, final Class<T> type, final String what) {
         try {
-            final Suggestion suggestion = client.post().uri(URI.create(base + "classifications"))
+            return client.post().uri(URI.create(base + path))
                 .headers(headers -> {
                     final String value = authorization.header();
                     if (StringUtils.hasText(value)) {
@@ -105,28 +132,21 @@ public class AgentClient {
                 })
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)
-                .body(request)
+                .body(body)
                 .retrieve()
-                .body(Suggestion.class);
-            if (suggestion == null || suggestion.placement() == null) {
-                throw new AgentUnavailableException("INVALID_OUTPUT", "The agent answered no classification");
-            }
-            return suggestion;
+                .body(type);
         } catch (RestClientResponseException e) {
             final String reason = reason(e);
-            LOG.warn("The AI agent answered {} ({}) to classifying {} of {}", e.getStatusCode().value(), reason,
-                record.identifier(), source);
+            LOG.warn("The AI agent answered {} ({}) when asked to {}", e.getStatusCode().value(), reason, what);
             throw new AgentUnavailableException(reason, "The AI agent answered " + e.getStatusCode().value(), e);
         } catch (ResourceAccessException e) {
-            LOG.warn("The AI agent cannot be reached to classify {} of {}: {}", record.identifier(), source,
-                e.getMessage());
+            LOG.warn("The AI agent cannot be reached to {}: {}", what, e.getMessage());
             throw new AgentUnavailableException("AGENT_UNAVAILABLE", "The AI agent cannot be reached", e);
         } catch (RestClientException e) {
             throw new AgentUnavailableException("INVALID_OUTPUT", "The AI agent answered unreadably: " + e.getMessage(), e);
         } catch (IllegalStateException e) {
             // the load balancer knows no instance of the agent (not deployed, or not registered yet)
-            LOG.warn("The AI agent is not available to classify {} of {}: {}", record.identifier(), source,
-                e.getMessage());
+            LOG.warn("The AI agent is not available to {}: {}", what, e.getMessage());
             throw new AgentUnavailableException("AGENT_UNAVAILABLE", "The AI agent is not available: " + e.getMessage(),
                 e);
         }
@@ -223,6 +243,16 @@ public class AgentClient {
     record Request(String context, String source, String identifier, List<String> titles, List<String> descriptions,
             List<String> subjects, List<String> creators, List<String> dates, List<String> genres, List<String> types,
             List<String> sets, List<String> mediaTypes) {
+    }
+
+    /**
+     * The agent's topology request.
+     *
+     * @param description the material
+     * @param sample      a sample container, none for harvested records
+     * @param context     the container the caller ingests into
+     */
+    record TopologyRequest(String description, String sample, String context) {
     }
 
     /** The agent could not classify a record. */

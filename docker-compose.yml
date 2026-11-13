@@ -36,7 +36,9 @@
 #                                     records harvested from other repositories (harvest service;
 #                                     run harvests from the UI's Harvest page, see harvest/README.md).
 #                                     The arxiv source (arXiv cs.DL by default, ARXIV_SET) harvests
-#                                     on start: the last 7 days first, then incrementally every day
+#                                     on start (the last 7 days first, ARXIV_INITIAL_WINDOW), then
+#                                     incrementally every night (ARXIV_SCHEDULE, a cron expression
+#                                     in UTC; empty for on demand only)
 #   http://localhost:8000/harvest/sources
 #                                     harvest API of the user interface
 #   http://localhost:8000/ai/capabilities
@@ -44,9 +46,10 @@
 #                                     ai/README.md): topology, metadata and topic suggestions in the
 #                                     UI, and the classification of harvested records. The model is
 #                                     pulled on first start (several GB, ARTICULORIUM_AI_MODEL).
-#                                     Classified records are placed in the community structure at
-#                                     once, creating the proposed collections and communities
-#                                     (ARTICULORIUM_HARVEST_AUTO_ACCEPT=false: they wait for review
+#                                     Classified arXiv records are placed in the community
+#                                     structure at once, creating the communities, collections and
+#                                     topologies the agent proposes (ARXIV_AUTO_ACCEPT=false or
+#                                     ARTICULORIUM_HARVEST_AUTO_ACCEPT=false: they wait for review
 #                                     on the Harvest page; ARTICULORIUM_HARVEST_CLASSIFICATION=false:
 #                                     no classification)
 #
@@ -269,13 +272,25 @@ services:
       # default root ACL lets anyone write, so none are needed locally
       HARVEST_PLATFORM_AUTHORIZATION: ${HARVEST_PLATFORM_AUTHORIZATION:-}
       # classification of harvested records by the AI agent: the agent suggests the collection
-      # and topology of every new record. With auto-accept the record is placed there at once
-      # (proposed collections and communities are created); otherwise, and for suggestions of a new
-      # topology or no placement, it waits in the Harvest page's review queue. An optional
+      # and topology of every new record. With auto-accept the record is placed there at once,
+      # and what the agent proposes is created: communities, collections and topologies (the agent
+      # drafts a proposed topology, the topology API validates and saves it). Each kind can be
+      # left for review instead (ARTICULORIUM_HARVEST_CREATE_COMMUNITIES, _COLLECTIONS,
+      # _TOPOLOGIES=false). Without auto-accept, and for suggestions of no placement, the record
+      # waits in the Harvest page's review queue. An optional
       # ARTICULORIUM_HARVEST_CLASSIFICATION_AUTO_ACCEPT_THRESHOLD (0 to 1) accepts only suggestions
       # at least that sure.
+      # auto-accept here is the default of sources that do not decide for themselves
+      # ("auto-accept" of a source); the arxiv source below turns it on for its records.
       ARTICULORIUM_HARVEST_CLASSIFICATION_ENABLED: ${ARTICULORIUM_HARVEST_CLASSIFICATION:-true}
       ARTICULORIUM_HARVEST_CLASSIFICATION_AUTO_ACCEPT: ${ARTICULORIUM_HARVEST_AUTO_ACCEPT:-false}
+      ARTICULORIUM_HARVEST_CLASSIFICATION_CREATE_COMMUNITIES: ${ARTICULORIUM_HARVEST_CREATE_COMMUNITIES:-true}
+      ARTICULORIUM_HARVEST_CLASSIFICATION_CREATE_COLLECTIONS: ${ARTICULORIUM_HARVEST_CREATE_COLLECTIONS:-true}
+      ARTICULORIUM_HARVEST_CLASSIFICATION_CREATE_TOPOLOGIES: ${ARTICULORIUM_HARVEST_CREATE_TOPOLOGIES:-true}
+      # arxiv: harvested incrementally every night (ARXIV_SCHEDULE: cron with seconds, UTC; empty
+      # for on demand only) and when the service starts (ARXIV_HARVEST_ON_STARTUP), the first time
+      # reaching back ARXIV_INITIAL_WINDOW. Its records are accepted automatically (ARXIV_AUTO_ACCEPT,
+      # or ARTICULORIUM_HARVEST_AUTO_ACCEPT=false to review everything).
       # Sources (add more here or in Consul, config/harvest/articulorium/harvest/sources/...):
       SPRING_APPLICATION_JSON: >-
         {
@@ -285,6 +300,10 @@ services:
                 "arxiv": {
                   "type": "oai-pmh",
                   "url": "https://oaipmh.arxiv.org/oai",
+                  "schedule": "${ARXIV_SCHEDULE-0 30 4 * * *}",
+                  "harvest-on-startup": "${ARXIV_HARVEST_ON_STARTUP:-true}",
+                  "initial-window": "${ARXIV_INITIAL_WINDOW:-P7D}",
+                  "auto-accept": "${ARXIV_AUTO_ACCEPT:-${ARTICULORIUM_HARVEST_AUTO_ACCEPT:-true}}",
                   "options": {
                     "set": "${ARXIV_SET:-cs:cs:DL}"
                   }

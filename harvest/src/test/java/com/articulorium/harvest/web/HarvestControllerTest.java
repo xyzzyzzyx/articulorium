@@ -221,7 +221,9 @@ class HarvestControllerTest {
     void servesNoReviewQueueWithoutClassification() {
         when(harvests.statuses()).thenReturn(List.of(REPO));
 
-        assertThat(client.get().retrieve().body(JsonNode.class).path("classification").asBoolean()).isFalse();
+        final JsonNode sources = client.get().retrieve().body(JsonNode.class);
+        assertThat(sources.path("classification").asBoolean()).isFalse();
+        assertThat(sources.path("autoAccepted").isEmpty()).isTrue();
         final ResponseEntity<JsonNode> queue = RestClient.builder().baseUrl("http://localhost:" + port)
             .defaultStatusHandler(HttpStatusCode::isError, (request, response) -> { }).build()
             .get().uri("/classifications").retrieve().toEntity(JsonNode.class);

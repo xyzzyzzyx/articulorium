@@ -8,7 +8,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * Where a harvested record belongs, as the agent suggests it: an existing collection, a new
  * collection in an existing community, a new community with a new collection, or nowhere it can
  * tell; and the topology its item follows. Proposals of new communities, collections and
- * topologies are only suggestions: they are created when a person accepts them.
+ * topologies are only suggestions: the caller creates them, when a person accepts them or (the
+ * harvest service's automatic acceptance) at once.
  *
  * @param placement    where the record goes
  * @param collection   the existing collection ({@link Placement#EXISTING_COLLECTION})

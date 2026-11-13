@@ -33,7 +33,10 @@ articulorium:
     #     arxiv:
     #       type: oai-pmh                 # oai-pmh | dspace | fedora | vivo
     #       url: https://oaipmh.arxiv.org/oai
-    #       schedule: "0 30 2 * * *"      # incremental harvests; on demand only when empty
+    #       schedule: "0 30 4 * * *"      # incremental harvests; on demand only when empty
+    #       harvest-on-startup: true
+    #       initial-window: P7D           # the first harvest reads the last week only
+    #       auto-accept: true             # place classified records at once (classification.enabled)
     #       page-size: 100
     #       options:
     #         set: cs

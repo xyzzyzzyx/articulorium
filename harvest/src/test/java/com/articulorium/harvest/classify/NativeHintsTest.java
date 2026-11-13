@@ -28,7 +28,8 @@ class NativeHintsTest {
         new ReflectiveRuntimeHintsRegistrar().registerRuntimeHints(hints, AgentClient.class);
 
         assertThat(List.of(AgentClient.Request.class, Suggestion.class, Suggestion.Ref.class,
-            Suggestion.NewStructure.class, Suggestion.Topology.class, Suggestion.Alternative.class))
+            Suggestion.NewStructure.class, Suggestion.Topology.class, Suggestion.Alternative.class,
+            AgentClient.TopologyRequest.class, TopologyProposal.class, TopologyProposal.Existing.class))
             .allSatisfy(type -> assertThat(RuntimeHintsPredicates.reflection().onType(type)).as(type.getName())
                 .accepts(hints));
         assertThat(RuntimeHintsPredicates.reflection().onMethodInvocation(AgentClient.Request.class, "titles"))

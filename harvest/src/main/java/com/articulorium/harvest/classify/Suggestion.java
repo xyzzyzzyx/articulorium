@@ -49,6 +49,17 @@ public record Suggestion(String placement, Ref collection, Ref community, NewStr
     }
 
     /**
+     * Returns this suggestion with another topology (the one created for a proposed topology).
+     *
+     * @param chosen the topology
+     * @return the suggestion
+     */
+    public Suggestion withTopology(final Topology chosen) {
+        return new Suggestion(placement, collection, community, newCommunity, newCollection, chosen, confidence,
+            rationale, alternatives, model);
+    }
+
+    /**
      * An existing community or collection.
      *
      * @param path  its path

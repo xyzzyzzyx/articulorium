@@ -19,6 +19,9 @@ import com.articulorium.harvest.ingest.PlatformClient;
 import com.articulorium.harvest.ingest.PlatformIngestor;
 import com.articulorium.harvest.ingest.RecordPaths;
 
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
@@ -54,6 +57,12 @@ class ClassificationTest {
 
     private final Deque<Object> answers = new ArrayDeque<>();
 
+    /** What the agent answers when asked for a topology. */
+    private final Deque<Object> proposals = new ArrayDeque<>();
+
+    /** The materials the agent was asked a topology for. */
+    private final List<String> described = new java.util.ArrayList<>();
+
     private final SimpleMeterRegistry meters = new SimpleMeterRegistry();
 
     private final RecordPaths paths = PATHS;
@@ -78,6 +87,16 @@ class ClassificationTest {
             return (Suggestion) next;
         }
 
+        @Override
+        public TopologyProposal suggestTopology(final String context, final String description) {
+            described.add(description);
+            final Object next = proposals.poll();
+            if (next instanceof RuntimeException e) {
+                throw e;
+            }
+            return (TopologyProposal) next;
+        }
+
     };
 
     @BeforeEach
@@ -95,7 +114,8 @@ class ClassificationTest {
         final RecordPlacer placer = new RecordPlacer(store, platform.topologies(), clock);
         ingestor = new ClassifyingIngestor(new PlatformIngestor(harvester, paths, clock), harvester,
             com.articulorium.harvest.ingest.PlatformAuthorization.fixed("Bearer harvester"), paths, store, agent, placer,
-            properties.getClassification(), source -> properties.getSources().get(source).isClassify(), clock, meters);
+            new TopologyProposer(agent, platform.topologies(), meters), properties.getClassification(),
+            source -> SourcePolicy.of(properties, source), clock, meters);
         reviews = new ReviewService(harvester, paths, store, placer, ingestor, properties, clock);
         platform.put("harvested", "<> <" + DCTERMS + "title> \"Harvested\" .\n")
             .put("harvested/repo", "<> <" + DCTERMS + "title> \"repo\" .\n")
@@ -118,6 +138,14 @@ class ClassificationTest {
         subject.addProperty(model.createProperty(DCTERMS + "subject"), "Quantum dots");
         return new HarvestedRecord(identifier, identifier, null, false, List.of("theses"), model,
             List.of(new HarvestedFile(java.net.URI.create("https://repo.test/1.pdf"), "1.pdf", "application/pdf", 10L)));
+    }
+
+    private boolean auto(final Suggestion suggestion) {
+        return ingestor.autoAccept(SourcePolicy.of(properties, "repo"), suggestion);
+    }
+
+    private static JsonNode json(final String document) {
+        return JsonMapper.builder().build().readTree(document);
     }
 
     private String title(final String path) {
@@ -176,7 +204,8 @@ class ClassificationTest {
                 public void write(final PlatformClient client, final Classification classification) {
                     throw com.articulorium.harvest.core.HarvestException.recoverable("platform down", null);
                 }
-            }, agent, null, properties.getClassification(), source -> true, FakePlatform.clock(), meters);
+            }, agent, null, null, properties.getClassification(), source -> SourcePolicy.of(properties, source),
+            FakePlatform.clock(), meters);
 
         assertThat(failing.ingest("repo", record("Quantum dots"))).isEqualTo(IngestAction.CREATED);
         assertThat(meters.counter("harvest.classifications", "source", "repo", "outcome", "unrecorded").count())
@@ -388,33 +417,304 @@ class ClassificationTest {
     }
 
     @Test
-    void neverAcceptsUncertainSuggestionsNewTopologiesOrNoPlacementAutomatically() {
+    void neverAcceptsUncertainSuggestionsOrNoPlacementAutomatically() {
         properties.getClassification().setAutoAccept(true);
         properties.getClassification().setAutoAcceptThreshold(0.9);
         final Suggestion.NewStructure proposed = new Suggestion.NewStructure("Data", null, null);
         final Suggestion.Ref science = new Suggestion.Ref("communities/science", "Science", "Science");
 
-        assertThat(ingestor.autoAccept(SUGGESTION)).isTrue();
-        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
+        assertThat(auto(SUGGESTION)).isTrue();
+        assertThat(auto(new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
             null, null, null, 0.89, null, null, null))).isFalse();
-        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
-            null, null, new Suggestion.Topology("NEW", null, "x", null), 0.99, null, null, null))).isFalse();
-        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.NEW_COLLECTION, null, science, null, proposed, null,
+        assertThat(auto(new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
+            null, null, new Suggestion.Topology("NEW", null, "x", null), 0.99, null, null, null))).isTrue();
+        assertThat(auto(new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
+            null, null, new Suggestion.Topology("NEW", null, " ", null), 0.99, null, null, null)))
+            .as("a new topology needs a name").isFalse();
+        assertThat(auto(new Suggestion(Suggestion.NEW_COLLECTION, null, science, null, proposed, null,
             0.99, null, null, null))).isTrue();
-        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.NEW_COLLECTION, null, null, null, proposed, null,
+        assertThat(auto(new Suggestion(Suggestion.NEW_COLLECTION, null, null, null, proposed, null,
             0.99, null, null, null))).as("a new collection needs its community").isFalse();
-        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.NEW_COMMUNITY, null, null, proposed, proposed, null,
+        assertThat(auto(new Suggestion(Suggestion.NEW_COMMUNITY, null, null, proposed, proposed, null,
             0.99, null, null, null))).isTrue();
-        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.NONE, null, null, null, null, null, 0.99, null, null,
+        assertThat(auto(new Suggestion(Suggestion.NONE, null, null, null, null, null, 0.99, null, null,
             null))).isFalse();
-        assertThat(ingestor.autoAccept(null)).isFalse();
+        assertThat(auto(null)).isFalse();
 
         // without a threshold any confidence will do; turned off, nothing is accepted automatically
         properties.getClassification().setAutoAcceptThreshold(null);
-        assertThat(ingestor.autoAccept(new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
+        assertThat(auto(new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
             null, null, null, 0.1, null, null, null))).isTrue();
         properties.getClassification().setAutoAccept(false);
-        assertThat(ingestor.autoAccept(SUGGESTION)).isFalse();
+        assertThat(auto(SUGGESTION)).isFalse();
+    }
+
+    @Test
+    void createsOnlyTheStructureTheSettingsAllow() {
+        properties.getClassification().setAutoAccept(true);
+        final Suggestion.NewStructure proposed = new Suggestion.NewStructure("Data", null, null);
+        final Suggestion.Ref science = new Suggestion.Ref("communities/science", "Science", "Science");
+        final Suggestion newTopology = new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null,
+            null, null, new Suggestion.Topology("NEW", null, "Preprint", null), 0.99, null, null, null);
+        final Suggestion newCollection = new Suggestion(Suggestion.NEW_COLLECTION, null, science, null, proposed, null,
+            0.99, null, null, null);
+        final Suggestion newCommunity = new Suggestion(Suggestion.NEW_COMMUNITY, null, null, proposed, proposed, null,
+            0.99, null, null, null);
+        assertThat(new HarvestProperties.Classification()).satisfies(defaults -> {
+            assertThat(defaults.isCreateCommunities()).isTrue();
+            assertThat(defaults.isCreateCollections()).isTrue();
+            assertThat(defaults.isCreateTopologies()).isTrue();
+        });
+
+        properties.getClassification().setCreateTopologies(false);
+        assertThat(auto(newTopology)).isFalse();
+        assertThat(auto(SUGGESTION)).as("existing topologies are still used").isTrue();
+        assertThat(auto(newCollection)).isTrue();
+
+        properties.getClassification().setCreateCommunities(false);
+        assertThat(auto(newCommunity)).isFalse();
+        assertThat(auto(newCollection)).isTrue();
+
+        properties.getClassification().setCreateCommunities(true);
+        properties.getClassification().setCreateCollections(false);
+        assertThat(auto(newCollection)).isFalse();
+        assertThat(auto(newCommunity)).as("a new community comes with a new collection").isFalse();
+        assertThat(auto(SUGGESTION)).isTrue();
+    }
+
+    @Test
+    void aSourceDecidesAboutAutomaticAcceptanceForItself() {
+        final HarvestProperties.Source arxiv = new HarvestProperties.Source();
+        properties.getSources().put("arxiv", arxiv);
+
+        // unset: the source follows the classification settings (reviewed, in this test)
+        assertThat(SourcePolicy.of(properties, "arxiv").autoAccept()).isFalse();
+        arxiv.setAutoAccept(true);
+        assertThat(SourcePolicy.of(properties, "arxiv").autoAccept()).isTrue();
+        assertThat(SourcePolicy.of(properties, "repo").autoAccept()).as("other sources are not affected").isFalse();
+        assertThat(SourcePolicy.of(properties, "arxiv").describe())
+            .isEqualTo("accepted automatically (creating communities, collections, topologies)");
+        properties.getClassification().setAutoAccept(true);
+        arxiv.setAutoAccept(false);
+        assertThat(SourcePolicy.of(properties, "arxiv").autoAccept()).isFalse();
+        assertThat(SourcePolicy.of(properties, "arxiv").describe()).isEqualTo("reviewed by a person");
+        assertThat(SourcePolicy.of(properties, "repo").autoAccept()).isTrue();
+        assertThat(SourcePolicy.of(properties, "profiles").describe()).isEqualTo("not classified");
+
+        // the source's choice decides what happens to its records
+        properties.getClassification().setAutoAccept(false);
+        arxiv.setAutoAccept(true);
+        platform.put("harvested/arxiv", "<> <" + DCTERMS + "title> \"arxiv\" .\n");
+        answers.add(SUGGESTION);
+        answers.add(SUGGESTION);
+        ingestor.ingest("arxiv", record("oai:arXiv.org:2611.00001", "Quantum dots"));
+        ingestor.ingest("repo", record("Quantum dots"));
+        assertThat(store.read(harvester, PATHS.record("arxiv", "oai:arXiv.org:2611.00001")).orElseThrow().status())
+            .isEqualTo(Classification.Status.ACCEPTED);
+        assertThat(store.read(harvester, STAGING).orElseThrow().status()).isEqualTo(Classification.Status.PENDING);
+    }
+
+    private static final String PREPRINT_DRAFT = """
+        {"id": "e-print", "name": "E-print", "description": "Preprints of articles", "builtIn": false,
+         "root": {"key": "preprint", "label": "Preprint", "pcdmType": "Object",
+          "files": [{"use": "http://pcdm.org/use#OriginalFile", "label": "Article", "mediaTypes": ["application/pdf"]}]}}
+        """;
+
+    private static Suggestion preprint(final Suggestion.Topology topology) {
+        return new Suggestion(Suggestion.EXISTING_COLLECTION, SUGGESTION.collection(), null, null, null, topology,
+            0.8, "A preprint.", List.of(), "ollama:test");
+    }
+
+    @Test
+    void createsTheProposedTopologyOnceAndBuildsTheItemsFromIt() {
+        properties.getClassification().setAutoAccept(true);
+        final Suggestion proposing = preprint(new Suggestion.Topology("NEW", null, "Preprint",
+            "Articles before peer review"));
+        answers.add(proposing);
+        answers.add(proposing);
+        proposals.add(new TopologyProposal(TopologyProposal.NEW, null, json(PREPRINT_DRAFT), List.of(), "None fits.", 0.8));
+
+        ingestor.ingest("repo", record("oai:repo:1", "Quantum dots"));
+        ingestor.ingest("repo", record("oai:repo:2", "Quantum wells"));
+
+        // saved under the proposed name, with the draft's structure
+        final JsonNode saved = platform.topology("preprint");
+        assertThat(saved).isNotNull();
+        assertThat(saved.path("name").asString()).isEqualTo("Preprint");
+        assertThat(saved.path("builtIn").asBoolean()).isFalse();
+        assertThat(saved.path("root").path("files").get(0).path("mediaTypes").get(0).asString())
+            .isEqualTo("application/pdf");
+        assertThat(platform.topology("e-print")).isNull();
+        // drafted once, from the proposal and the record that prompted it; saved with the harvester's credentials
+        assertThat(described).hasSize(1);
+        assertThat(described.get(0)).startsWith("Preprint: Articles before peer review")
+            .contains("root of the topology is an Object").contains("application/pdf").contains("theses");
+        assertThat(platform.requests()).contains("POST " + FakePlatform.TOPOLOGY + "topologies Bearer harvester");
+        for (final String identifier : List.of("oai:repo:1", "oai:repo:2")) {
+            final Classification classification = store.read(harvester, PATHS.record("repo", identifier)).orElseThrow();
+            assertThat(classification.status()).isEqualTo(Classification.Status.ACCEPTED);
+            assertThat(classification.decidedBy()).isEqualTo(ClassifyingIngestor.AUTO);
+            // the classification names the topology that exists now
+            assertThat(classification.suggestion().topology())
+                .isEqualTo(new Suggestion.Topology("EXISTING", "preprint", "Preprint", null));
+            final Model item = platform.get(classification.placedAt());
+            assertThat(item.createResource(FakePlatform.BASE + classification.placedAt())
+                .hasProperty(item.createProperty(Articulorium.TOPOLOGY), "preprint")).isTrue();
+        }
+        assertThat(meters.counter("harvest.topologies", "source", "repo", "outcome", "created").count()).isEqualTo(1);
+        assertThat(meters.counter("harvest.topologies", "source", "repo", "outcome", "reused").count()).isEqualTo(1);
+    }
+
+    @Test
+    void usesAnExistingTopologyWhenTheAgentFindsThatOneFitsAfterAll() {
+        properties.getClassification().setAutoAccept(true);
+        answers.add(preprint(new Suggestion.Topology("NEW", null, "Dissertation", null)));
+        proposals.add(new TopologyProposal(TopologyProposal.EXISTING, new TopologyProposal.Existing("thesis", "Thesis"),
+            null, null, "A thesis.", 0.9));
+
+        ingestor.ingest("repo", record("Quantum dots"));
+
+        final Classification classification = store.read(harvester, STAGING).orElseThrow();
+        assertThat(classification.status()).isEqualTo(Classification.Status.ACCEPTED);
+        assertThat(classification.suggestion().topology().id()).isEqualTo("thesis");
+        assertThat(platform.topology("dissertation")).isNull();
+    }
+
+    @Test
+    void findsATopologyOfTheProposedNameWhateverItsId() {
+        properties.getClassification().setAutoAccept(true);
+        answers.add(preprint(new Suggestion.Topology("NEW", null, " thesis ", null)));
+
+        ingestor.ingest("repo", record("Quantum dots"));
+
+        assertThat(store.read(harvester, STAGING).orElseThrow().suggestion().topology().id()).isEqualTo("thesis");
+        assertThat(described).as("the agent is not asked for a topology that exists").isEmpty();
+    }
+
+    @Test
+    void leavesRecordsForReviewWhenNoValidTopologyCanBeCreated() {
+        properties.getClassification().setAutoAccept(true);
+        platform.put("communities/science",
+            "<> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + Articulorium.COMMUNITY + "> .\n");
+        final Suggestion.Topology proposed = new Suggestion.Topology("NEW", null, "Preprint", null);
+        final Suggestion suggestion = new Suggestion(Suggestion.NEW_COLLECTION, null,
+            new Suggestion.Ref("communities/science", "Science", "Science"), null,
+            new Suggestion.NewStructure("Preprints", null, null), proposed, 0.8, null, List.of(), null);
+        final List<Object> failures = List.of(
+            // the topology API would refuse the draft
+            new TopologyProposal(TopologyProposal.NEW, null, json(PREPRINT_DRAFT), List.of("The key preprint is used twice"),
+                null, 0.5),
+            // a collection of things is not what one record becomes
+            new TopologyProposal(TopologyProposal.NEW, null, json(PREPRINT_DRAFT.replace("\"Object\"", "\"Collection\"")),
+                List.of(), null, 0.5),
+            // no draft at all
+            new TopologyProposal(TopologyProposal.NEW, null, null, List.of(), null, 0.5),
+            // a topology the agent made up
+            new TopologyProposal(TopologyProposal.EXISTING, new TopologyProposal.Existing("made-up", "Made up"), null,
+                List.of(), null, 0.5),
+            new AgentClient.AgentUnavailableException("BUSY", "The agent is busy"));
+        int n = 0;
+        for (final Object failure : failures) {
+            final String identifier = "oai:repo:" + ++n;
+            answers.add(suggestion);
+            proposals.add(failure);
+
+            assertThat(ingestor.ingest("repo", record(identifier, "Quantum dots"))).isEqualTo(IngestAction.CREATED);
+
+            final Classification classification = store.read(harvester, PATHS.record("repo", identifier)).orElseThrow();
+            assertThat(classification.status()).as("after %s", failure).isEqualTo(Classification.Status.PENDING);
+            assertThat(classification.suggestion().topology()).isEqualTo(proposed);
+        }
+        assertThat(platform.topology("preprint")).isNull();
+        assertThat(platform.exists("communities/science/preprints"))
+            .as("nothing is created for a record that waits for review").isFalse();
+        assertThat(meters.counter("harvest.classifications", "source", "repo", "outcome", "pending").count())
+            .isEqualTo(failures.size());
+    }
+
+    @Test
+    void placesARecordAsAPlainObjectWhenTheSuggestedTopologyIsACollection() {
+        properties.getClassification().setAutoAccept(true);
+        platform.topology("journal", """
+            {"id": "journal", "name": "Journal", "root": {"key": "journal", "label": "Journal", "pcdmType": "Collection"}}
+            """);
+        answers.add(preprint(new Suggestion.Topology("EXISTING", "journal", "Journal", null)));
+
+        ingestor.ingest("repo", record("Quantum dots"));
+
+        final Classification classification = store.read(harvester, STAGING).orElseThrow();
+        assertThat(classification.status()).isEqualTo(Classification.Status.ACCEPTED);
+        final Model item = platform.get(classification.placedAt());
+        final Resource subject = item.createResource(FakePlatform.BASE + classification.placedAt());
+        assertThat(subject.hasProperty(item.createProperty(Articulorium.TOPOLOGY))).isFalse();
+        assertThat(subject.hasProperty(item.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            item.createResource(Pcdm.OBJECT))).isTrue();
+    }
+
+    @Test
+    void classifiesAgainWhatTheAgentCouldNotPlaceWhenTheRecordIsHarvestedAgain() {
+        properties.getClassification().setAutoAccept(true);
+        final Suggestion none = new Suggestion(Suggestion.NONE, null, null, null, null,
+            new Suggestion.Topology("NONE", null, null, null), 0.0, null, List.of(), null);
+        // a failure, then no placement, then a suggestion: each harvest of the record tries again
+        answers.add(new AgentClient.AgentUnavailableException("INVALID_OUTPUT", "unreadable"));
+        ingestor.ingest("repo", record("Quantum dots"));
+        assertThat(store.read(harvester, STAGING).orElseThrow().status()).isEqualTo(Classification.Status.FAILED);
+
+        answers.add(none);
+        ingestor.ingest("repo", record("Quantum dots"));
+        assertThat(store.read(harvester, STAGING).orElseThrow().status()).isEqualTo(Classification.Status.PENDING);
+
+        answers.add(SUGGESTION);
+        ingestor.ingest("repo", record("Quantum dots"));
+        final Classification placed = store.read(harvester, STAGING).orElseThrow();
+        assertThat(placed.status()).isEqualTo(Classification.Status.ACCEPTED);
+        assertThat(platform.exists(COLLECTION + "/" + NAME)).isTrue();
+        assertThat(answers).isEmpty();
+    }
+
+    @Test
+    void leavesSuggestionsWaitingForAPersonAloneWhenTheRecordIsHarvestedAgain() {
+        answers.add(SUGGESTION);
+        ingestor.ingest("repo", record("Quantum dots"));
+        reviews.reject("Bearer alice", "alice", "repo", NAME);
+        answers.add(SUGGESTION);
+
+        ingestor.ingest("repo", record("Quantum dots, revised"));
+
+        assertThat(store.read(harvester, STAGING).orElseThrow().status()).isEqualTo(Classification.Status.REJECTED);
+        assertThat(ClassifyingIngestor.unclassified(new Classification("repo", STAGING, "oai:repo:1", "t",
+            Classification.Status.PENDING, SUGGESTION, null, false, null, null, null, null))).isFalse();
+        assertThat(answers).as("the agent is not asked again").hasSize(1);
+    }
+
+    @Test
+    void namesProposedTopologiesAsTheTopologyApiWantsIds() {
+        assertThat(TopologyProposer.idOf("Preprint")).isEqualTo("preprint");
+        assertThat(TopologyProposer.idOf("  Conférence Paper (2026) ")).isEqualTo("conference-paper-2026");
+        assertThat(TopologyProposer.idOf("_data_set")).isEqualTo("data_set");
+        assertThat(TopologyProposer.idOf("???")).isEqualTo("harvested");
+        assertThat(TopologyProposer.idOf("a".repeat(70))).hasSize(64);
+    }
+
+    @Test
+    void readsTheAgentsTopologySuggestion() {
+        final JsonMapper mapper = JsonMapper.builder().build();
+        final TopologyProposal drafted = mapper.readValue("""
+            {"recommendation": "NEW", "existing": null, "draft": %s, "errors": [], "rationale": "None fits.",
+             "confidence": 0.7}
+            """.formatted(PREPRINT_DRAFT), TopologyProposal.class);
+        assertThat(drafted.recommendation()).isEqualTo(TopologyProposal.NEW);
+        assertThat(drafted.draft().path("root").path("pcdmType").asString()).isEqualTo("Object");
+        assertThat(drafted.errors()).isEmpty();
+
+        final TopologyProposal existing = mapper.readValue("""
+            {"recommendation": "EXISTING", "existing": {"id": "book", "name": "Book", "description": "Books",
+             "builtIn": true, "rootLabel": "Book", "depth": 2}, "draft": null, "errors": [], "rationale": "A book.",
+             "confidence": 0.9}
+            """, TopologyProposal.class);
+        assertThat(existing.existing()).isEqualTo(new TopologyProposal.Existing("book", "Book"));
+        assertThat(existing.draft() == null || existing.draft().isNull()).isTrue();
     }
 
     @Test
@@ -493,7 +793,8 @@ class ClassificationTest {
             }).build(), "http://articulorium-ai/", com.articulorium.harvest.ingest.PlatformAuthorization.fixed(null));
         final ClassifyingIngestor withoutAgent = new ClassifyingIngestor(new PlatformIngestor(harvester, paths,
             FakePlatform.clock()), harvester, com.articulorium.harvest.ingest.PlatformAuthorization.fixed("Bearer harvester"),
-            paths, store, unregistered, null, properties.getClassification(), source -> true, FakePlatform.clock(), meters);
+            paths, store, unregistered, null, null, properties.getClassification(),
+            source -> SourcePolicy.of(properties, source), FakePlatform.clock(), meters);
 
         assertThatThrownBy(() -> unregistered.classify("harvested/repo", "repo", record("Quantum dots")))
             .isInstanceOfSatisfying(AgentClient.AgentUnavailableException.class,

@@ -7,11 +7,14 @@ API, the harvest review API). The agent never writes to the repository.
 
 ```bash
 # the compose stack runs the agent, Ollama and its model (several GB on first start); the arxiv
-# source harvests on start, and its records are classified and placed in collections at once
+# source harvests on start and every night, and its records are classified and placed in
+# collections at once, creating the communities, collections and topologies the agent proposes
 docker compose up --build
 curl -s http://localhost:8000/ai/capabilities
 # harvested records wait for review on the Harvest page instead
 ARTICULORIUM_HARVEST_AUTO_ACCEPT=false docker compose up --build
+# place records at once, but leave proposed topologies for review
+ARTICULORIUM_HARVEST_CREATE_TOPOLOGIES=false docker compose up --build
 # no classification of harvested records
 ARTICULORIUM_HARVEST_CLASSIFICATION=false docker compose up --build
 ```
@@ -101,10 +104,17 @@ exactly as before, then asks the agent where each new record belongs:
 1. The agent compares the record (texts, types, sets, file media types) with the community
    structure and topologies the harvester may read, and suggests an existing collection, or a new
    collection or community, and the topology of its item, with a confidence and its reasons.
+   Ids the model was not shown are never used. A proposal that stands without such an id is kept
+   (a new community with an unknown parent goes to the top level); otherwise the model is told what
+   is wrong and asked once more, and an unreadable answer is asked for once more too. In a
+   repository without any community the model is told to propose a community and a collection, and
+   a single proposed title names both. A proposed topology named after a subject of the record is
+   dropped: a topology is the form of an item, not its topic.
 2. The suggestion is stored below the record (`<record>/classification`, typed
    `art:ReviewPending` while open). A record the agent cannot classify (not deployed, no model,
    failing) is stored as `FAILED` with the reason, to retry later: **the harvest never fails because
-   of the agent**.
+   of the agent**. A record harvested again (a full harvest) is classified again when its
+   classification failed or found no placement.
 3. With `auto-accept` (the default) the suggestion is accepted at once (below). Otherwise a person
    reviews the queue on the **Harvest** page: accept the suggestion, place the record in
    another (or an alternative) collection, create the proposed collection or community and accept,
@@ -115,17 +125,31 @@ exactly as before, then asks the agent where each new record belongs:
    held once and later harvests update the item. Every write uses the credentials of whoever
    accepted, so the platform decides whether they may add items there.
 
-`auto-accept` (`true` by default; compose `ARTICULORIUM_HARVEST_AUTO_ACCEPT`) accepts suggestions
+`auto-accept` (`true` by default; a source decides for itself with
+`articulorium.harvest.sources.<id>.auto-accept`; compose turns it on for the `arxiv` source,
+`ARXIV_AUTO_ACCEPT`, and off for the others, `ARTICULORIUM_HARVEST_AUTO_ACCEPT`) accepts suggestions
 without a person, with the harvester's credentials (decided by `auto`): the record goes to the
 suggested existing collection, or to the proposed collection of an existing community, or to the
 proposed community and its collection. Proposed communities and collections are created below
 `communities` (`communities` by default, the platform's community structure) unless one of that
-name exists, so records proposing the same structure share it. `auto-accept-threshold` (unset: any
-confidence) accepts only suggestions at least that sure. Suggestions of a new topology or of no
-placement, a proposed parent outside the community structure, and records whose placement fails
-wait for review. Sources whose records do not belong in collections
+name exists, so records proposing the same structure share it.
+
+A proposed topology is created too. The harvester first looks for a topology of the proposed name
+(or its slug as id) and uses it; otherwise it asks the agent's own `POST /topology-suggestions` for
+the material, which answers an existing topology that fits after all or a draft checked with the
+topology API's rules. A valid draft whose root is an object (a harvested record becomes one item)
+is saved with `POST /topologies` under the proposed name, with the harvester's credentials, and the
+record's item is built from it; the stored classification then names the topology that exists.
+The agent still only drafts. `create-communities`, `create-collections` and `create-topologies`
+(all `true`) leave each kind of proposal for review instead.
+
+`auto-accept-threshold` (unset: any confidence) accepts only suggestions at least that sure.
+Suggestions of no placement, of structure that may not be created, a topology that cannot be
+drafted validly, a proposed parent outside the community structure, and records whose placement
+fails wait for review; nothing is created for a record whose topology could not be. Sources whose records do not belong in collections
 (VIVO profiles) set `classify: false`. The `harvest.classifications` counter records outcomes
-(`pending`, `auto-accepted`, `failed`, `unrecorded`) by source. The review API is described in
+(`pending`, `auto-accepted`, `failed`, `unrecorded`) by source, `harvest.topologies` what became of
+proposed topologies (`created`, `reused`, `invalid`, `failed`). The review API is described in
 [harvest/README.md](../harvest/README.md#the-harvest-api-and-the-user-interface).
 
 ## Configuration
@@ -168,8 +192,9 @@ Agent settings (`articulorium.ai.*`):
 
 Harvest settings (`articulorium.harvest.classification.*`): `enabled` (`false`; `true` in compose),
 `ai-url`, `topology-url`, `timeout` (`2m`, after which a classification is recorded as failed),
-`auto-accept` (`true`), `auto-accept-threshold` (unset), `communities` (`communities`),
-`review-threshold` (`0.5`).
+`auto-accept` (`true`), `auto-accept-threshold` (unset), `create-communities`, `create-collections`,
+`create-topologies` (`true`), `communities` (`communities`), `review-threshold` (`0.5`); per source
+(`articulorium.harvest.sources.<id>.*`): `classify` (`true`), `auto-accept` (unset: the setting above).
 
 ## Limitations and follow-ups
 

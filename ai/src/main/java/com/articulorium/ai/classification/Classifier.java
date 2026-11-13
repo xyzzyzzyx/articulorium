@@ -23,6 +23,8 @@ import com.articulorium.ai.classification.StructureCatalog.Kind;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -31,14 +33,19 @@ import org.springframework.util.StringUtils;
  * Classifies a harvested record against the community structure and the topologies, as the caller
  * (the harvest service, with its own credentials) may read them.
  *
- * <p>The model chooses among the collections and topologies it is shown, by their short ids; an
- * answer naming anything else is not trusted and becomes {@link Placement#NONE} with no confidence,
- * so a person decides. New communities, collections and topologies are only proposed (title and
- * description): they are created when a person accepts the proposal.</p>
+ * <p>The model chooses among the collections and topologies it is shown, by their short ids. Ids it
+ * was not shown are never used: a proposal that stands without them is kept, otherwise the model
+ * is told what is wrong and asked once more, and an answer that still cannot be used becomes
+ * {@link Placement#NONE} with no confidence, so a person decides. New communities, collections and topologies are only proposed (title and
+ * description): the caller creates them, when a person accepts the proposal or, for the harvest
+ * service's automatic acceptance, at once (a proposed topology from a draft of the
+ * {@code TopologyAssistant}).</p>
  */
 @Service
 @RegisterReflectionForBinding(Classifier.Answer.class)
 public class Classifier extends CapabilityAgent {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Classifier.class);
 
     private final AgentModel model;
 
@@ -84,64 +91,129 @@ public class Classifier extends CapabilityAgent {
         }
         access.requireWrite(request.context(), authorization);
         final StructureCatalog.Catalog catalog = catalogs.catalog(authorization);
+        final String system = system(locale);
         final String user = Prompts.data("communities-and-collections", structure(catalog))
             + Prompts.data("topologies", topologies(catalog))
             + Prompts.data("record", record(request))
-            + "Classify the record.\n";
-        final Answer answer = model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system(locale), user), Answer.class);
-        return resolve(answer, catalog, model.describe().orElse(null));
+            + "Classify the record. " + choices(catalog) + "\n";
+        final String modelName = model.describe().orElse(null);
+        final Answer answer = ask(system, user);
+        final Resolution first = resolve(answer, catalog, request, false, modelName);
+        if (first.problem() == null) {
+            return first.classification();
+        }
+        // the answer names a placement that cannot be used: the model is told why, once
+        LOG.info("The classification of {} of {} could not be used ({}); asking the model to correct it",
+            request.identifier(), request.source(), first.problem());
+        try {
+            final Answer corrected = model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user
+                + Prompts.data("problem-with-your-previous-answer", first.problem())
+                + "Answer again without this problem.\n"), Answer.class);
+            final Resolution second = resolve(corrected, catalog, request, true, modelName);
+            if (second.classification().placement() != Placement.NONE) {
+                return second.classification();
+            }
+        } catch (AgentException e) {
+            LOG.info("The model did not correct the classification of {} of {}: {}", request.identifier(),
+                request.source(), e.getReason());
+        }
+        final Classification last = resolve(answer, catalog, request, true, modelName).classification();
+        if (last.placement() == Placement.NONE) {
+            LOG.warn("No usable placement for {} of {}: {}", request.identifier(), request.source(), first.problem());
+        }
+        return last;
     }
 
-    private Classification resolve(final Answer answer, final StructureCatalog.Catalog catalog,
-            @Nullable final String modelName) {
-        double confidence = clamp(answer.confidence());
-        final String rationale = answer.rationale() == null ? "" : Prompts.clip(answer.rationale(), 600);
-        Placement placement = answer.placement() == null ? Placement.NONE : answer.placement();
+    /** Asks the model, once more when its answer cannot be read (small models slip now and then). */
+    private Answer ask(final String system, final String user) {
+        try {
+            return model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user), Answer.class);
+        } catch (AgentException e) {
+            if (e.getReason() != Reason.INVALID_OUTPUT) {
+                throw e;
+            }
+            return model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user), Answer.class);
+        }
+    }
+
+    /**
+     * Says which answers the structure allows, so a small model does not have to work it out: a
+     * repository without communities can only get a new community with its collection.
+     */
+    private static String choices(final StructureCatalog.Catalog catalog) {
+        final List<String> communities = catalog.structure().stream().filter(entry -> entry.kind() == Kind.COMMUNITY)
+            .map(Entry::id).toList();
+        final List<String> collections = catalog.structure().stream().filter(entry -> entry.kind() == Kind.COLLECTION)
+            .map(Entry::id).toList();
+        if (communities.isEmpty()) {
+            return "There are no communities or collections yet, so answer NEW_COMMUNITY: give newCommunity (the "
+                + "broad field of the record, for example \"Computer Science\") and newCollection (a narrower "
+                + "grouping that other records will share, for example \"Digital Libraries\"), and leave collection "
+                + "and community empty.";
+        }
+        return "The only community ids are " + String.join(", ", communities) + "; "
+            + (collections.isEmpty() ? "there are no collections yet, so EXISTING_COLLECTION is not possible"
+                : "the only collection ids are " + String.join(", ", collections))
+            + ". Never use an id that is not in these lists.";
+    }
+
+    /**
+     * Turns the model's answer into a classification, trusting only what it was shown.
+     *
+     * <p>Ids the model was not shown are never used. A proposal that is complete apart from such an
+     * id is kept without it: a new community with an unknown parent goes to the top level, a new
+     * collection whose community is unknown goes to the new community the answer also proposes, and
+     * an "existing" collection that does not exist counts as the proposal the answer carries. When
+     * nothing usable is left the classification is {@link Placement#NONE} with no confidence, and
+     * the problem is reported for the model to correct.</p>
+     *
+     * @param lenient whether, in a repository without any community, a single proposed title may
+     *                name both the new community and its collection
+     */
+    private Resolution resolve(final Answer answer, final StructureCatalog.Catalog catalog,
+            final ClassificationRequest request, final boolean lenient, @Nullable final String modelName) {
+        final Placement asked = answer.placement() == null ? Placement.NONE : answer.placement();
+        final Optional<Entry> collectionEntry = catalog.find(answer.collection(), Kind.COLLECTION);
+        final Optional<Entry> communityEntry = catalog.find(answer.community(), Kind.COMMUNITY);
+        Classification.NewStructure newCommunity = structure(answer.newCommunity());
+        Classification.NewStructure newCollection = structure(answer.newCollection());
+        Placement placement = Placement.NONE;
         Classification.Ref collection = null;
         Classification.Ref community = null;
-        Classification.NewStructure newCommunity = null;
-        Classification.NewStructure newCollection = null;
-        switch (placement) {
-            case EXISTING_COLLECTION -> {
-                final Optional<Entry> entry = catalog.find(answer.collection(), Kind.COLLECTION);
-                if (entry.isPresent()) {
-                    collection = ref(entry.get());
-                } else {
-                    placement = Placement.NONE;
-                }
+        String problem = null;
+        if (asked == Placement.EXISTING_COLLECTION && collectionEntry.isPresent()) {
+            placement = Placement.EXISTING_COLLECTION;
+            collection = ref(collectionEntry.get());
+        } else if (asked != Placement.NONE) {
+            final boolean noCommunities = catalog.structure().stream().noneMatch(entry -> entry.kind() == Kind.COMMUNITY);
+            if (lenient && noCommunities) {
+                newCollection = newCollection == null ? newCommunity : newCollection;
+                newCommunity = newCommunity == null ? newCollection : newCommunity;
             }
-            case NEW_COLLECTION -> {
-                final Optional<Entry> entry = catalog.find(answer.community(), Kind.COMMUNITY);
-                newCollection = structure(answer.newCollection());
-                if (entry.isPresent() && newCollection != null) {
-                    community = ref(entry.get());
-                } else {
-                    placement = Placement.NONE;
-                    newCollection = null;
-                }
+            if (newCollection == null) {
+                problem = asked == Placement.EXISTING_COLLECTION
+                    ? "collection \"" + clipped(answer.collection()) + "\" is not one of the listed collection ids"
+                    : "newCollection (with a title) is missing";
+            } else if (communityEntry.isPresent() && (asked != Placement.NEW_COMMUNITY || newCommunity == null)) {
+                placement = Placement.NEW_COLLECTION;
+                community = ref(communityEntry.get());
+            } else if (newCommunity != null) {
+                placement = Placement.NEW_COMMUNITY;
+                community = communityEntry.map(Classifier::ref).orElse(null);
+            } else {
+                problem = "community \"" + clipped(answer.community()) + "\" is not one of the listed community ids, "
+                    + "and newCommunity (with a title) is missing";
             }
-            case NEW_COMMUNITY -> {
-                final Optional<Entry> entry = catalog.find(answer.community(), Kind.COMMUNITY);
-                newCommunity = structure(answer.newCommunity());
-                newCollection = structure(answer.newCollection());
-                if (newCommunity == null || newCollection == null
-                        || StringUtils.hasText(answer.community()) && entry.isEmpty()) {
-                    placement = Placement.NONE;
-                    newCommunity = null;
-                    newCollection = null;
-                } else {
-                    community = entry.map(Classifier::ref).orElse(null);
-                }
-            }
-            case NONE -> {
-                // a person decides
-            }
-            default -> placement = Placement.NONE;
         }
-        if (placement == Placement.NONE && answer.placement() != Placement.NONE) {
-            // the model named something it was not shown: its confidence means nothing
-            confidence = 0;
+        if (placement != Placement.NEW_COMMUNITY) {
+            newCommunity = null;
         }
+        if (placement != Placement.NEW_COLLECTION && placement != Placement.NEW_COMMUNITY) {
+            newCollection = null;
+        }
+        // the model named something it was not shown: its confidence means nothing
+        final double confidence = placement == Placement.NONE && asked != Placement.NONE ? 0 : clamp(answer.confidence());
+        final String rationale = answer.rationale() == null ? "" : Prompts.clip(answer.rationale(), 600);
         final List<Classification.Alternative> alternatives = new ArrayList<>();
         for (final AnswerAlternative alternative : answer.alternatives() == null ? List.<AnswerAlternative>of()
                 : answer.alternatives()) {
@@ -156,11 +228,25 @@ public class Classifier extends CapabilityAgent {
                 alternatives.add(new Classification.Alternative(ref, clamp(alternative.confidence())));
             }
         }
-        return new Classification(placement, collection, community, newCommunity, newCollection,
-            topology(answer, catalog), confidence, rationale, alternatives, modelName);
+        return new Resolution(new Classification(placement, collection, community, newCommunity, newCollection,
+            topology(answer, catalog, request, newCommunity, newCollection), confidence, rationale, alternatives,
+            modelName), problem);
     }
 
-    private static Classification.TopologyChoice topology(final Answer answer, final StructureCatalog.Catalog catalog) {
+    private static String clipped(final String value) {
+        return value == null ? "" : Prompts.clip(value, 40);
+    }
+
+    /**
+     * A classification, and what made the model's answer unusable (when its placement could not be
+     * kept).
+     */
+    private record Resolution(Classification classification, @Nullable String problem) {
+    }
+
+    private static Classification.TopologyChoice topology(final Answer answer, final StructureCatalog.Catalog catalog,
+            final ClassificationRequest request, final Classification.NewStructure newCommunity,
+            final Classification.NewStructure newCollection) {
         final TopologyKind kind = answer.topologyDecision() == null ? TopologyKind.NONE : answer.topologyDecision();
         if (kind == TopologyKind.EXISTING) {
             final Optional<TopologySummary> match = catalog.topologies().stream()
@@ -169,11 +255,25 @@ public class Classifier extends CapabilityAgent {
                 return new Classification.TopologyChoice(TopologyKind.EXISTING, match.get().id(), match.get().name(), null);
             }
         } else if (kind == TopologyKind.NEW && answer.newTopology() != null
-                && StringUtils.hasText(answer.newTopology().title())) {
+                && StringUtils.hasText(answer.newTopology().title())
+                && !namesASubject(answer.newTopology().title(), request, newCommunity, newCollection)) {
             return new Classification.TopologyChoice(TopologyKind.NEW, null, Prompts.clip(answer.newTopology().title(), 120),
                 answer.newTopology().description() == null ? null : Prompts.clip(answer.newTopology().description(), 500));
         }
         return new Classification.TopologyChoice(TopologyKind.NONE, null, null, null);
+    }
+
+    /**
+     * Tells whether a proposed topology is named after what the record is about rather than after
+     * its form: one of the record's subjects, or the proposed community or collection. A topology
+     * is a structure of parts and files, so such a proposal is a subject in the wrong field.
+     */
+    private static boolean namesASubject(final String topology, final ClassificationRequest request,
+            final Classification.NewStructure newCommunity, final Classification.NewStructure newCollection) {
+        final String name = topology.strip();
+        return request.subjects().stream().anyMatch(subject -> subject.strip().equalsIgnoreCase(name))
+            || newCommunity != null && newCommunity.title().equalsIgnoreCase(name)
+            || newCollection != null && newCollection.title().equalsIgnoreCase(name);
     }
 
     private static Classification.NewStructure structure(final AnswerStructure proposed) {
@@ -259,9 +359,11 @@ public class Classifier extends CapabilityAgent {
             - NONE when the record cannot be placed with any confidence.
             Prefer existing collections; propose new ones only for material that clearly needs them, \
             with general titles that other records could share (for example "Theses", not one thesis).
-            Choose the topology of the record's item: EXISTING with its id when one fits (a book, an \
-            article, a postcard ...), NONE for a simple item, NEW (name, description) only for a kind \
-            of material no topology covers.
+            Choose the topology of the record's item. A topology is the form of an item (its parts \
+            and files: a book of pages, a recording of tracks), never what it is about: a subject, a \
+            field or a research topic is not a topology. Most harvested records are single documents: \
+            answer NONE for them. Answer EXISTING with its id only when the record has that form, and \
+            NEW (name, description) only for a form of material that no topology covers.
             Give alternatives: up to three other existing collections that could fit, with confidences.
             Confidence is between 0 and 1: 0.9 or more only when the fit is unambiguous.
             """ + "Write the rationale and proposed titles and descriptions in " + Prompts.language(locale) + ".\n";

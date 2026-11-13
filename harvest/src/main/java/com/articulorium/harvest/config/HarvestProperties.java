@@ -76,11 +76,34 @@ public class HarvestProperties {
          * Whether suggestions are accepted without a person (the default): the record is placed in
          * the suggested existing collection, or in the proposed collection (and community), created
          * below {@link #communities} when no community or collection of that name exists yet.
-         * Suggestions of a new topology, of no placement, or below {@link #autoAcceptThreshold} wait
+         * A proposed topology is drafted by the agent and saved ({@link #createTopologies}).
+         * Suggestions of no placement, of structure that may not be created ({@code create-*}), or
+         * below {@link #autoAcceptThreshold} wait
          * for review, as does a record whose automatic placement fails. {@code false} to review
-         * every record.
+         * every record. A source may decide for itself ({@code sources.<id>.auto-accept}).
          */
         private boolean autoAccept = true;
+
+        /**
+         * Whether automatic acceptance creates the communities the agent proposes; {@code false}
+         * leaves suggestions of a new community for review.
+         */
+        private boolean createCommunities = true;
+
+        /**
+         * Whether automatic acceptance creates the collections the agent proposes; {@code false}
+         * leaves suggestions of a new collection (and of a new community, which comes with one) for
+         * review.
+         */
+        private boolean createCollections = true;
+
+        /**
+         * Whether automatic acceptance creates the topologies the agent proposes: the agent drafts
+         * the topology, and a draft the topology API accepts is saved and used for the record's
+         * item (and for later records proposing the same topology). {@code false} leaves suggestions
+         * of a new topology for review, as does a draft that is not valid.
+         */
+        private boolean createTopologies = true;
 
         /**
          * Confidence from which suggestions are accepted automatically (with {@link #autoAccept});
@@ -218,6 +241,13 @@ public class HarvestProperties {
          * for sources whose records do not belong in collections (VIVO profiles).
          */
         private boolean classify = true;
+
+        /**
+         * Whether the agent's suggestions for this source's records are accepted without a person,
+         * creating the proposed communities, collections and topologies; unset to follow
+         * {@code classification.auto-accept}.
+         */
+        private Boolean autoAccept;
 
     }
 

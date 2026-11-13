@@ -4,7 +4,7 @@ import java.text.Normalizer;
 import java.time.Clock;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.function.Function;
 
 import com.articulorium.domain.rdf.ResourcePaths;
 import com.articulorium.domain.vocabulary.Articulorium;
@@ -32,18 +32,21 @@ import io.micrometer.core.instrument.MeterRegistry;
  * The ingest of harvested records with the AI agent in the loop.
  *
  * <p>Records are ingested exactly as without the agent ({@link PlatformIngestor}); then each record
- * that has no classification yet is classified, and the suggestion is stored below the record for a
+ * that has no classification yet (or one that failed or found no placement) is classified, and the suggestion is stored below the record for a
  * person to review. When the agent cannot classify a record (unavailable, failing, turned off) the
  * classification is stored as {@code FAILED} with the reason, to retry from the review queue: the
  * harvest itself goes on, and its outcome does not depend on the agent.</p>
  *
  * <p>Records already placed in a collection are updated in their item (and deleted with it), so a
  * placed record is never ingested a second time where it was harvested. With {@code auto-accept}
- * (the default) a suggestion is accepted at once, with the harvester's credentials: the record goes
- * to the suggested existing collection, or to the proposed collection (and community), created in
- * the community structure unless one of that name exists. Suggestions of a new topology or of no
- * placement, those below {@code auto-accept-threshold}, and records whose placement fails wait for
- * review.</p>
+ * (the default, or the source's own choice: {@link SourcePolicy}) a suggestion is accepted at once,
+ * with the harvester's credentials: the record goes to the suggested existing collection, or to the
+ * proposed collection (and community), created in the community structure unless one of that name
+ * exists; a proposed topology is drafted by the agent and saved ({@link TopologyProposer}) unless
+ * one of that name exists. Suggestions of no placement, of structure the settings do not let
+ * automatic acceptance create ({@code create-communities}, {@code create-collections},
+ * {@code create-topologies}), those below {@code auto-accept-threshold}, and records whose
+ * placement fails wait for review.</p>
  */
 public class ClassifyingIngestor implements RecordIngestor {
 
@@ -66,9 +69,11 @@ public class ClassifyingIngestor implements RecordIngestor {
 
     private final RecordPlacer placer;
 
+    private final TopologyProposer proposer;
+
     private final HarvestProperties.Classification settings;
 
-    private final Predicate<String> classified;
+    private final Function<String, SourcePolicy> policies;
 
     private final Clock clock;
 
@@ -84,15 +89,17 @@ public class ClassifyingIngestor implements RecordIngestor {
      * @param store         the classifications
      * @param agent         the AI agent
      * @param placer        places accepted records
+     * @param proposer      creates proposed topologies
      * @param settings      the classification settings
-     * @param classified    tells which sources are classified
+     * @param policies      what classification does with the records of each source
      * @param clock         the clock
      * @param meters        the meter registry
      */
     public ClassifyingIngestor(final PlatformIngestor delegate, final PlatformClient platform,
             final PlatformAuthorization authorization, final RecordPaths paths, final ClassificationStore store,
-            final AgentClient agent, final RecordPlacer placer, final HarvestProperties.Classification settings,
-            final Predicate<String> classified, final Clock clock, final MeterRegistry meters) {
+            final AgentClient agent, final RecordPlacer placer, final TopologyProposer proposer,
+            final HarvestProperties.Classification settings, final Function<String, SourcePolicy> policies,
+            final Clock clock, final MeterRegistry meters) {
         this.delegate = delegate;
         this.platform = platform;
         this.authorization = authorization;
@@ -100,8 +107,9 @@ public class ClassifyingIngestor implements RecordIngestor {
         this.store = store;
         this.agent = agent;
         this.placer = placer;
+        this.proposer = proposer;
         this.settings = settings;
-        this.classified = classified;
+        this.policies = policies;
         this.clock = clock;
         this.meters = meters;
     }
@@ -113,7 +121,7 @@ public class ClassifyingIngestor implements RecordIngestor {
 
     @Override
     public IngestAction ingest(final String sourceId, final HarvestedRecord record) {
-        if (!classified.test(sourceId)) {
+        if (!policies.apply(sourceId).classify()) {
             return delegate.ingest(sourceId, record);
         }
         final String staging = paths.record(sourceId, record.identifier());
@@ -129,10 +137,24 @@ public class ClassifyingIngestor implements RecordIngestor {
             return IngestAction.UPDATED;
         }
         final IngestAction action = delegate.ingest(sourceId, record);
-        if (!record.deleted() && existing.isEmpty()) {
+        if (!record.deleted() && (existing.isEmpty() || unclassified(existing.get()))) {
             classify(sourceId, record, staging);
         }
         return action;
+    }
+
+    /**
+     * Tells whether a record harvested again is classified again: its classification failed, or the
+     * agent found no placement and nobody decided since. A full harvest so retries what the agent
+     * could not do the first time; suggestions waiting for review and rejected ones are left alone.
+     */
+    static boolean unclassified(final Classification classification) {
+        if (classification.status() == Classification.Status.FAILED) {
+            return true;
+        }
+        return classification.status() == Classification.Status.PENDING && (classification.suggestion() == null
+            || classification.suggestion().placement() == null
+            || Suggestion.NONE.equals(classification.suggestion().placement()));
     }
 
     /**
@@ -165,13 +187,14 @@ public class ClassifyingIngestor implements RecordIngestor {
             count(sourceId, "failed");
             return;
         }
-        if (autoAccept(classification.suggestion())) {
+        if (autoAccept(policies.apply(sourceId), classification.suggestion())) {
             try {
-                placer.place(platform, authorization.header(), classification, target(classification.suggestion()),
-                    topology(classification.suggestion()), AUTO);
+                final Classification accepted = withTopology(sourceId, record, classification);
+                final String topology = proposer.itemTopology(topology(accepted.suggestion()), authorization.header());
+                placer.place(platform, authorization.header(), accepted, target(accepted.suggestion()), topology, AUTO);
                 count(sourceId, "auto-accepted");
                 return;
-            } catch (TopologyClient.PlacementException | HarvestException e) {
+            } catch (TopologyClient.PlacementException | HarvestException | AgentClient.AgentUnavailableException e) {
                 LOG.warn("Automatic placement of {} of {} failed, it waits for review: {}", record.identifier(),
                     sourceId, e.getMessage());
             }
@@ -180,28 +203,55 @@ public class ClassifyingIngestor implements RecordIngestor {
     }
 
     /**
+     * Replaces a proposed topology by one that exists, creating it when there is none, before
+     * anything else is created for the record. The classification then names that topology, so a
+     * record whose placement fails afterwards is reviewed with it.
+     */
+    private Classification withTopology(final String sourceId, final HarvestedRecord record,
+            final Classification classification) {
+        final Suggestion suggestion = classification.suggestion();
+        if (suggestion.topology() == null || !Suggestion.Topology.NEW.equals(suggestion.topology().kind())) {
+            return classification;
+        }
+        final Suggestion.Topology topology = proposer.resolve(sourceId, paths.source(sourceId), suggestion.topology(),
+            record, authorization.header());
+        final Classification resolved = new Classification(classification.source(), classification.record(),
+            classification.identifier(), classification.title(), classification.status(),
+            suggestion.withTopology(topology), classification.failure(), classification.uncertain(),
+            classification.classifiedAt(), classification.placedAt(), classification.decidedBy(),
+            classification.decidedAt());
+        store.write(platform, resolved);
+        return resolved;
+    }
+
+    /**
      * Tells whether a suggestion is accepted without a person.
      *
+     * @param policy     the policy of the record's source
      * @param suggestion the suggestion
-     * @return {@code true} with {@code auto-accept} for an existing collection, or a new collection
-     *         of an existing community, or a new community with its collection; with an existing
-     *         topology or none, and a confidence from the threshold (when one is set)
+     * @return {@code true} with {@code auto-accept} for an existing collection, or (where the policy
+     *         lets them be created) a new collection of an existing community, or a new community
+     *         with its collection; with an existing topology, none, or (where the policy lets them
+     *         be created) a named new one; and a confidence from the threshold (when one is set)
      */
-    boolean autoAccept(final Suggestion suggestion) {
-        if (!settings.isAutoAccept() || suggestion == null || suggestion.placement() == null) {
+    boolean autoAccept(final SourcePolicy policy, final Suggestion suggestion) {
+        if (!policy.autoAccept() || suggestion == null || suggestion.placement() == null) {
             return false;
         }
-        if (settings.getAutoAcceptThreshold() != null
-                && suggestion.confidenceOrZero() < settings.getAutoAcceptThreshold()) {
+        if (policy.autoAcceptThreshold() != null && suggestion.confidenceOrZero() < policy.autoAcceptThreshold()) {
             return false;
         }
-        if (suggestion.topology() != null && Suggestion.Topology.NEW.equals(suggestion.topology().kind())) {
+        if (suggestion.topology() != null && Suggestion.Topology.NEW.equals(suggestion.topology().kind())
+                && !(policy.createTopologies() && suggestion.topology().name() != null
+                    && !suggestion.topology().name().isBlank())) {
             return false;
         }
         return switch (suggestion.placement()) {
             case Suggestion.EXISTING_COLLECTION -> suggestion.collection() != null;
-            case Suggestion.NEW_COLLECTION -> suggestion.community() != null && suggestion.newCollection() != null;
-            case Suggestion.NEW_COMMUNITY -> suggestion.newCommunity() != null && suggestion.newCollection() != null;
+            case Suggestion.NEW_COLLECTION -> policy.createCollections() && suggestion.community() != null
+                && suggestion.newCollection() != null;
+            case Suggestion.NEW_COMMUNITY -> policy.createCommunities() && policy.createCollections()
+                && suggestion.newCommunity() != null && suggestion.newCollection() != null;
             default -> false;
         };
     }

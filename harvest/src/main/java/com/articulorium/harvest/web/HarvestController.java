@@ -3,6 +3,7 @@ package com.articulorium.harvest.web;
 import java.util.List;
 import java.util.Locale;
 
+import com.articulorium.harvest.classify.SourcePolicy;
 import com.articulorium.harvest.config.HarvestProperties;
 import com.articulorium.harvest.core.HarvestMode;
 import com.articulorium.harvest.service.HarvestRequestException;
@@ -59,6 +60,8 @@ public class HarvestController {
 
     private final boolean classification;
 
+    private final List<String> autoAccepted;
+
     /**
      * Creates the controller.
      *
@@ -71,6 +74,11 @@ public class HarvestController {
         this.harvests = harvests;
         this.access = access;
         this.classification = properties.getClassification().isEnabled();
+        this.autoAccepted = !classification ? List.of() : properties.getSources().keySet().stream()
+            .filter(source -> {
+                final SourcePolicy policy = SourcePolicy.of(properties, source);
+                return policy.classify() && policy.autoAccept();
+            }).toList();
     }
 
     /**
@@ -80,8 +88,11 @@ public class HarvestController {
      * @param operate        whether the caller may start and cancel harvests
      * @param classification whether harvested records are classified by the AI agent (the review
      *                       queue is served at {@code /classifications})
+     * @param autoAccepted   the sources whose classified records are placed in the community
+     *                       structure without a person (creating what the agent proposes)
      */
-    public record SourceList(List<SourceStatus> sources, boolean operate, boolean classification) {
+    public record SourceList(List<SourceStatus> sources, boolean operate, boolean classification,
+            List<String> autoAccepted) {
     }
 
     /**
@@ -102,7 +113,7 @@ public class HarvestController {
     public SourceList list(@RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false)
             @Nullable final String authorization) {
         final Caller caller = access.require(authorization, Operation.VIEW);
-        return new SourceList(harvests.statuses(), caller.may(Operation.OPERATE), classification);
+        return new SourceList(harvests.statuses(), caller.may(Operation.OPERATE), classification, autoAccepted);
     }
 
     /**

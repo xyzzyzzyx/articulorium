@@ -142,8 +142,11 @@ class ReviewControllerTest {
         when(access.require(any(), eq(Operation.VIEW))).thenReturn(OPERATOR);
         when(harvests.statuses()).thenReturn(List.of());
 
-        assertThat(client.get().uri("/sources").retrieve().body(JsonNode.class).path("classification").asBoolean())
-            .isTrue();
+        final JsonNode sources = client.get().uri("/sources").retrieve().body(JsonNode.class);
+        assertThat(sources.path("classification").asBoolean()).isTrue();
+        // automatic acceptance is the default; a source that is not classified is not listed
+        assertThat(sources.path("autoAccepted").valueStream().map(JsonNode::asString).toList())
+            .containsExactly("repo");
     }
 
 }

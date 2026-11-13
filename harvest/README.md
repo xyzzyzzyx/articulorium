@@ -231,11 +231,18 @@ the harvest service cannot be reached); the actuator endpoint stays.
 With `articulorium.harvest.classification.enabled=true` (on in the compose stack) the AI agent
 ([ai/README.md](../ai/README.md#classifying-harvested-records)) suggests where every new record
 belongs, `GET /sources` answers `"classification": true`, and the Harvest page shows the review
-queue below the sources. With `classification.auto-accept` (the default) suggestions are accepted
-at once, creating proposed collections and communities; the queue then holds what could not be
-accepted automatically, and the accepted records (decided by `auto`) under "all".
+queue below the sources. With `classification.auto-accept` (the default; a source decides for
+itself with `sources.<id>.auto-accept`) suggestions are accepted at once, creating the proposed
+communities, collections and topologies (`classification.create-communities`,
+`create-collections`, `create-topologies`, all on); `GET /sources` lists the sources that do in
+`autoAccepted`. The queue then holds what could not be accepted automatically, and the accepted
+records (decided by `auto`) under "all".
 Records are ingested exactly as without the agent; a record the agent
-cannot classify is kept as `FAILED` with the reason and never fails the harvest.
+cannot classify is kept as `FAILED` with the reason and never fails the harvest. A **full harvest**
+classifies again every record whose classification failed or found no placement (suggestions
+waiting for review, rejected and placed records are left alone). A suggested topology whose root
+is a collection (a journal, a newspaper title) is not used for automatic acceptance: the record
+becomes a plain object.
 
 | Request | Effect | Needs |
 |---------|--------|-------|
@@ -292,6 +299,12 @@ Actuator write operations need `Content-Type: application/json`, even with an em
 | `sources.<id>.page-size`         | `100`                          | records asked for per page where the protocol lets the client choose |
 | `sources.<id>.username`, `password`, `token` |                    | credentials (see each type)                                   |
 | `sources.<id>.options.*`         |                                | type options (above); unknown options fail the startup       |
+| `sources.<id>.classify`          | `true`                         | classify the source's records when classification is enabled  |
+| `sources.<id>.auto-accept`       | `classification.auto-accept`   | place the source's classified records without a person        |
+| `classification.enabled`         | `false`                        | classify new records with the AI agent ([ai/README.md](../ai/README.md#classifying-harvested-records)) |
+| `classification.auto-accept`     | `true`                         | accept suggestions without a person, for sources that do not decide themselves |
+| `classification.auto-accept-threshold` |                          | accept automatically only from this confidence (0 to 1)       |
+| `classification.create-communities`, `create-collections`, `create-topologies` | `true` | what automatic acceptance creates when the agent proposes it; `false` leaves such suggestions for review |
 
 ```yaml
 articulorium:
@@ -300,9 +313,10 @@ articulorium:
       arxiv:
         type: oai-pmh
         url: https://oaipmh.arxiv.org/oai
-        schedule: "0 30 2 * * *"
+        schedule: "0 30 4 * * *"      # every night, after arXiv's daily update
         harvest-on-startup: true
         initial-window: P7D           # the first harvest reads the last week only
+        auto-accept: true             # classified records are placed at once (compose default)
         options:
           set: cs:cs:DL               # group:archive:CATEGORY; "cs" is every computer science paper
       demo-dspace:

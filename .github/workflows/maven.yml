@@ -46,7 +46,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Start the stack
-        # the first start also pulls the AI agent's model (several GB)
+        # the first start also pulls the AI agent's model (several GB). arXiv is not harvested on
+        # start here: classifying a week of its records would keep the model busy during the tests
+        # (its schedule and automatic acceptance stay configured, and are checked)
+        env:
+          ARXIV_HARVEST_ON_STARTUP: "false"
         run: docker compose up --build -d --wait --wait-timeout 1800
       - name: Smoke test the LDP root through the gateway
         run: |
@@ -74,6 +78,8 @@ jobs:
           curl -fsS 'http://localhost:8000/oai?verb=ListMetadataFormats' | grep -q '<metadataPrefix>oai_dc</metadataPrefix>'
           docker compose exec -T harvest curl -fsS http://localhost:8000/actuator/harvest | grep -q '"self-oai"'
           docker compose exec -T harvest curl -fsS http://localhost:8000/actuator/harvest | grep -q '"arxiv"'
+          docker compose exec -T harvest curl -fsS http://localhost:8000/actuator/harvest/arxiv | grep -q '"schedule":"0 30 4 \* \* \*"'
+          curl -fsS http://localhost:8000/harvest/sources | grep -q '"autoAccepted":\["arxiv"\]'
           curl -fsS http://localhost:8000/ai/capabilities | grep -q '"model":true'
           docker compose exec -T triplestore curl -fsS http://localhost:8000/actuator/health | grep -q '"qlever"' 
       - name: Smoke test the identity provider (Keycloak on the gateway) and token validation

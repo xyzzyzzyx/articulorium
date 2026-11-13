@@ -14,6 +14,7 @@ articulorium:
         type: vivo
         url: https://vivo.test/vivo/
         enabled: false
+        classify: false
         username: vivo_root@vivo.test
         password: secret
 

@@ -19,7 +19,8 @@ import tools.jackson.databind.JsonNode;
  * Builds the item of an accepted record with the topology API ({@code POST /topologies/{id}/instances}),
  * with the reviewer's credentials, so the item follows the topology's content model exactly as one
  * built from the user interface (PCDM types, {@code art:topology}, its members and files containers).
- * Child levels are not built: a harvested record arrives without pages or parts.
+ * Child levels are not built: a harvested record arrives without pages or parts. It also finds
+ * topologies and saves the ones automatic acceptance creates ({@link TopologyProposer}).
  */
 public class TopologyClient {
 
@@ -61,6 +62,69 @@ public class TopologyClient {
             throw failure("read the topology " + id, e);
         } catch (RestClientException e) {
             throw failure("read the topology " + id, e);
+        }
+    }
+
+    /**
+     * Finds a topology by its id or, failing that, by its name (whatever the case).
+     *
+     * @param id            the id
+     * @param name          the name
+     * @param authorization the caller's credentials
+     * @return the topology, as an existing topology of a suggestion; empty when there is none
+     * @throws PlacementException when the topology API cannot answer
+     */
+    public Optional<Suggestion.Topology> find(final String id, final String name, final String authorization) {
+        final JsonNode topologies;
+        try {
+            topologies = client.get().uri(URI.create(base + "topologies"))
+                .headers(headers -> auth(headers, authorization))
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .body(JsonNode.class);
+        } catch (RestClientException e) {
+            throw failure("list the topologies", e);
+        }
+        Suggestion.Topology named = null;
+        if (topologies != null) {
+            for (final JsonNode topology : topologies) {
+                if (!topology.path("id").isString()) {
+                    continue;
+                }
+                final String found = topology.path("id").asString();
+                final String foundName = topology.path("name").isString() ? topology.path("name").asString() : found;
+                if (found.equals(id)) {
+                    return Optional.of(new Suggestion.Topology(Suggestion.Topology.EXISTING, found, foundName, null));
+                }
+                if (named == null && name != null && foundName.strip().equalsIgnoreCase(name.strip())) {
+                    named = new Suggestion.Topology(Suggestion.Topology.EXISTING, found, foundName, null);
+                }
+            }
+        }
+        return Optional.ofNullable(named);
+    }
+
+    /**
+     * Saves a new custom topology ({@code POST /topologies}).
+     *
+     * @param topology      the topology
+     * @param authorization the caller's credentials
+     * @return the saved topology's id
+     * @throws PlacementException when the topology API refuses it (not valid, the id taken, no access)
+     */
+    public String create(final JsonNode topology, final String authorization) {
+        final String id = topology.path("id").asString();
+        try {
+            final JsonNode saved = client.post().uri(URI.create(base + "topologies"))
+                .headers(headers -> auth(headers, authorization))
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .body(topology)
+                .retrieve()
+                .body(JsonNode.class);
+            return saved != null && saved.path("id").isString() ? saved.path("id").asString() : id;
+        } catch (RestClientException e) {
+            throw failure("save the topology " + id, e);
         }
     }
 

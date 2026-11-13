@@ -590,8 +590,10 @@ profile, and the collection and topology of harvested records. Each capability i
 [agent library](agent/README.md) while it is turned on, so the agent registry and
 `/actuator/info` list exactly what runs. It
 never writes: people review its suggestions and apply what they keep with the existing APIs; the
-harvest service classifies harvested records with it and places them in collections at once
-(`articulorium.harvest.classification.enabled` and `auto-accept`, both on in docker compose), or
+harvest service classifies harvested records with it and places them in collections at once,
+creating the communities, collections and topologies it proposes
+(`articulorium.harvest.classification.enabled`, and `auto-accept` per source: on for the `arxiv`
+source in docker compose, which is harvested on start and every night), or
 leaves them in a review queue on the **Harvest** page (`ARTICULORIUM_HARVEST_AUTO_ACCEPT=false`). Asking about a resource needs write access to
 it, and the agent reads only what the caller may read. The model is chosen with Spring AI's
 settings: Ollama inside the deployment by default, or any OpenAI-compatible endpoint, with its key

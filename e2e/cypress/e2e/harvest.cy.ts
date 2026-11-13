@@ -125,7 +125,7 @@ describe('Harvesting', () => {
     });
   });
 
-  it('harvests arXiv incrementally on startup, with classification of harvested records turned on', () => {
+  it('harvests arXiv on a schedule, its classified records accepted automatically', () => {
     cy.request<{ sources: ConfiguredSource[] }>(HARVEST).then((response) => {
       const found = response.body.sources.find((source) => source.id === 'arxiv');
       expect(found, 'the arxiv source').to.exist;
@@ -133,8 +133,15 @@ describe('Harvesting', () => {
       expect(arxiv.type).to.eq('oai-pmh');
       expect(arxiv.url).to.eq('https://oaipmh.arxiv.org/oai');
       expect(arxiv.enabled).to.eq(true);
+      // incremental harvests every night (a cron expression with seconds)
+      expect(arxiv.schedule, 'the schedule of arxiv').to.match(/^\S+( \S+){5}$/);
     });
-    cy.request<{ classification: boolean }>('/harvest/sources').its('body.classification').should('eq', true);
+    cy.request<{ classification: boolean; autoAccepted: string[] }>('/harvest/sources').then((response) => {
+      expect(response.body.classification).to.eq(true);
+      // the agent's suggestions for arXiv records are accepted without a person (creating the
+      // proposed communities, collections and topologies); the demo sources are not classified
+      expect(response.body.autoAccepted).to.deep.eq(['arxiv']);
+    });
   });
 
   it('harvests the repository through its own OAI-PMH data provider, then incrementally', () => {

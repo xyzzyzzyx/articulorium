@@ -165,6 +165,147 @@ class ClassifierTest {
         assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).placement()).isEqualTo(Placement.NONE);
     }
 
+    /** Starts over with a repository that has no community yet. */
+    private void emptyRepository() {
+        agents = new Agents();
+        classifier = new Classifier(agents.model, agents.access, new StructureCatalog(agents.reader, agents.topologies,
+            agents.properties, Clock.fixed(Instant.parse("2026-11-07T00:00:00Z"), ZoneOffset.UTC)), agents.properties);
+        agents.platform.access("harvested/repo", true, "read", "write")
+            .topologies("[{\"id\": \"book\", \"name\": \"Book\", \"description\": \"A monograph\"}]")
+            .rdf("communities", "<> <http://purl.org/dc/terms/title> \"Communities\" .\n");
+    }
+
+    @Test
+    void startsTheStructureOfAnEmptyRepository() {
+        emptyRepository();
+        // a small model copies the id of the schema's example although no community exists
+        agents.chat.answer("""
+            {"placement": "NEW_COMMUNITY", "community": "m2", "collection": "c3",
+             "newCommunity": {"title": "Physics", "description": "Physical sciences"},
+             "newCollection": {"title": "Theses"}, "topologyDecision": "NONE", "confidence": 0.7}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        assertThat(classification.community()).as("the unknown parent is dropped: a top-level community").isNull();
+        assertThat(classification.newCommunity().title()).isEqualTo("Physics");
+        assertThat(classification.newCollection().slug()).isEqualTo("theses");
+        assertThat(classification.confidence()).isEqualTo(0.7);
+        assertThat(agents.chat.prompts()).hasSize(1);
+        assertThat(agents.chat.prompts().get(0).getUserMessage().getText())
+            .contains("There are no communities or collections yet, so answer NEW_COMMUNITY");
+    }
+
+    @Test
+    void tellsTheModelWhichIdsExist() {
+        agents.chat.answer("""
+            {"placement": "NONE", "topologyDecision": "NONE", "confidence": 0.1}
+            """);
+
+        assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).placement()).isEqualTo(Placement.NONE);
+        assertThat(agents.chat.prompts()).as("NONE is an answer, not a mistake to correct").hasSize(1);
+        assertThat(agents.chat.prompts().get(0).getUserMessage().getText())
+            .contains("The only community ids are m1; the only collection ids are c1, c2.");
+    }
+
+    @Test
+    void keepsAProposalThatStandsWithoutTheUnknownId() {
+        // an "existing" collection that does not exist, with the proposal of a new one in a real community
+        agents.chat.answer("""
+            {"placement": "EXISTING_COLLECTION", "collection": "c9", "community": "m1",
+             "newCollection": {"title": "Theses"}, "confidence": 0.8}
+            """, """
+            {"placement": "NEW_COLLECTION", "community": "m7", "newCommunity": {"title": "Humanities"},
+             "newCollection": {"title": "Theses"}, "confidence": 0.6}
+            """);
+
+        final Classification inScience = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(inScience.placement()).isEqualTo(Placement.NEW_COLLECTION);
+        assertThat(inScience.community().path()).isEqualTo("communities/science");
+        assertThat(inScience.newCommunity()).isNull();
+
+        final Classification inHumanities = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(inHumanities.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        assertThat(inHumanities.community()).isNull();
+        assertThat(inHumanities.newCommunity().title()).isEqualTo("Humanities");
+        assertThat(agents.chat.prompts()).hasSize(2);
+    }
+
+    @Test
+    void asksTheModelOnceToCorrectAnAnswerThatCannotBeUsed() {
+        agents.chat.answer("""
+            {"placement": "NEW_COLLECTION", "community": "m9", "newCollection": {"title": "Theses"}, "confidence": 0.8}
+            """, """
+            {"placement": "NEW_COLLECTION", "community": "m1", "newCollection": {"title": "Theses"}, "confidence": 0.8}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.NEW_COLLECTION);
+        assertThat(classification.community().path()).isEqualTo("communities/science");
+        assertThat(classification.confidence()).isEqualTo(0.8);
+        assertThat(agents.chat.prompts()).hasSize(2);
+        assertThat(agents.chat.prompts().get(1).getUserMessage().getText())
+            .contains("community \"m9\" is not one of the listed community ids")
+            .contains("Answer again without this problem.");
+    }
+
+    @Test
+    void namesCommunityAndCollectionAlikeWhenAnEmptyRepositoryGetsOneTitleOnly() {
+        emptyRepository();
+        // twice the same incomplete answer: the correction does not help
+        final String incomplete = """
+            {"placement": "NEW_COLLECTION", "newCollection": {"title": "Digital Libraries"}, "confidence": 0.5}
+            """;
+        agents.chat.answer(incomplete, incomplete);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        assertThat(classification.newCommunity().title()).isEqualTo("Digital Libraries");
+        assertThat(classification.newCollection().title()).isEqualTo("Digital Libraries");
+        assertThat(classification.confidence()).isEqualTo(0.5);
+    }
+
+    @Test
+    void asksAgainWhenTheAnswerCannotBeRead() {
+        agents.chat.answer("I think this is a thesis.", """
+            {"placement": "EXISTING_COLLECTION", "collection": "c2", "topologyDecision": "NONE", "confidence": 0.9}
+            """);
+
+        assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).placement())
+            .isEqualTo(Placement.EXISTING_COLLECTION);
+
+        agents.chat.answer("no", "still no");
+        assertThatThrownBy(() -> classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH))
+            .isInstanceOfSatisfying(AgentException.class,
+                e -> assertThat(e.getReason()).isEqualTo(Reason.INVALID_OUTPUT));
+    }
+
+    @Test
+    void takesNoSubjectForATopology() {
+        agents.chat.answer("""
+            {"placement": "EXISTING_COLLECTION", "collection": "c2", "topologyDecision": "NEW",
+             "newTopology": {"title": " physics ", "description": "Research about physics"}, "confidence": 0.9}
+            """, """
+            {"placement": "NEW_COLLECTION", "community": "m1", "newCollection": {"title": "Quantum Dots"},
+             "topologyDecision": "NEW", "newTopology": {"title": "Quantum dots"}, "confidence": 0.9}
+            """, """
+            {"placement": "EXISTING_COLLECTION", "collection": "c2", "topologyDecision": "NEW",
+             "newTopology": {"title": "Thesis with data sets"}, "confidence": 0.9}
+            """);
+
+        assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).topology().kind())
+            .as("a subject of the record").isEqualTo(TopologyKind.NONE);
+        assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).topology().kind())
+            .as("the proposed collection").isEqualTo(TopologyKind.NONE);
+        assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).topology())
+            .isEqualTo(new Classification.TopologyChoice(TopologyKind.NEW, null, "Thesis with data sets", null));
+        assertThat(agents.chat.prompts().get(0).getSystemMessage().getText())
+            .contains("never what it is about");
+    }
+
     @Test
     void needsWriteAccessToTheContext() {
         agents.platform.access("harvested/other", true, "read");

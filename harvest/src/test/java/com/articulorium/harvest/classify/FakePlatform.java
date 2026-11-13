@@ -87,6 +87,11 @@ final class FakePlatform {
         return this;
     }
 
+    /** Returns a topology's definition, {@code null} when there is none. */
+    JsonNode topology(final String id) {
+        return topologies.get(id);
+    }
+
     /** Fails the next PUT requests with 503. */
     FakePlatform failPuts(final int count) {
         failNextPuts = count;
@@ -166,6 +171,22 @@ final class FakePlatform {
 
     private ClientHttpResponse topologyApi(final HttpMethod method, final String path, final String body) {
         final String[] segments = path.substring(1).split("/");
+        if (segments.length == 1 && method == HttpMethod.GET) {
+            final tools.jackson.databind.node.ArrayNode list = json.createArrayNode();
+            topologies.forEach((id, definition) -> list.addObject().put("id", id)
+                .put("name", definition.path("name").asString()));
+            return response(HttpStatus.OK, list.toString(), MediaType.APPLICATION_JSON_VALUE);
+        }
+        if (segments.length == 1) {
+            final JsonNode created = json.readTree(body);
+            final String id = created.path("id").asString();
+            if (topologies.containsKey(id)) {
+                return response(HttpStatus.BAD_REQUEST, "{\"detail\": \"A topology " + id + " already exists\"}",
+                    MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+            }
+            topologies.put(id, created);
+            return response(HttpStatus.CREATED, created.toString(), MediaType.APPLICATION_JSON_VALUE);
+        }
         final JsonNode topology = segments.length > 1 ? topologies.get(segments[1]) : null;
         if (topology == null) {
             return response(HttpStatus.NOT_FOUND, "", null);

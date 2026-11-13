@@ -9,12 +9,16 @@ import com.articulorium.harvest.classify.ClassificationStore;
 import com.articulorium.harvest.classify.ClassifyingIngestor;
 import com.articulorium.harvest.classify.RecordPlacer;
 import com.articulorium.harvest.classify.ReviewService;
+import com.articulorium.harvest.classify.SourcePolicy;
 import com.articulorium.harvest.classify.TopologyClient;
+import com.articulorium.harvest.classify.TopologyProposer;
 import com.articulorium.harvest.ingest.PlatformAuthorization;
 import com.articulorium.harvest.ingest.PlatformClient;
 import com.articulorium.harvest.ingest.PlatformIngestor;
 import com.articulorium.harvest.ingest.RecordPaths;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +37,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnBooleanProperty(name = "articulorium.harvest.classification.enabled")
 public class ClassificationConfiguration {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ClassificationConfiguration.class);
 
     /**
      * The client of the AI agent.
@@ -91,6 +97,20 @@ public class ClassificationConfiguration {
     }
 
     /**
+     * Creates the topologies the agent proposes, for automatic acceptance.
+     *
+     * @param agent      the agent, which drafts them
+     * @param topologies the topology API, which saves them
+     * @param meters     the meter registry
+     * @return the proposer
+     */
+    @Bean
+    public TopologyProposer topologyProposer(final AgentClient agent, final TopologyClient topologies,
+            final MeterRegistry meters) {
+        return new TopologyProposer(agent, topologies, meters);
+    }
+
+    /**
      * The ingestor with the agent in the loop; it takes the plain ingestor's place.
      *
      * @param delegate      the plain ingestor
@@ -100,6 +120,7 @@ public class ClassificationConfiguration {
      * @param store         the classifications
      * @param agent         the agent
      * @param placer        places accepted records
+     * @param proposer      creates proposed topologies
      * @param properties    the harvest settings
      * @param clock         the clock
      * @param meters        the meter registry
@@ -109,13 +130,12 @@ public class ClassificationConfiguration {
     @Primary
     public ClassifyingIngestor classifyingIngestor(final PlatformIngestor delegate, final PlatformClient platform,
             final PlatformAuthorization authorization, final RecordPaths paths, final ClassificationStore store,
-            final AgentClient agent, final RecordPlacer placer, final HarvestProperties properties, final Clock clock,
-            final MeterRegistry meters) {
-        return new ClassifyingIngestor(delegate, platform, authorization, paths, store, agent, placer,
-            properties.getClassification(), source -> {
-                final HarvestProperties.Source settings = properties.getSources().get(source);
-                return settings == null || settings.isClassify();
-            }, clock, meters);
+            final AgentClient agent, final RecordPlacer placer, final TopologyProposer proposer,
+            final HarvestProperties properties, final Clock clock, final MeterRegistry meters) {
+        properties.getSources().keySet().forEach(source -> LOG.info("Harvested records of {} are {}", source,
+            SourcePolicy.of(properties, source).describe()));
+        return new ClassifyingIngestor(delegate, platform, authorization, paths, store, agent, placer, proposer,
+            properties.getClassification(), source -> SourcePolicy.of(properties, source), clock, meters);
     }
 
     /**
