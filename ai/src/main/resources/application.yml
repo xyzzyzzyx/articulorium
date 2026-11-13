@@ -147,6 +147,11 @@ spring:
       config:
         enabled: true
         fail-fast: false
+        # The watch long-polls Consul (blocking query). Spring AI brings Reactor Netty, which the
+        # Consul client then uses, and its response timeout is 10 seconds: the default wait of 55
+        # seconds ends every poll in a ReadTimeoutException. Keep the wait below that timeout
+        watch:
+          wait-time: 5
       discovery:
         health-check-url: http://${spring.cloud.client.ip-address}:${management.server.port}/actuator/health
         health-check-interval: 15s
