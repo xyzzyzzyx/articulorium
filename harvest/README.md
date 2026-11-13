@@ -302,6 +302,7 @@ Actuator write operations need `Content-Type: application/json`, even with an em
 | `sources.<id>.classify`          | `true`                         | classify the source's records when classification is enabled  |
 | `sources.<id>.auto-accept`       | `classification.auto-accept`   | place the source's classified records without a person        |
 | `classification.enabled`         | `false`                        | classify new records with the AI agent ([ai/README.md](../ai/README.md#classifying-harvested-records)) |
+| `classification.timeout`         | `15m`                          | how long the harvester waits for one answer of the agent; too short for the model's speed records classifications as `AGENT_UNAVAILABLE` while the agent is still working |
 | `classification.auto-accept`     | `true`                         | accept suggestions without a person, for sources that do not decide themselves |
 | `classification.auto-accept-threshold` |                          | accept automatically only from this confidence (0 to 1)       |
 | `classification.create-communities`, `create-collections`, `create-topologies` | `true` | what automatic acceptance creates when the agent proposes it; `false` leaves such suggestions for review |

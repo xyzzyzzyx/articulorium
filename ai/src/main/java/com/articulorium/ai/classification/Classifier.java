@@ -35,8 +35,9 @@ import org.springframework.util.StringUtils;
  *
  * <p>The model chooses among the collections and topologies it is shown, by their short ids. Ids it
  * was not shown are never used: a proposal that stands without them is kept, otherwise the model
- * is told what is wrong and asked once more, and an answer that still cannot be used becomes
- * {@link Placement#NONE} with no confidence, so a person decides. New communities, collections and topologies are only proposed (title and
+ * is told what is wrong and asked once more (a classification is two model calls at most), and an
+ * answer that still cannot be used becomes {@link Placement#NONE} with no confidence, so a person
+ * decides. New communities, collections and topologies are only proposed (title and
  * description): the caller creates them, when a person accepts the proposal or, for the harvest
  * service's automatic acceptance, at once (a proposed topology from a draft of the
  * {@code TopologyAssistant}).</p>
@@ -97,43 +98,48 @@ public class Classifier extends CapabilityAgent {
             + Prompts.data("record", record(request))
             + "Classify the record. " + choices(catalog) + "\n";
         final String modelName = model.describe().orElse(null);
-        final Answer answer = ask(system, user);
-        final Resolution first = resolve(answer, catalog, request, false, modelName);
-        if (first.problem() == null) {
-            return first.classification();
-        }
-        // the answer names a placement that cannot be used: the model is told why, once
-        LOG.info("The classification of {} of {} could not be used ({}); asking the model to correct it",
-            request.identifier(), request.source(), first.problem());
+        Answer answer;
+        boolean asked = false;
         try {
-            final Answer corrected = model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user
-                + Prompts.data("problem-with-your-previous-answer", first.problem())
-                + "Answer again without this problem.\n"), Answer.class);
-            final Resolution second = resolve(corrected, catalog, request, true, modelName);
-            if (second.classification().placement() != Placement.NONE) {
-                return second.classification();
-            }
-        } catch (AgentException e) {
-            LOG.info("The model did not correct the classification of {} of {}: {}", request.identifier(),
-                request.source(), e.getReason());
-        }
-        final Classification last = resolve(answer, catalog, request, true, modelName).classification();
-        if (last.placement() == Placement.NONE) {
-            LOG.warn("No usable placement for {} of {}: {}", request.identifier(), request.source(), first.problem());
-        }
-        return last;
-    }
-
-    /** Asks the model, once more when its answer cannot be read (small models slip now and then). */
-    private Answer ask(final String system, final String user) {
-        try {
-            return model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user), Answer.class);
+            answer = model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user), Answer.class);
         } catch (AgentException e) {
             if (e.getReason() != Reason.INVALID_OUTPUT) {
                 throw e;
             }
-            return model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user), Answer.class);
+            // small models slip now and then: an unreadable answer is asked for once more
+            asked = true;
+            answer = model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user), Answer.class);
         }
+        final Resolution first = resolve(answer, catalog, request, false, modelName);
+        if (first.problem() == null) {
+            return first.classification();
+        }
+        // what can be repaired without the model is: a model call takes minutes on a CPU
+        final Classification repaired = resolve(answer, catalog, request, true, modelName).classification();
+        if (repaired.placement() != Placement.NONE) {
+            LOG.info("Repaired the classification of {} of {} ({})", request.identifier(), request.source(),
+                first.problem());
+            return repaired;
+        }
+        if (!asked) {
+            // the model is told what is wrong, once; a classification is two model calls at most
+            LOG.info("The classification of {} of {} could not be used ({}); asking the model to correct it",
+                request.identifier(), request.source(), first.problem());
+            try {
+                final Answer corrected = model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user
+                    + Prompts.data("problem-with-your-previous-answer", first.problem())
+                    + "Answer again without this problem.\n"), Answer.class);
+                final Resolution second = resolve(corrected, catalog, request, true, modelName);
+                if (second.classification().placement() != Placement.NONE) {
+                    return second.classification();
+                }
+            } catch (AgentException e) {
+                LOG.info("The model did not correct the classification of {} of {}: {}", request.identifier(),
+                    request.source(), e.getReason());
+            }
+        }
+        LOG.warn("No usable placement for {} of {}: {}", request.identifier(), request.source(), first.problem());
+        return repaired;
     }
 
     /**
@@ -364,7 +370,8 @@ public class Classifier extends CapabilityAgent {
             field or a research topic is not a topology. Most harvested records are single documents: \
             answer NONE for them. Answer EXISTING with its id only when the record has that form, and \
             NEW (name, description) only for a form of material that no topology covers.
-            Give alternatives: up to three other existing collections that could fit, with confidences.
+            Alternatives are optional: up to three other existing collections that could fit.
+            Be brief: the rationale is one short sentence, descriptions are one short sentence.
             Confidence is between 0 and 1: 0.9 or more only when the fit is unambiguous.
             """ + "Write the rationale and proposed titles and descriptions in " + Prompts.language(locale) + ".\n";
     }

@@ -43,7 +43,8 @@ import io.micrometer.core.instrument.MeterRegistry;
  * with the harvester's credentials: the record goes to the suggested existing collection, or to the
  * proposed collection (and community), created in the community structure unless one of that name
  * exists; a proposed topology is drafted by the agent and saved ({@link TopologyProposer}) unless
- * one of that name exists. Suggestions of no placement, of structure the settings do not let
+ * one of that name exists, and a record whose proposed topology cannot be created is placed as a
+ * plain object. Suggestions of no placement, of structure the settings do not let
  * automatic acceptance create ({@code create-communities}, {@code create-collections},
  * {@code create-topologies}), those below {@code auto-accept-threshold}, and records whose
  * placement fails wait for review.</p>
@@ -203,9 +204,11 @@ public class ClassifyingIngestor implements RecordIngestor {
     }
 
     /**
-     * Replaces a proposed topology by one that exists, creating it when there is none, before
-     * anything else is created for the record. The classification then names that topology, so a
-     * record whose placement fails afterwards is reviewed with it.
+     * Replaces a proposed topology by one that exists, creating it when there is none. The
+     * classification then names that topology, so a record whose placement fails afterwards is
+     * reviewed with it. A topology that cannot be created (the agent drafts none that is valid, or
+     * cannot be asked) does not keep the record from its collection: the record is placed as a
+     * plain object, and its classification keeps the proposal.
      */
     private Classification withTopology(final String sourceId, final HarvestedRecord record,
             final Classification classification) {
@@ -213,8 +216,15 @@ public class ClassifyingIngestor implements RecordIngestor {
         if (suggestion.topology() == null || !Suggestion.Topology.NEW.equals(suggestion.topology().kind())) {
             return classification;
         }
-        final Suggestion.Topology topology = proposer.resolve(sourceId, paths.source(sourceId), suggestion.topology(),
-            record, authorization.header());
+        final Suggestion.Topology topology;
+        try {
+            topology = proposer.resolve(sourceId, paths.source(sourceId), suggestion.topology(), record,
+                authorization.header());
+        } catch (TopologyClient.PlacementException | AgentClient.AgentUnavailableException e) {
+            LOG.warn("The topology {} proposed for {} of {} was not created, the record becomes a plain object: {}",
+                suggestion.topology().name(), record.identifier(), sourceId, e.getMessage());
+            return classification;
+        }
         final Classification resolved = new Classification(classification.source(), classification.record(),
             classification.identifier(), classification.title(), classification.status(),
             suggestion.withTopology(topology), classification.failure(), classification.uncertain(),

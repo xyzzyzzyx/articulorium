@@ -6,6 +6,8 @@
 #                                        run the Cypress end-to-end tests against the stack
 #   docker compose -f docker-compose.yml -f docker-compose.native.yml up --build
 #                                        use GraalVM native images where supported
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+#                                        run the AI agent's model on the host's NVIDIA GPU
 #
 # Entry points once healthy (allow a minute or two on first start):
 #   http://localhost:8000/ui/         Articulorium UI (browse, create, upload, edit, versions, search)
@@ -282,6 +284,10 @@ services:
       # at least that sure.
       # auto-accept here is the default of sources that do not decide for themselves
       # ("auto-accept" of a source); the arxiv source below turns it on for its records.
+      # how long the harvester waits for one answer of the agent (a classification, the draft of a
+      # topology). A model on a CPU takes minutes per call and a classification is up to two calls;
+      # a shorter wait records the classification as failed while the agent is still working on it
+      ARTICULORIUM_HARVEST_CLASSIFICATION_TIMEOUT: ${ARTICULORIUM_HARVEST_CLASSIFICATION_TIMEOUT:-15m}
       ARTICULORIUM_HARVEST_CLASSIFICATION_ENABLED: ${ARTICULORIUM_HARVEST_CLASSIFICATION:-true}
       ARTICULORIUM_HARVEST_CLASSIFICATION_AUTO_ACCEPT: ${ARTICULORIUM_HARVEST_AUTO_ACCEPT:-false}
       ARTICULORIUM_HARVEST_CLASSIFICATION_CREATE_COMMUNITIES: ${ARTICULORIUM_HARVEST_CREATE_COMMUNITIES:-true}
@@ -360,6 +366,8 @@ services:
       SPRING_AI_OLLAMA_CHAT_MODEL: ${ARTICULORIUM_AI_MODEL:-qwen2.5vl:3b}
       # context window of the model in tokens (Ollama silently truncates longer prompts)
       SPRING_AI_OLLAMA_CHAT_NUM_CTX: ${ARTICULORIUM_AI_CONTEXT:-8192}
+      # the longest answer in tokens (bounds a model that writes on without ending its JSON)
+      SPRING_AI_OLLAMA_CHAT_NUM_PREDICT: ${ARTICULORIUM_AI_MAX_TOKENS:-1536}
     depends_on:
       consul:
         condition: service_healthy
@@ -371,7 +379,8 @@ services:
         condition: service_completed_successfully
 
   ollama:
-    # Local model server of the AI agent; models are kept in a volume
+    # Local model server of the AI agent; models are kept in a volume. It runs the model on the
+    # CPU (minutes per answer); docker-compose.gpu.yml gives it the host's NVIDIA GPU
     image: ollama/ollama:0.12.6
     restart: unless-stopped
     volumes:

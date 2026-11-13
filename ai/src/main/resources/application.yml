@@ -115,6 +115,10 @@ spring:
         # not fit without an error, so the model would answer without part of its material or
         # instructions. A larger window needs more memory (SPRING_AI_OLLAMA_CHAT_NUM_CTX)
         num-ctx: 8192
+        # the longest answer in tokens. A small model now and then writes on without ending its
+        # JSON, for minutes on a CPU, and the answer is unusable anyway; the agent's answers
+        # (a classification, a topology draft, topics) are far shorter (ARTICULORIUM_AI_MAX_TOKENS)
+        num-predict: 1536
       init:
         # never pull models at start-up (the deployment pulls them, see docker-compose.yml)
         pull-model-strategy: never

@@ -411,6 +411,8 @@ class ClassificationTest {
 
     @Test
     void acceptsAutomaticallyByDefault() {
+        assertThat(new HarvestProperties.Classification().getTimeout())
+            .as("a model on a CPU takes minutes per call").isGreaterThanOrEqualTo(java.time.Duration.ofMinutes(10));
         assertThat(new HarvestProperties.Classification().isAutoAccept()).isTrue();
         assertThat(new HarvestProperties.Classification().getAutoAcceptThreshold()).isNull();
         assertThat(new HarvestProperties.Classification().getCommunities()).isEqualTo("communities");
@@ -592,7 +594,7 @@ class ClassificationTest {
     }
 
     @Test
-    void leavesRecordsForReviewWhenNoValidTopologyCanBeCreated() {
+    void placesRecordsAsPlainObjectsWhenNoValidTopologyCanBeCreated() {
         properties.getClassification().setAutoAccept(true);
         platform.put("communities/science",
             "<> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + Articulorium.COMMUNITY + "> .\n");
@@ -622,13 +624,19 @@ class ClassificationTest {
             assertThat(ingestor.ingest("repo", record(identifier, "Quantum dots"))).isEqualTo(IngestAction.CREATED);
 
             final Classification classification = store.read(harvester, PATHS.record("repo", identifier)).orElseThrow();
-            assertThat(classification.status()).as("after %s", failure).isEqualTo(Classification.Status.PENDING);
-            assertThat(classification.suggestion().topology()).isEqualTo(proposed);
+            // the topology is a refinement: without it the record still reaches its collection
+            assertThat(classification.status()).as("after %s", failure).isEqualTo(Classification.Status.ACCEPTED);
+            assertThat(classification.suggestion().topology()).as("the proposal is kept").isEqualTo(proposed);
+            assertThat(classification.placedAt()).startsWith("communities/science/preprints/");
+            final Model item = platform.get(classification.placedAt());
+            final Resource subject = item.createResource(FakePlatform.BASE + classification.placedAt());
+            assertThat(subject.hasProperty(item.createProperty(Articulorium.TOPOLOGY))).isFalse();
+            assertThat(subject.hasProperty(item.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+                item.createResource(Pcdm.OBJECT))).isTrue();
         }
         assertThat(platform.topology("preprint")).isNull();
-        assertThat(platform.exists("communities/science/preprints"))
-            .as("nothing is created for a record that waits for review").isFalse();
-        assertThat(meters.counter("harvest.classifications", "source", "repo", "outcome", "pending").count())
+        assertThat(platform.exists("communities/science/preprints-2")).as("one collection for all of them").isFalse();
+        assertThat(meters.counter("harvest.classifications", "source", "repo", "outcome", "auto-accepted").count())
             .isEqualTo(failures.size());
     }
 

@@ -254,13 +254,13 @@ class ClassifierTest {
     @Test
     void namesCommunityAndCollectionAlikeWhenAnEmptyRepositoryGetsOneTitleOnly() {
         emptyRepository();
-        // twice the same incomplete answer: the correction does not help
-        final String incomplete = """
+        agents.chat.answer("""
             {"placement": "NEW_COLLECTION", "newCollection": {"title": "Digital Libraries"}, "confidence": 0.5}
-            """;
-        agents.chat.answer(incomplete, incomplete);
+            """);
 
         final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(agents.chat.prompts()).as("repaired without asking the model again").hasSize(1);
 
         assertThat(classification.placement()).isEqualTo(Placement.NEW_COMMUNITY);
         assertThat(classification.newCommunity().title()).isEqualTo("Digital Libraries");
@@ -281,6 +281,22 @@ class ClassifierTest {
         assertThatThrownBy(() -> classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH))
             .isInstanceOfSatisfying(AgentException.class,
                 e -> assertThat(e.getReason()).isEqualTo(Reason.INVALID_OUTPUT));
+    }
+
+    @Test
+    void asksTheModelTwiceAtMost() {
+        // an unreadable answer, then one that cannot be used: no third call to correct it
+        agents.chat.answer("I think this is a thesis.", """
+            {"placement": "NEW_COLLECTION", "community": "m9", "newCollection": {"title": "Theses"}, "confidence": 0.8}
+            """, """
+            {"placement": "EXISTING_COLLECTION", "collection": "c2", "confidence": 0.9}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.NONE);
+        assertThat(classification.confidence()).isZero();
+        assertThat(agents.chat.prompts()).hasSize(2);
     }
 
     @Test

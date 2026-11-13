@@ -69,8 +69,13 @@ public class HarvestProperties {
         /** Where the topology API is reached, to build the items of accepted records. */
         private String topologyUrl = "http://articulorium-topology/";
 
-        /** How long a classification may take before it is recorded as failed (and can be retried). */
-        private Duration timeout = Duration.ofMinutes(2);
+        /**
+         * How long the harvester waits for one answer of the agent (a classification, the draft of
+         * a topology) before the classification is recorded as failed (and can be retried). A model
+         * on a CPU takes minutes per call and a classification is up to two calls; the agent goes
+         * on working after a wait that was too short, and later records wait behind it.
+         */
+        private Duration timeout = Duration.ofMinutes(15);
 
         /**
          * Whether suggestions are accepted without a person (the default): the record is placed in

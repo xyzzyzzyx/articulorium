@@ -15,6 +15,8 @@ curl -s http://localhost:8000/ai/capabilities
 ARTICULORIUM_HARVEST_AUTO_ACCEPT=false docker compose up --build
 # place records at once, but leave proposed topologies for review
 ARTICULORIUM_HARVEST_CREATE_TOPOLOGIES=false docker compose up --build
+# run the model on the host's NVIDIA GPU (seconds per answer instead of minutes on a CPU)
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 # no classification of harvested records
 ARTICULORIUM_HARVEST_CLASSIFICATION=false docker compose up --build
 ```
@@ -105,10 +107,10 @@ exactly as before, then asks the agent where each new record belongs:
    structure and topologies the harvester may read, and suggests an existing collection, or a new
    collection or community, and the topology of its item, with a confidence and its reasons.
    Ids the model was not shown are never used. A proposal that stands without such an id is kept
-   (a new community with an unknown parent goes to the top level); otherwise the model is told what
-   is wrong and asked once more, and an unreadable answer is asked for once more too. In a
-   repository without any community the model is told to propose a community and a collection, and
-   a single proposed title names both. A proposed topology named after a subject of the record is
+   (a new community with an unknown parent goes to the top level). In a repository without any
+   community the model is told to propose a community and a collection, and a single proposed
+   title names both. Otherwise the model is told what is wrong and asked once more, as it is after
+   an unreadable answer: a classification is two model calls at most. A proposed topology named after a subject of the record is
    dropped: a topology is the form of an item, not its topic.
 2. The suggestion is stored below the record (`<record>/classification`, typed
    `art:ReviewPending` while open). A record the agent cannot classify (not deployed, no model,
@@ -146,7 +148,8 @@ The agent still only drafts. `create-communities`, `create-collections` and `cre
 `auto-accept-threshold` (unset: any confidence) accepts only suggestions at least that sure.
 Suggestions of no placement, of structure that may not be created, a topology that cannot be
 drafted validly, a proposed parent outside the community structure, and records whose placement
-fails wait for review; nothing is created for a record whose topology could not be. Sources whose records do not belong in collections
+fails wait for review. A record whose proposed topology cannot be created (no valid draft, the agent
+busy or too slow) is still placed, as a plain object; its classification keeps the proposal. Sources whose records do not belong in collections
 (VIVO profiles) set `classify: false`. The `harvest.classifications` counter records outcomes
 (`pending`, `auto-accepted`, `failed`, `unrecorded`) by source, `harvest.topologies` what became of
 proposed topologies (`created`, `reused`, `invalid`, `failed`). The review API is described in
@@ -191,7 +194,9 @@ Agent settings (`articulorium.ai.*`):
 | `classification.max-record-length` | `2000` | Characters of a record shown to the model. |
 
 Harvest settings (`articulorium.harvest.classification.*`): `enabled` (`false`; `true` in compose),
-`ai-url`, `topology-url`, `timeout` (`2m`, after which a classification is recorded as failed),
+`ai-url`, `topology-url`, `timeout` (`15m`: how long the harvester waits for one answer of the agent before
+the classification is recorded as failed; a model on a CPU takes minutes per call, and the agent goes on
+working after a wait that was too short; compose `ARTICULORIUM_HARVEST_CLASSIFICATION_TIMEOUT`),
 `auto-accept` (`true`), `auto-accept-threshold` (unset), `create-communities`, `create-collections`,
 `create-topologies` (`true`), `communities` (`communities`), `review-threshold` (`0.5`); per source
 (`articulorium.harvest.sources.<id>.*`): `classify` (`true`), `auto-accept` (unset: the setting above).

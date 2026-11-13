@@ -1,0 +1,34 @@
+# The AI agent's model on the host's NVIDIA GPU, instead of the CPU.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+#
+# Ollama then loads the model into the GPU's memory: an answer takes seconds instead of minutes,
+# which is what the classification of harvested records needs (ai/README.md). Without this file the
+# stack runs the model on the CPU, on any host.
+#
+# Needs an NVIDIA GPU and its container support on the host:
+#   Windows  Docker Desktop with the WSL 2 backend and a current NVIDIA driver for Windows
+#            (nothing to install in WSL; GPU support is part of Docker Desktop)
+#   Linux    the NVIDIA driver and the NVIDIA Container Toolkit
+#            (nvidia-ctk runtime configure --runtime=docker, then restart Docker)
+# Check it first:  docker run --rm --gpus all ubuntu nvidia-smi
+# Without it the ollama service fails to start ("could not select device driver").
+# Docker Desktop on macOS passes no GPU to containers: run Ollama on the host there and point the
+# agent at it (SPRING_AI_OLLAMA_BASE_URL=http://host.docker.internal:11434).
+# AMD GPUs work on Linux only, with the image ollama/ollama:<version>-rocm and the devices
+# /dev/kfd and /dev/dri instead of the reservation below.
+#
+# OLLAMA_GPU_COUNT (default all) limits the GPUs used. Whether the model runs on the GPU:
+#   docker compose exec ollama ollama ps        (PROCESSOR says "100% GPU")
+# A model larger than the GPU's memory is split between GPU and CPU, or runs on the CPU.
+
+services:
+
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: ${OLLAMA_GPU_COUNT:-all}
+              capabilities: [gpu]
