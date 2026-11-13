@@ -57,6 +57,13 @@
       <artifactId>spring-cloud-starter-consul-discovery</artifactId>
     </dependency>
 
+    <!-- native image hints for the Consul client: without them a native service neither
+         registers in Consul nor resolves other services -->
+    <dependency>
+      <groupId>com.articulorium</groupId>
+      <artifactId>consul-native</artifactId>
+    </dependency>
+
     <!-- the shared record representation is RDF; Fedora and VIVO answer RDF, SPARQL results -->
     <dependency>
       <groupId>org.apache.jena</groupId>

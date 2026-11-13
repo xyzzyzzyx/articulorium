@@ -42,6 +42,7 @@
     <module>agent</module>
     <module>agent-spring-boot-starter</module>
     <module>i18n-spring-boot-starter</module>
+    <module>consul-native</module>
     <!-- Angular single page application, packaged as a jar of static resources -->
     <module>ui</module>
     <!-- server-rendered (Angular SSR) discovery and presentation layer; built, linted and tested
@@ -203,6 +204,12 @@
       <dependency>
         <groupId>com.articulorium</groupId>
         <artifactId>i18n-spring-boot-starter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.articulorium</groupId>
+        <artifactId>consul-native</artifactId>
         <version>${project.version}</version>
       </dependency>
 

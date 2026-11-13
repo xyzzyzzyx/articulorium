@@ -55,6 +55,17 @@ Each has a test (`*RuntimeHintsTest`); the platform's fails when a file is added
 `src/main/resources` without a hint. Records that are only read from JSON by hand (the answers of
 the AI agent's model, for example) need `@RegisterReflectionForBinding` in the same way.
 
+## Consul client
+
+Spring Cloud Consul (5.0) calls the Consul agent through an HTTP interface client and binds its
+requests and responses with Jackson, but ships no native image metadata, and Spring cannot derive
+it: with `spring.config.import=consul:` the client is a ready-made singleton, not a bean
+definition. A native image without that metadata fails quietly: a service registers nothing in
+Consul, and the gateway answers 503 ("No servers available for service: ...") for services that
+are running. The `consul-native` module (`ConsulRuntimeHints`, contributed through
+`META-INF/spring/aot.factories`) supplies the hints; **every service that uses Consul must depend
+on it**. `ConsulRuntimeHintsTest` checks the client's methods and model classes are covered.
+
 ## Settings fixed at build time
 
 Spring AOT evaluates bean conditions (`@ConditionalOn...Property`) while the image is built. A
