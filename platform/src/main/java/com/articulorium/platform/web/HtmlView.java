@@ -75,6 +75,11 @@ public class HtmlView {
                  font-size: 13px; word-break: break-word; }
         th { color: var(--muted); font-weight: 600; }
         td.mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+        .table-scroll { overflow-x: auto; }
+        table.triples td.term { width: 1%; white-space: nowrap; word-break: normal; }
+        table.triples td.term .clip { display: block; max-width: 28ch; overflow: hidden; text-overflow: ellipsis; }
+        table.triples td.value { overflow-wrap: anywhere; word-break: normal; }
+        @media (max-width: 640px) { table.triples td.term .clip { max-width: 16ch; } }
         .meta { color: var(--muted); font-size: 12px; }
         ul.children { list-style: none; padding: 0; margin: 0; border: 1px solid var(--line); background: var(--card); }
         ul.children li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px;
@@ -279,15 +284,25 @@ public class HtmlView {
                 html.append("<div class=\"empty\">").append(t("html.no-triples")).append("</div>");
                 return;
             }
-            html.append("<table><thead><tr><th scope=\"col\">").append(t("html.subject"))
+            // subject and predicate stay on one line (clipped, full IRI in the tooltip); the object takes
+            // the remaining width and wraps, so a long literal never squashes the term columns
+            html.append("<div class=\"table-scroll\"><table class=\"triples\"><thead><tr><th scope=\"col\">")
+                .append(t("html.subject"))
                 .append("</th><th scope=\"col\">").append(t("html.predicate"))
                 .append("</th><th scope=\"col\">").append(t("html.object")).append("</th></tr></thead><tbody>");
             for (final Statement statement : statements) {
-                html.append("<tr><td class=\"mono\">").append(node(model, statement.getSubject(), subjectIri)).append("</td>")
-                    .append("<td class=\"mono\">").append(node(model, statement.getPredicate(), subjectIri)).append("</td>")
-                    .append("<td>").append(node(model, statement.getObject(), subjectIri)).append("</td></tr>");
+                html.append("<tr>").append(term(model, statement.getSubject(), subjectIri))
+                    .append(term(model, statement.getPredicate(), subjectIri))
+                    .append("<td class=\"value\">").append(node(model, statement.getObject(), subjectIri)).append("</td></tr>");
             }
-            html.append("</tbody></table>");
+            html.append("</tbody></table></div>");
+        }
+
+        private String term(final Model model, final RDFNode node, final String subjectIri) {
+            final String full = node.isURIResource() ? node.asResource().getURI()
+                : node.isAnon() ? "_:" + node.asResource().getId().getLabelString() : node.toString();
+            return "<td class=\"mono term\"><span class=\"clip\" title=\"" + escape(full) + "\">"
+                + node(model, node, subjectIri) + "</span></td>";
         }
 
         private String node(final Model model, final RDFNode node, final String subjectIri) {

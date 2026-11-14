@@ -61,6 +61,8 @@ describe('Navigation', () => {
       });
       cy.visitUi(`browse/${outer}`);
       cy.get('h1').should('have.text', 'Outer');
+      // the list reserves room for its numbers so the markers are not clipped
+      cy.get('.ui-children').should('have.attr', 'style').and('contain', '--ui-children-digits: 1');
       cy.get('.ui-children').contains('a', 'inner').click();
       cy.location('pathname').should('eq', `/ui/browse/${outer}/inner`);
       cy.get('h1').should('have.text', 'Inner');

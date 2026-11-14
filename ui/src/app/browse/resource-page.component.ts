@@ -133,6 +133,9 @@ export class ResourcePageComponent {
       .sort((a, b) => a.name.localeCompare(b.name, this.i18n.locale(), { numeric: true }));
   });
 
+  /** Digits in the highest child number, so the list reserves room for its markers. */
+  protected readonly childDigits = computed(() => String(this.children().length).length);
+
   /** Types of the resource as prefixed names. */
   protected readonly types = computed(() => {
     const view = this.view();

@@ -61,6 +61,7 @@ describe('ResourcePageComponent', () => {
     expect(element.textContent).toContain('by alice');
     const children = [...element.querySelectorAll('.ui-children a')].map((a) => a.textContent);
     expect(children).toEqual(['cover.png', 'moby-dick']);
+    expect(element.querySelector<HTMLElement>('.ui-children')?.style.getPropertyValue('--ui-children-digits')).toBe('1');
     expect(element.querySelector('ui-property-table')?.textContent).toContain('dcterms:title');
     expect(element.textContent).toContain('Other resources');
     expect(element.textContent).toContain('Librarian');
@@ -68,6 +69,17 @@ describe('ResourcePageComponent', () => {
     expect(element.querySelector('ui-sparql-update-form textarea')).not.toBeNull();
     expect(element.textContent).toContain('Create version');
     expect(element.textContent).toContain('Delete');
+  });
+
+  it('reserves room for multi-digit child numbers', async () => {
+    const many = Array.from({ length: 120 }, (_, i) => `<${TEST_BASE}books> <http://www.w3.org/ns/ldp#contains> <${TEST_BASE}books/item-${i}> .`);
+    await open('books');
+    http.expectOne(`${TEST_BASE}books`).flush(`${CONTAINER_NT}\n${many.join('\n')}\n`);
+    const element = await settle();
+
+    const list = element.querySelector<HTMLElement>('.ui-children');
+    expect(list?.querySelectorAll('li').length).toBe(122);
+    expect(list?.style.getPropertyValue('--ui-children-digits')).toBe('3');
   });
 
   it('shows a binary with its content actions', async () => {

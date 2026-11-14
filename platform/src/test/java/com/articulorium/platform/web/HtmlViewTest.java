@@ -64,6 +64,21 @@ class HtmlViewTest {
     }
 
     @Test
+    void keepsSubjectAndPredicateOnOneLineWhenTheObjectIsLong() {
+        final LdpResource resource = new LdpResource("x", InteractionModel.RDF_SOURCE);
+        final Model model = ModelFactory.createDefaultModel();
+        model.createResource(BASE + "/x").addProperty(model.createProperty(Rdf.RDFS_LABEL), "word ".repeat(500));
+
+        final String html = view.render(new ResolvedTarget(resource, false), model, BASE);
+
+        assertThat(html).contains("<div class=\"table-scroll\"><table class=\"triples\">");
+        assertThat(html).contains("table.triples td.term { width: 1%; white-space: nowrap;");
+        assertThat(html).contains("<td class=\"mono term\"><span class=\"clip\" title=\"" + BASE + "/x\">");
+        assertThat(html).contains("<td class=\"mono term\"><span class=\"clip\" title=\"" + Rdf.RDFS_LABEL + "\">");
+        assertThat(html).contains("<td class=\"value\">word word");
+    }
+
+    @Test
     void rdfSourcesHaveNoUploadForms() {
         final LdpResource resource = new LdpResource("x", InteractionModel.RDF_SOURCE);
         final String html = view.render(new ResolvedTarget(resource, false), ModelFactory.createDefaultModel(), BASE);

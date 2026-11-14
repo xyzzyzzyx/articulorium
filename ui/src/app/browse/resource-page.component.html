@@ -65,7 +65,7 @@
               @if (children().length === 0) {
                 <span class="ui-muted">{{ 'common.none' | translate }}</span>
               } @else {
-                <ol class="ui-children">
+                <ol class="ui-children" [style.--ui-children-digits]="childDigits()">
                   @for (child of children(); track child.iri) {
                     <li>
                       @if (child.route) {

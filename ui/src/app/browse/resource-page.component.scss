@@ -36,9 +36,15 @@
 
 .ui-children {
   margin: 0;
-  padding-inline-start: 1.25em;
+  // markers sit outside the list box, which clips them when scrolling: reserve one digit width
+  // per digit of the highest number (--ui-children-digits) plus room for the period and gap
+  padding-inline-start: calc(var(--ui-children-digits, 1) * 1ch + 1.5ch);
   max-height: 320px;
   overflow: auto;
+
+  li::marker {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 .ui-error mat-card-content {
