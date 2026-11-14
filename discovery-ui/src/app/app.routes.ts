@@ -20,7 +20,7 @@ export function itemMatcher(segments: UrlSegment[]): UrlMatchResult | null {
 
 /**
  * Every page lives below its locale: `/discover/<lang>/`, `/discover/<lang>/search`,
- * `/discover/<lang>/items/<path>`.
+ * `/discover/<lang>/collections`, `/discover/<lang>/items/<path>`.
  */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: negotiatedLocale },
@@ -29,6 +29,10 @@ export const routes: Routes = [
     canMatch: [localeMatch],
     children: [
       { path: '', pathMatch: 'full', loadComponent: () => import('./pages/home/home.page').then((m) => m.HomePage) },
+      {
+        path: 'collections',
+        loadComponent: () => import('./pages/collections/collections.page').then((m) => m.CollectionsPage),
+      },
       {
         path: 'search',
         loadComponent: () => import('./pages/search/search.page').then((m) => m.SearchPage),

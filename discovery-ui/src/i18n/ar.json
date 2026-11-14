@@ -6,6 +6,7 @@
     "skip": "انتقل إلى المحتوى",
     "landmark": "التنقل الرئيسي",
     "home": "الرئيسية",
+    "collections": "المجموعات",
     "browse": "تصفح",
     "languageMenu": "اللغة: {{language}}",
     "footer": "تذييل الصفحة"
@@ -46,7 +47,22 @@
     "search": "بحث",
     "collections": "المجموعات",
     "recent": "أضيفت مؤخرًا",
-    "browseAll": "تصفح كل شيء"
+    "browseAll": "تصفح كل شيء",
+    "allCollections": "كل المجتمعات والمجموعات",
+    "collectionTree": "تصفّح المجتمعات والمجموعات"
+  },
+  "collections": {
+    "title": "المجتمعات والمجموعات",
+    "intro": "تصفّح كيفية تنظيم المجموعات. وسّع مجتمعًا أو مجموعة لرؤية المجتمعات والمجموعات التي يحتويها، أو افتحه لرؤية كل ما فيه.",
+    "expand": "توسيع {{title}}",
+    "collapse": "طي {{title}}",
+    "collapseAll": "طي الكل",
+    "loading": "جارٍ التحميل…",
+    "failed": "تعذّر تحميل هذه القائمة الآن.",
+    "retry": "أعد المحاولة",
+    "more": "عرض المزيد ({{shown}} من {{total}})",
+    "none": "لا توجد مجتمعات أو مجموعات عامة بعد.",
+    "empty": "لا توجد مجتمعات أو مجموعات بداخله."
   },
   "kinds": {
     "community": "مجتمع",
@@ -117,7 +133,9 @@
     "iiifCollection": "مجموعة IIIF",
     "repository": "عرض في المستودع",
     "communityMembers": "في هذا المجتمع",
-    "collectionMembers": "في هذه المجموعة"
+    "collectionMembers": "في هذه المجموعة",
+    "membersPagination": "صفحات المحتوى",
+    "noMembersOnPage": "لا يوجد المزيد في هذه الصفحة."
   },
   "viewer": {
     "label": "العارض: {{title}}",

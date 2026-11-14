@@ -144,6 +144,11 @@ const CONFIG: DiscoveryConfig = {
         }
       ],
       "membersLimit": 24
+    },
+    "collections": {
+      "enabled": true,
+      "pageSize": 50,
+      "sort": "title"
     }
   },
   "viewer": {

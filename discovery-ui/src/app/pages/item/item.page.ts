@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, linkedSignal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,7 +8,7 @@ import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { of } from 'rxjs';
 
-import { ItemView } from '../../core/api/discovery-api';
+import { ItemView, SearchResponse } from '../../core/api/discovery-api';
 import { DiscoveryApiService } from '../../core/api/discovery-api.service';
 import { ConfigService } from '../../core/config/config.service';
 import { ResponseStatusService } from '../../core/http/response-status.service';
@@ -16,6 +16,7 @@ import { LocaleService } from '../../core/i18n/locale.service';
 import { SeoService } from '../../core/seo/seo.service';
 import { itemStructuredData } from '../../core/seo/structured-data';
 import { itemLink, localName } from '../../shared/links';
+import { PagerComponent, pageCount, parsePage } from '../../shared/pager.component';
 import { ResourceCardComponent } from '../../shared/resource-card.component';
 import { MiradorViewerComponent } from '../../viewer/mirador-viewer.component';
 
@@ -28,7 +29,7 @@ import { MiradorViewerComponent } from '../../viewer/mirador-viewer.component';
  */
 @Component({
   selector: 'disc-item-page',
-  imports: [MatButtonModule, MatIconModule, MatProgressBarModule, MiradorViewerComponent, ResourceCardComponent, RouterLink, TranslatePipe],
+  imports: [MatButtonModule, MatIconModule, MatProgressBarModule, MiradorViewerComponent, PagerComponent, ResourceCardComponent, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (item.isLoading() && !item.hasValue()) {
@@ -124,15 +125,25 @@ import { MiradorViewerComponent } from '../../viewer/mirador-viewer.component';
         }
       </article>
 
-      @if (members.value()?.results?.length) {
-        <section class="disc-section" aria-labelledby="disc-members-heading">
-          <h2 id="disc-members-heading">{{ membersHeading() }}</h2>
-          <ul class="disc-card-grid">
-            @for (member of members.value()!.results; track member.path) {
-              <li><disc-resource-card [resource]="member" [showThumbnail]="thumbnails()" /></li>
+      @if (shownMembers(); as listing) {
+        @if (listing.results.length || listing.page > 1) {
+          <section id="disc-members" class="disc-section" aria-labelledby="disc-members-heading" [attr.aria-busy]="members.isLoading()">
+            <h2 id="disc-members-heading">{{ membersHeading() }}</h2>
+            @if (members.isLoading()) {
+              <mat-progress-bar mode="indeterminate" [attr.aria-label]="'item.loading' | translate" />
             }
-          </ul>
-        </section>
+            @if (listing.results.length) {
+              <ul class="disc-card-grid">
+                @for (member of listing.results; track member.path) {
+                  <li><disc-resource-card [resource]="member" [showThumbnail]="thumbnails()" /></li>
+                }
+              </ul>
+            } @else {
+              <p class="disc-message">{{ 'item.noMembersOnPage' | translate }}</p>
+            }
+            <disc-pager [page]="listing.page" [pages]="memberPages()" [label]="'item.membersPagination' | translate" fragment="disc-members" />
+          </section>
+        }
       }
     }
   `,
@@ -231,6 +242,9 @@ export class ItemPage {
   /** The resource path (the route's `items/<path>`). */
   readonly path = input.required<string>();
 
+  /** The page of members of a community or collection (the `page` query parameter). */
+  readonly page = input(1, { transform: parsePage });
+
   protected readonly locale = this.locales.locale;
 
   protected readonly viewerPosition = computed(() => this.config.config().layout.item.viewerPosition);
@@ -280,13 +294,28 @@ export class ItemPage {
       const resource = this.resource();
       const limit = this.config.config().layout.item.membersLimit;
       return resource && (resource.kind === 'COMMUNITY' || resource.kind === 'COLLECTION') && limit > 0
-        ? { within: resource.path, lang: this.locale(), size: limit }
+        ? { within: resource.path, lang: this.locale(), size: limit, page: this.page() }
         : undefined;
     },
     stream: ({ params }) =>
       params
-        ? this.api.search({ q: '', page: 1, size: params.size, facets: {}, filters: [], within: params.within }, params.lang)
+        ? this.api.search({ q: '', page: params.page, size: params.size, facets: {}, filters: [], within: params.within }, params.lang)
         : of(undefined),
+  });
+
+  /**
+   * The members shown: while another page loads, the current one stays, so the listing (and the
+   * position the pager scrolled to) does not collapse.
+   */
+  protected readonly shownMembers = linkedSignal<{ value?: SearchResponse; loading: boolean }, SearchResponse | undefined>({
+    source: () => ({ value: this.members.hasValue() ? this.members.value() : undefined, loading: this.members.isLoading() }),
+    computation: (current, previous) => current.value ?? (current.loading ? previous?.value : undefined),
+  });
+
+  /** Pages of members; totals are the index's, so a last page may list fewer (or private) members. */
+  protected readonly memberPages = computed(() => {
+    const members = this.shownMembers();
+    return members ? pageCount(members.total, members.size) : 1;
   });
 
   protected readonly membersHeading = computed(() => {

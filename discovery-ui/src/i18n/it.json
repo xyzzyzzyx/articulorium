@@ -6,6 +6,7 @@
     "skip": "Vai al contenuto",
     "landmark": "Navigazione principale",
     "home": "Home",
+    "collections": "Collezioni",
     "browse": "Sfoglia",
     "languageMenu": "Lingua: {{language}}",
     "footer": "Piè di pagina"
@@ -43,7 +44,22 @@
     "search": "Ricerca",
     "collections": "Collezioni",
     "recent": "Aggiunti di recente",
-    "browseAll": "Sfoglia tutto"
+    "browseAll": "Sfoglia tutto",
+    "allCollections": "Tutte le comunità e collezioni",
+    "collectionTree": "Sfoglia comunità e collezioni"
+  },
+  "collections": {
+    "title": "Comunità e collezioni",
+    "intro": "Scopri come sono organizzate le collezioni. Espandi una comunità o una collezione per vedere le comunità e le collezioni che contiene, oppure aprila per vederne tutto il contenuto.",
+    "expand": "Espandi {{title}}",
+    "collapse": "Comprimi {{title}}",
+    "collapseAll": "Comprimi tutto",
+    "loading": "Caricamento…",
+    "failed": "Al momento non è possibile caricare questo elenco.",
+    "retry": "Riprova",
+    "more": "Mostra altro ({{shown}} di {{total}})",
+    "none": "Non ci sono ancora comunità o collezioni pubbliche.",
+    "empty": "Nessuna comunità o collezione al suo interno."
   },
   "kinds": {
     "community": "Comunità",
@@ -114,7 +130,9 @@
     "iiifCollection": "Collezione IIIF",
     "repository": "Vedi nel repository",
     "communityMembers": "In questa comunità",
-    "collectionMembers": "In questa collezione"
+    "collectionMembers": "In questa collezione",
+    "membersPagination": "Pagine del contenuto",
+    "noMembersOnPage": "Non c’è altro in questa pagina."
   },
   "viewer": {
     "label": "Visualizzatore: {{title}}",

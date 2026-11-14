@@ -81,7 +81,16 @@ export interface LayoutConfig {
   item: {
     viewerPosition: 'TOP' | 'BOTTOM' | 'SIDE';
     fields: { field: string; label?: LocalizedText; link: boolean }[];
+    /** Members listed per page on community and collection pages. */
     membersLimit: number;
+  };
+  /** The communities and collections page: a tree below `home.collectionsPath`. */
+  collections: {
+    enabled: boolean;
+    /** Communities and collections loaded at a time per level. */
+    pageSize: number;
+    /** The sort of each level (a sort identifier); default the browse order. */
+    sort?: string;
   };
 }
 

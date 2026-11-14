@@ -20,6 +20,7 @@ export const FALLBACK_CONFIG: DiscoveryConfig = {
       descriptionLength: 280,
     },
     item: { viewerPosition: 'TOP', fields: [], membersLimit: 0 },
+    collections: { enabled: false, pageSize: 50 },
   },
   viewer: {
     enabled: false,

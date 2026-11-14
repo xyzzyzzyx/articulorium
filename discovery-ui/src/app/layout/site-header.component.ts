@@ -34,6 +34,11 @@ import { SearchBoxComponent } from './search-box.component';
             [routerLinkActiveOptions]="{ exact: true }"
             >{{ 'nav.home' | translate }}</a
           >
+          @if (collections()) {
+            <a mat-button [routerLink]="['/', locale(), 'collections']" routerLinkActive="disc-active" ariaCurrentWhenActive="page">{{
+              'nav.collections' | translate
+            }}</a>
+          }
           <a mat-button [routerLink]="['/', locale(), 'search']" routerLinkActive="disc-active" ariaCurrentWhenActive="page">{{
             'nav.browse' | translate
           }}</a>
@@ -113,6 +118,9 @@ export class SiteHeaderComponent {
   });
 
   protected readonly logo = computed(() => this.config.config().site.logoUrl);
+
+  /** Whether the communities and collections page exists. */
+  protected readonly collections = computed(() => this.config.config().layout.collections.enabled);
 
   protected readonly showSearch = computed(() => this.search() && this.config.config().layout.header.search);
 
