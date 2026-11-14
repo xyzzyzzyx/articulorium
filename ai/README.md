@@ -110,10 +110,17 @@ exactly as before, then asks the agent where each new record belongs:
    communities are broad fields (Sciences, Humanities), sub-communities narrower ones. The model
    chooses the most specific existing community that fits and proposes only the missing levels
    below it, in order (`newCommunities`, for example Sciences › Computer Science, with the
-   collection Digital Libraries). Proposed levels that exist already (same title or name in the
-   same parent) are those communities, and a collection of the proposed title there is used as it
-   is; a level repeating its parent, or a last level named like the collection, is dropped, and at
-   most `classification.max-new-communities` levels are kept (the more general ones).
+   collection Digital Libraries). A community exists once: names are compared by key (case,
+   accents, "&"/"and", stop words and plural endings aside, so Digital Library is Digital
+   Libraries). A proposed level that exists in its parent is that community; one that names a
+   collection there puts the record in that collection; otherwise the most specific level that is
+   a community anywhere else in the structure is that community, and the path goes on from there.
+   Titles written as paths are split into levels; classification codes (H.3.7, cs.DL) are no
+   communities; a level repeating a community above, or a last level named like the collection,
+   is dropped, and at most `classification.max-new-communities` (2) new levels are kept (the more
+   general ones). A collection named after the record itself ("New collection for …", a subtitle,
+   more than five words, the words of the record's title) groups nothing: the most specific
+   community names the collection instead, without asking the model again.
    Ids the model was not shown are never used. A proposal that stands without such an id is kept
    (new communities with an unknown parent go to the top level). In a repository without any
    community the model is told to propose communities from a broad field down and a collection,
@@ -200,7 +207,7 @@ Agent settings (`articulorium.ai.*`):
 | `classification.max-candidates` | `200` | Collections offered to the model. |
 | `classification.catalog-ttl` | `1m` | How long the structure read for one caller is reused. |
 | `classification.max-record-length` | `2000` | Characters of a record shown to the model. |
-| `classification.max-new-communities` | `3` | New, nested communities one classification may propose; further (more specific) levels are dropped. |
+| `classification.max-new-communities` | `2` | New, nested communities one classification may propose; further (more specific) levels are dropped. |
 
 Harvest settings (`articulorium.harvest.classification.*`): `enabled` (`false`; `true` in compose),
 `ai-url`, `topology-url`, `timeout` (`15m`: how long the harvester waits for one answer of the agent before

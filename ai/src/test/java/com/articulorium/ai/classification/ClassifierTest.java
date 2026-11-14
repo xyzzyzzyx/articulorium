@@ -321,6 +321,79 @@ class ClassifierTest {
     }
 
     @Test
+    void reusesACommunityOfTheSameNameInAnotherBranch() {
+        nestedRepository();
+        agents.chat.answer("""
+            {"placement": "NEW_COMMUNITY",
+             "newCommunities": [{"title": "Engineering"}, {"title": "Computer sciences"}, {"title": "Machine Learning"}],
+             "newCollection": {"title": "Preprints"}, "confidence": 0.6}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        // Computer Science exists (below Sciences): it is not created again below a new Engineering
+        assertThat(classification.community().path()).isEqualTo("communities/sciences/computer-science");
+        assertThat(classification.newCommunities()).extracting(Classification.NewStructure::title)
+            .containsExactly("Machine Learning");
+    }
+
+    @Test
+    void placesInTheCollectionAProposedCommunityNames() {
+        nestedRepository();
+        agents.chat.answer("""
+            {"placement": "NEW_COMMUNITY", "community": "m2", "newCommunities": [{"title": "Digital Library"}],
+             "newCollection": {"title": "Preprints"}, "confidence": 0.6}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        // Computer Science holds a collection of that name: no community of the same name beside it
+        assertThat(classification.placement()).isEqualTo(Placement.EXISTING_COLLECTION);
+        assertThat(classification.collection().path()).isEqualTo("communities/sciences/computer-science/digital-libraries");
+    }
+
+    @Test
+    void replacesACollectionNamedAfterTheRecordWithoutAskingAgain() {
+        nestedRepository();
+        agents.chat.answer("""
+            {"placement": "NEW_COLLECTION", "community": "m2",
+             "newCollection": {"title": "New Collection for Quantum Dots in Silicon"}, "confidence": 0.6}
+            """, """
+            {"placement": "NEW_COMMUNITY", "community": "m1",
+             "newCommunities": [{"title": "Physics"}, {"title": "Condensed Matter"}],
+             "newCollection": {"title": "Quantum dots in silicon"}, "confidence": 0.6}
+            """);
+
+        final Classification inCommunity = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(inCommunity.placement()).isEqualTo(Placement.NEW_COLLECTION);
+        assertThat(inCommunity.community().path()).isEqualTo("communities/sciences/computer-science");
+        assertThat(inCommunity.newCollection().title()).as("named by its community").isEqualTo("Computer Science");
+
+        final Classification inNewCommunities = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+        // the most specific community names the collection, and is not created twice
+        assertThat(inNewCommunities.newCommunities()).extracting(Classification.NewStructure::title)
+            .containsExactly("Physics");
+        assertThat(inNewCommunities.newCollection().title()).isEqualTo("Condensed Matter");
+        assertThat(agents.chat.prompts()).as("repaired without the model").hasSize(2);
+        assertThat(agents.chat.prompts().get(0).getSystemMessage().getText())
+            .contains("never name a collection after the record").contains("never a classification code");
+    }
+
+    @Test
+    void neverProposesClassificationCodesAsCommunities() {
+        emptyRepository();
+        agents.chat.answer("""
+            {"placement": "NEW_COMMUNITY", "newCommunities": [{"title": "H.3.7"}, {"title": "Computer Science"},
+             {"title": "cs.DL"}], "newCollection": {"title": "Digital Libraries"}, "confidence": 0.6}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.newCommunities()).extracting(Classification.NewStructure::title)
+            .containsExactly("Computer Science");
+    }
+
+    @Test
     void keepsTheMoreGeneralLevelsOfALongPath() {
         nestedRepository();
         agents.chat.answer("""
@@ -337,9 +410,9 @@ class ClassifierTest {
         final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
 
         assertThat(classification.community().path()).isEqualTo("communities/sciences/computer-science");
-        // the parent repeated, the collection's twin and levels beyond three are dropped
+        // the parent repeated, the collection's twin and levels beyond two are dropped
         assertThat(classification.newCommunities()).extracting(Classification.NewStructure::title)
-            .containsExactly("Information Retrieval", "Ranking", "Neural Ranking");
+            .containsExactly("Information Retrieval", "Ranking");
         assertThat(classification.newCollection().title()).isEqualTo("Passage retrieval");
 
         final Classification newCollection = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);

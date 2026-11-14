@@ -822,6 +822,32 @@ class ClassificationTest {
     }
 
     @Test
+    void createsACommunityWhoseNameIsTakenOnce() {
+        properties.getClassification().setAutoAccept(true);
+        platform.put("communities/science",
+            "<> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + Articulorium.COMMUNITY + "> .\n");
+        // a collection holds the name the community would get
+        platform.put("communities/science/artificial-intelligence",
+            "<> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <" + Articulorium.COLLECTION + "> .\n"
+                + "<> <" + DCTERMS + "title> \"Artificial Intelligence\" .\n");
+        final Suggestion suggestion = new Suggestion(Suggestion.NEW_COMMUNITY, null,
+            new Suggestion.Ref("communities/science", "Science", "Science"),
+            List.of(new Suggestion.NewStructure("Artificial intelligence", null, null)),
+            new Suggestion.NewStructure("Preprints", null, null), null, 0.7, null, List.of(), null);
+        answers.add(suggestion);
+        answers.add(suggestion);
+
+        ingestor.ingest("repo", record("oai:repo:1", "Planning"));
+        ingestor.ingest("repo", record("oai:repo:2", "Learning"));
+
+        // the platform named the community artificial-intelligence-2; the second record finds it by its title
+        assertThat(platform.exists("communities/science/artificial-intelligence-2")).isTrue();
+        assertThat(platform.exists("communities/science/artificial-intelligence-3")).isFalse();
+        assertThat(store.read(harvester, PATHS.record("repo", "oai:repo:2")).orElseThrow().placedAt())
+            .startsWith("communities/science/artificial-intelligence-2/preprints/");
+    }
+
+    @Test
     void createsNestedCommunitiesFromGeneralToSpecific() {
         properties.getClassification().setAutoAccept(true);
         final List<Suggestion.NewStructure> path = List.of(new Suggestion.NewStructure("Sciences", "All sciences", null),

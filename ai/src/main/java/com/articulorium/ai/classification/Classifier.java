@@ -200,6 +200,15 @@ public class Classifier extends CapabilityAgent {
         Classification.NewStructure newCollection = collectionPath.isEmpty() ? null : collectionPath.getLast();
         final List<Classification.NewStructure> collectionLevels = collectionPath.isEmpty() ? List.of()
             : collectionPath.subList(0, collectionPath.size() - 1);
+        // a collection named after this one record groups nothing: its subject's community names it
+        String collectionProblem = null;
+        if (newCollection != null && StructureNames.namesOneRecord(newCollection.title(), request.titles())) {
+            collectionProblem = "newCollection \"" + clipped(newCollection.title()) + "\" names this one record; a "
+                + "collection groups many records of one topic or kind (for example \"Information Retrieval\" or "
+                + "\"Theses\"): choose an existing collection or give a general title";
+            newCollection = lenient ? fallbackCollection(asked == Placement.NEW_COMMUNITY || communityEntry.isEmpty()
+                ? newCommunities : List.of(), collectionLevels, communityEntry) : null;
+        }
         Placement placement = Placement.NONE;
         Classification.Ref collection = null;
         Classification.Ref community = null;
@@ -218,7 +227,7 @@ public class Classifier extends CapabilityAgent {
                 }
             }
             if (newCollection == null) {
-                problem = asked == Placement.EXISTING_COLLECTION
+                problem = collectionProblem != null ? collectionProblem : asked == Placement.EXISTING_COLLECTION
                     ? "collection \"" + clipped(answer.collection()) + "\" is not one of the listed collection ids"
                     : "newCollection (with a title) is missing";
             } else if (communityEntry.isPresent() || !newCommunities.isEmpty()) {
@@ -279,13 +288,22 @@ public class Classifier extends CapabilityAgent {
     }
 
     /**
-     * Places proposed communities on the existing structure: from the parent (an existing
-     * community, or the top), a proposed level that exists there already (same title or name) is
-     * that community, and the next level is looked for in it; a level repeating its parent's title
-     * is dropped; so is a last level named like the collection when other levels hold it. At most
-     * {@code classification.max-new-communities} new levels are kept, the more general ones (the
+     * Places proposed communities on the existing structure, so that a community exists once.
+     * From the parent (an existing community, or the top), a proposed level is:
+     * <ul>
+     * <li>dropped when it repeats the parent;</li>
+     * <li>the community of its name (its key, see {@link StructureNames#key}) in the parent;</li>
+     * <li>the collection of its name in the parent, which is then where the record goes;</li>
+     * </ul>
+     * and the next level is looked for in what it named. When none of these holds, the most
+     * specific proposed level that is a community of its name anywhere else in the structure is
+     * that community, and the levels before it are dropped (topics are not duplicated in other
+     * branches). A path written from the top again starts
+     * where its first level is. Of the levels left, those repeating a community above or another
+     * level are dropped, so is a last level named like the collection when other levels hold it,
+     * and at most {@code classification.max-new-communities} are kept, the more general ones (the
      * collection holds what is more specific). The collection is an existing one when the final
-     * parent has a collection of its title.
+     * parent has a collection of its name.
      */
     private Anchored anchor(final StructureCatalog.Catalog catalog, @Nullable final Entry parent,
             final List<Classification.NewStructure> proposed, final Classification.NewStructure newCollection) {
@@ -307,25 +325,44 @@ public class Classifier extends CapabilityAgent {
                 levels.removeFirst();
                 continue;
             }
-            final String parentPath = at == null ? null : at.path();
-            final Optional<Entry> existing = catalog.structure().stream()
-                .filter(entry -> entry.kind() == Kind.COMMUNITY && Objects.equals(entry.parent(), parentPath)
-                    && same(entry, level))
-                .findFirst();
-            if (existing.isEmpty()) {
+            final Optional<Entry> community = child(catalog, at, Kind.COMMUNITY, level);
+            if (community.isPresent()) {
+                at = community.get();
+                levels.removeFirst();
+                continue;
+            }
+            final Optional<Entry> collection = child(catalog, at, Kind.COLLECTION, level);
+            if (collection.isPresent()) {
+                return new Anchored(at, List.of(), collection.get());
+            }
+            // the most specific level that is a community elsewhere (not one above: a repeat) goes on from there
+            final Set<String> lineage = new HashSet<>();
+            for (Entry ancestor = at; ancestor != null; ancestor = parentOf(catalog, ancestor)) {
+                lineage.add(ancestor.path());
+            }
+            Entry elsewhere = null;
+            int index = levels.size() - 1;
+            for (; index >= 0 && elsewhere == null; index--) {
+                final Classification.NewStructure candidate = levels.get(index);
+                elsewhere = catalog.structure().stream()
+                    .filter(entry -> entry.kind() == Kind.COMMUNITY && !lineage.contains(entry.path())
+                        && same(entry, candidate))
+                    .findFirst().orElse(null);
+            }
+            if (elsewhere == null) {
                 break;
             }
-            at = existing.get();
-            levels.removeFirst();
+            at = elsewhere;
+            levels.subList(0, index + 2).clear();
         }
         // a community does not repeat a community above it, nor another proposed level
         final Set<String> above = new HashSet<>();
         for (Entry ancestor = at; ancestor != null; ancestor = parentOf(catalog, ancestor)) {
-            above.add(TopologyAssistant.slugOf(ancestor.title()));
-            above.add(ResourcePaths.nameOf(ancestor.path()));
+            above.add(StructureNames.key(ancestor.title()));
+            above.add(StructureNames.key(ResourcePaths.nameOf(ancestor.path())));
         }
-        levels.removeIf(level -> !above.add(level.slug()));
-        if (!levels.isEmpty() && levels.getLast().slug().equals(newCollection.slug())
+        levels.removeIf(level -> !above.add(StructureNames.key(level.title())));
+        if (!levels.isEmpty() && StructureNames.key(levels.getLast().title()).equals(StructureNames.key(newCollection.title()))
                 && (levels.size() > 1 || at != null)) {
             levels.removeLast();
         }
@@ -333,15 +370,32 @@ public class Classifier extends CapabilityAgent {
         while (levels.size() > max) {
             levels.removeLast();
         }
-        Entry collection = null;
-        if (levels.isEmpty() && at != null) {
-            final String parentPath = at.path();
-            collection = catalog.structure().stream()
-                .filter(entry -> entry.kind() == Kind.COLLECTION && parentPath.equals(entry.parent())
-                    && same(entry, newCollection))
-                .findFirst().orElse(null);
-        }
+        final Entry collection = levels.isEmpty() ? child(catalog, at, Kind.COLLECTION, newCollection).orElse(null) : null;
         return new Anchored(at, List.copyOf(levels), collection);
+    }
+
+    /** The community or collection of a proposal's name in a community (or at the top). */
+    private static Optional<Entry> child(final StructureCatalog.Catalog catalog, @Nullable final Entry parent,
+            final Kind kind, final Classification.NewStructure proposed) {
+        final String parentPath = parent == null ? null : parent.path();
+        return catalog.structure().stream()
+            .filter(entry -> entry.kind() == kind && Objects.equals(entry.parent(), parentPath) && same(entry, proposed))
+            .findFirst();
+    }
+
+    /**
+     * A general collection for a record whose proposed collection named it alone: the most specific
+     * community it goes in names it ("Information Retrieval" holds the records about it).
+     */
+    private static Classification.NewStructure fallbackCollection(final List<Classification.NewStructure> levels,
+            final List<Classification.NewStructure> collectionLevels, final Optional<Entry> community) {
+        if (!collectionLevels.isEmpty()) {
+            return collectionLevels.getLast();
+        }
+        if (!levels.isEmpty()) {
+            return levels.getLast();
+        }
+        return community.map(entry -> structure(new AnswerStructure(entry.title(), null))).orElse(null);
     }
 
     private static @Nullable Entry parentOf(final StructureCatalog.Catalog catalog, final Entry entry) {
@@ -350,11 +404,11 @@ public class Classifier extends CapabilityAgent {
             .findFirst().orElse(null);
     }
 
-    /** Whether an existing community or collection is the one a proposal names. */
+    /** Whether an existing community or collection is the one a proposal names (same key). */
     private static boolean same(final Entry entry, final Classification.NewStructure proposed) {
-        return entry.title().equalsIgnoreCase(proposed.title().strip())
-            || TopologyAssistant.slugOf(entry.title()).equals(proposed.slug())
-            || ResourcePaths.nameOf(entry.path()).equals(proposed.slug());
+        final String key = StructureNames.key(proposed.title());
+        return !key.isEmpty() && (StructureNames.key(entry.title()).equals(key)
+            || StructureNames.key(ResourcePaths.nameOf(entry.path())).equals(key));
     }
 
     /**
@@ -425,6 +479,10 @@ public class Classifier extends CapabilityAgent {
             }
             final List<String> parts = levelsOf(level.title());
             for (int i = 0; i < parts.size(); i++) {
+                if (StructureNames.isCode(parts.get(i))) {
+                    // a classification code from the record (H.3.7, cs.DL) is not a community
+                    continue;
+                }
                 final Classification.NewStructure structure = structure(new AnswerStructure(parts.get(i),
                     i == parts.size() - 1 ? level.description() : null));
                 if (structure != null && (levels.isEmpty() || !levels.getLast().slug().equals(structure.slug()))) {
@@ -536,8 +594,12 @@ public class Classifier extends CapabilityAgent {
             far from everything that exists. Never propose a narrow topic as a top-level community. \
             Each title names one level only: never write a path or ">" in a title, and never repeat \
             a community that is already above it.
-            Prefer existing collections; propose new ones only for material that clearly needs them, \
-            with general titles that other records could share (for example "Theses", not one thesis).
+            Most records belong in an existing collection, or in a new collection of an existing \
+            community. Propose a new community rarely: only for a broad field that nothing covers, \
+            never one per record, never a classification code (like H.3.7 or cs.DL).
+            A collection groups many records of one topic or kind (for example "Information \
+            Retrieval" or "Theses"): never name a collection after the record or its title, and never \
+            start a title with "New collection".
             Choose the topology of the record's item. A topology is the form of an item (its parts \
             and files: a book of pages, a recording of tracks), never what it is about: a subject, a \
             field or a research topic is not a topology. Most harvested records are single documents: \

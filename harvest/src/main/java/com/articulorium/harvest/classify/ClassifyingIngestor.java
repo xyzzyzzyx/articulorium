@@ -23,6 +23,9 @@ import com.articulorium.harvest.ingest.RecordPaths;
 import com.articulorium.harvest.source.DublinCore;
 
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,9 +56,12 @@ public class ClassifyingIngestor implements RecordIngestor {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClassifyingIngestor.class);
 
+    /** Held while communities and collections are created for automatically accepted records. */
+    private final Object structureLock = new Object();
+
     /**
      * New communities an automatically accepted suggestion may create in a row: a longer path waits
-     * for a person (the agent proposes three at most).
+     * for a person (the agent proposes two by default).
      */
     static final int MAX_NEW_COMMUNITIES = 5;
 
@@ -290,6 +296,13 @@ public class ClassifyingIngestor implements RecordIngestor {
         if (Suggestion.EXISTING_COLLECTION.equals(suggestion.placement())) {
             return suggestion.collection().path();
         }
+        // one structure change at a time: harvests running side by side propose the same communities
+        synchronized (structureLock) {
+            return create(suggestion);
+        }
+    }
+
+    private String create(final Suggestion suggestion) {
         final String root = ResourcePaths.normalize(settings.getCommunities());
         String parent = root;
         if (suggestion.community() != null) {
@@ -316,6 +329,12 @@ public class ClassifyingIngestor implements RecordIngestor {
         if (hasType(path, type)) {
             return path;
         }
+        // created before under another name (its name was taken, by a collection of the same title
+        // for example, so the platform chose one): the same title is the same community or collection
+        final Optional<String> named = child(parent, type, proposed);
+        if (named.isPresent()) {
+            return named.get();
+        }
         final String title = proposed.title() == null || proposed.title().isBlank() ? slug : proposed.title().trim();
         final StringBuilder turtle = new StringBuilder("<> <").append(Rdf.TYPE).append("> <").append(type).append("> .\n");
         if (Articulorium.COLLECTION.equals(type)) {
@@ -332,6 +351,40 @@ public class ClassifyingIngestor implements RecordIngestor {
         LOG.info("Created {} /{} for automatically accepted harvested records",
             Articulorium.COMMUNITY.equals(type) ? "community" : "collection", created);
         return created;
+    }
+
+    /** The child of a container of a type, titled as a proposal (compared as resource names). */
+    private Optional<String> child(final String parent, final String type, final Suggestion.NewStructure proposed) {
+        final Optional<Model> container = platform.rdf(parent);
+        if (container.isEmpty()) {
+            return Optional.empty();
+        }
+        final String wanted = slug(new Suggestion.NewStructure(proposed.title(), null, null));
+        final Model model = container.get();
+        for (final RDFNode child : model.listObjectsOfProperty(model.createResource(platform.iri(parent)),
+                model.createProperty(Ldp.CONTAINS)).toList()) {
+            if (!child.isURIResource()) {
+                continue;
+            }
+            final Optional<String> path = platform.pathOf(child.asResource().getURI());
+            if (path.isEmpty()) {
+                continue;
+            }
+            final Optional<Model> rdf = platform.rdf(path.get());
+            if (rdf.isEmpty()) {
+                continue;
+            }
+            final Resource resource = rdf.get().createResource(platform.iri(path.get()));
+            if (!rdf.get().contains(resource, rdf.get().createProperty(Rdf.TYPE), rdf.get().createResource(type))) {
+                continue;
+            }
+            final Statement title = resource.getProperty(rdf.get().createProperty(DublinCore.DCTERMS + "title"));
+            if (title != null && title.getObject().isLiteral()
+                    && wanted.equals(slug(new Suggestion.NewStructure(title.getString(), null, null)))) {
+                return path;
+            }
+        }
+        return Optional.empty();
     }
 
     private boolean hasType(final String path, final String type) {

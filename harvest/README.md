@@ -260,7 +260,9 @@ communities, collections and topologies (`classification.create-communities`,
 `create-collections`, `create-topologies`, all on); `GET /sources` lists the sources that do in
 `autoAccepted`. Proposed communities form a path from the more general to the more specific
 (`newCommunities`, for example Sciences › Computer Science): each level is created in the one
-before unless a community of that name exists there, so records share the general levels; a
+before unless a community of that name exists there (at its usual resource name, or under the
+name the platform chose when that one was taken, found by its title), so records share the
+general levels; communities and collections are created one suggestion at a time; a
 path of more than five new levels waits for review. Suggestions stored before communities were
 nested (a single `newCommunity`) are read as a path of one. The queue then holds what could not be accepted automatically, and the accepted
 records (decided by `auto`) under "all".

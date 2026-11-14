@@ -166,7 +166,7 @@ public class AiProperties {
          * a broad field to narrower ones); further levels are dropped, the collection holds what is
          * more specific.
          */
-        private int maxNewCommunities = 3;
+        private int maxNewCommunities = 2;
 
     }
 
