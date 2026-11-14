@@ -808,6 +808,8 @@
     "newCollection": "Una nuova collezione «{{title}}» in {{community}}",
     "newCommunity": "Una nuova comunità «{{title}}» con la collezione «{{collection}}»",
     "newSubCommunity": "Una nuova comunità «{{title}}» in {{community}}, con la collezione «{{collection}}»",
+    "newCommunities": "Nuove comunità «{{title}}» con la collezione «{{collection}}»",
+    "newSubCommunities": "Nuove comunità «{{title}}» in {{community}}, con la collezione «{{collection}}»",
     "newTopology": "Una nuova topologia «{{name}}»: {{description}}",
     "noPlacement": "Nessuna collezione adatta",
     "confirmCreate": "Creare e collocarvi il record? {{placement}}",

@@ -816,6 +816,8 @@
     "newCollection": "Nowa kolekcja „{{title}}” w {{community}}",
     "newCommunity": "Nowa społeczność „{{title}}” z kolekcją „{{collection}}”",
     "newSubCommunity": "Nowa społeczność „{{title}}” w {{community}}, z kolekcją „{{collection}}”",
+    "newCommunities": "Nowe społeczności „{{title}}” z kolekcją „{{collection}}”",
+    "newSubCommunities": "Nowe społeczności „{{title}}” w {{community}}, z kolekcją „{{collection}}”",
     "newTopology": "Nowa topologia „{{name}}”: {{description}}",
     "noPlacement": "Żadna kolekcja nie pasuje",
     "confirmCreate": "Utworzyć i umieścić tam rekord? {{placement}}",

@@ -832,6 +832,8 @@
     "newCollection": "مجموعة جديدة «{{title}}» في {{community}}",
     "newCommunity": "مجتمع جديد «{{title}}» مع المجموعة «{{collection}}»",
     "newSubCommunity": "مجتمع جديد «{{title}}» في {{community}}، مع المجموعة «{{collection}}»",
+    "newCommunities": "مجتمعات جديدة «{{title}}» مع المجموعة «{{collection}}»",
+    "newSubCommunities": "مجتمعات جديدة «{{title}}» في {{community}}، مع المجموعة «{{collection}}»",
     "newTopology": "طوبولوجيا جديدة «{{name}}»: {{description}}",
     "noPlacement": "لا توجد مجموعة مناسبة",
     "confirmCreate": "هل تريد الإنشاء ووضع السجل هناك؟ {{placement}}",

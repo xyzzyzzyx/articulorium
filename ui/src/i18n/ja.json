@@ -792,6 +792,8 @@
     "newCollection": "{{community}} に新しいコレクション「{{title}}」",
     "newCommunity": "コレクション「{{collection}}」を含む新しいコミュニティ「{{title}}」",
     "newSubCommunity": "{{community}} に、コレクション「{{collection}}」を含む新しいコミュニティ「{{title}}」",
+    "newCommunities": "コレクション「{{collection}}」を含む新しいコミュニティ階層「{{title}}」",
+    "newSubCommunities": "{{community}} に、コレクション「{{collection}}」を含む新しいコミュニティ階層「{{title}}」",
     "newTopology": "新しいトポロジー「{{name}}」: {{description}}",
     "noPlacement": "該当するコレクションはありません",
     "confirmCreate": "作成してレコードをそこに配置しますか? {{placement}}",

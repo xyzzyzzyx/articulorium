@@ -808,6 +808,8 @@
     "newCollection": "Une nouvelle collection « {{title}} » dans {{community}}",
     "newCommunity": "Une nouvelle communauté « {{title}} » avec la collection « {{collection}} »",
     "newSubCommunity": "Une nouvelle communauté « {{title}} » dans {{community}}, avec la collection « {{collection}} »",
+    "newCommunities": "De nouvelles communautés « {{title}} » avec la collection « {{collection}} »",
+    "newSubCommunities": "De nouvelles communautés « {{title}} » dans {{community}}, avec la collection « {{collection}} »",
     "newTopology": "Une nouvelle topologie « {{name}} » : {{description}}",
     "noPlacement": "Aucune collection ne convient",
     "confirmCreate": "Créer ceci et y ranger la notice ? {{placement}}",

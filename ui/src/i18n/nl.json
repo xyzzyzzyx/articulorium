@@ -800,6 +800,8 @@
     "newCollection": "Een nieuwe collectie ‘{{title}}’ in {{community}}",
     "newCommunity": "Een nieuwe community ‘{{title}}’ met de collectie ‘{{collection}}’",
     "newSubCommunity": "Een nieuwe community ‘{{title}}’ in {{community}}, met de collectie ‘{{collection}}’",
+    "newCommunities": "Nieuwe community’s ‘{{title}}’ met de collectie ‘{{collection}}’",
+    "newSubCommunities": "Nieuwe community’s ‘{{title}}’ in {{community}}, met de collectie ‘{{collection}}’",
     "newTopology": "Een nieuwe topologie ‘{{name}}’: {{description}}",
     "noPlacement": "Geen collectie past",
     "confirmCreate": "Aanmaken en het record daar plaatsen? {{placement}}",

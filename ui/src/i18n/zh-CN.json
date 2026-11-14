@@ -792,6 +792,8 @@
     "newCollection": "在 {{community}} 中新建馆藏“{{title}}”",
     "newCommunity": "新建社区“{{title}}”，含馆藏“{{collection}}”",
     "newSubCommunity": "在 {{community}} 中新建社区“{{title}}”，含馆藏“{{collection}}”",
+    "newCommunities": "新建多级社区“{{title}}”，含馆藏“{{collection}}”",
+    "newSubCommunities": "在 {{community}} 中新建多级社区“{{title}}”，含馆藏“{{collection}}”",
     "newTopology": "新拓扑“{{name}}”：{{description}}",
     "noPlacement": "没有合适的馆藏",
     "confirmCreate": "创建并将记录放在那里？{{placement}}",

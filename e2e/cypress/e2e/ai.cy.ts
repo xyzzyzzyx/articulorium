@@ -340,5 +340,58 @@ describe('AI agent', () => {
         cy.notified('Rejected the suggestion for “Moby Dick”');
       });
     });
+
+    it('creates proposed communities from general to specific, each in the one before', () => {
+      const community = unique('Harvested');
+      createCommunity(community).then((communityPath) => {
+        const nested = {
+          source: 'self-oai',
+          record: 'harvest/self-oai/rec-nested',
+          identifier: 'oai:localhost:rec-nested',
+          title: 'Learning to rank passages',
+          status: 'PENDING',
+          suggestion: {
+            placement: 'NEW_COMMUNITY',
+            community: { path: communityPath, title: community, trail: community },
+            newCommunities: [
+              { title: 'Computer Science', slug: 'computer-science', description: 'Computing.' },
+              { title: 'Information Retrieval', slug: 'information-retrieval' },
+            ],
+            newCollection: { title: 'Preprints', slug: 'preprints' },
+            topology: { kind: 'NONE' },
+            confidence: 0.6,
+          },
+          uncertain: false,
+          classifiedAt: '2026-11-14T10:00:00Z',
+        };
+        cy.intercept('GET', '**/harvest/sources', (request) =>
+          request.continue((response) => {
+            response.body.classification = true;
+          }),
+        );
+        cy.intercept('GET', '**/harvest/classifications?*', { classifications: [nested], total: 1, offset: 0, decide: true }).as('queue');
+        cy.intercept('POST', '**/harvest/classifications/self-oai/rec-nested/acceptance', (request) =>
+          request.reply({ ...nested, status: 'ACCEPTED', placedAt: `${request.body.collection}/rec-nested` }),
+        ).as('accept');
+
+        cy.visitUi('harvest');
+        cy.wait('@queue');
+        cy.get('.ui-review-item')
+          .first()
+          .should('contain.text', `New communities “Computer Science › Information Retrieval” in ${community}, with the collection “Preprints”`)
+          .find('.ui-review-create')
+          .click();
+        cy.get('ui-confirm-dialog').contains('button', 'Create and accept').click();
+        const collection = `${communityPath}/computer-science/information-retrieval/preprints`;
+        cy.wait('@accept').its('request.body').should('deep.equal', { collection, topology: 'none' });
+
+        ntriples(`${communityPath}/computer-science`).then((body) => {
+          expect(body).to.contain(`<${ART}Community>`);
+          expect(body).to.contain('"Computer Science"');
+        });
+        ntriples(`${communityPath}/computer-science/information-retrieval`).its('length').should('be.greaterThan', 0);
+        ntriples(collection).then((body) => expect(body).to.contain(`<${ART}Collection>`));
+      });
+    });
   });
 });

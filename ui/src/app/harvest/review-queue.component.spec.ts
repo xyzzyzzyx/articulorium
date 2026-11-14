@@ -212,6 +212,57 @@ describe('ReviewQueueComponent', () => {
     await settle();
   });
 
+  it('creates proposed communities from general to specific, using the levels that exist', async () => {
+    const nested: Classification = {
+      ...PROPOSED,
+      suggestion: {
+        placement: 'NEW_COMMUNITY',
+        community: { path: 'communities/lib', title: 'Library', trail: 'Library' },
+        newCommunities: [
+          { title: 'Sciences', slug: 'sciences' },
+          { title: 'Computer Science', slug: 'computer-science', description: 'Computing.' },
+        ],
+        newCollection: { title: 'Preprints', slug: 'preprints' },
+        topology: { kind: 'NONE' },
+        confidence: 0.6,
+      },
+    };
+    const element = await render(page([nested]));
+    expect(card(element, 0).querySelector('.ui-review-placement')?.textContent).toContain(
+      'New communities “Sciences › Computer Science” in Library, with the collection “Preprints”',
+    );
+    (card(element, 0).querySelector('.ui-review-create') as HTMLButtonElement).click();
+
+    // the general level exists already: it is used, not created again
+    http.expectOne(`${TEST_BASE}communities/lib/sciences`).flush(
+      `<${TEST_BASE}communities/lib/sciences> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://articulorium.org/ns/repository#Community> .`,
+      { headers: { 'Content-Type': 'text/turtle' } },
+    );
+    http.expectOne(`${TEST_BASE}communities/lib/sciences/computer-science`).flush('', { status: 404, statusText: 'Not Found' });
+    const community = http.expectOne({ method: 'POST', url: `${TEST_BASE}communities/lib/sciences` });
+    expect(community.request.headers.get('Slug')).toBe('computer-science');
+    expect(community.request.body).toContain('"Computer Science"');
+    community.flush('', {
+      status: 201,
+      statusText: 'Created',
+      headers: { Location: `${TEST_BASE}communities/lib/sciences/computer-science` },
+    });
+    http.expectOne(`${TEST_BASE}communities/lib/sciences/computer-science/preprints`).flush('', { status: 404, statusText: 'Not Found' });
+    const collection = http.expectOne({ method: 'POST', url: `${TEST_BASE}communities/lib/sciences/computer-science` });
+    expect(collection.request.headers.get('Slug')).toBe('preprints');
+    collection.flush('', {
+      status: 201,
+      statusText: 'Created',
+      headers: { Location: `${TEST_BASE}communities/lib/sciences/computer-science/preprints` },
+    });
+
+    const accept = http.expectOne({ method: 'POST', url: `${QUEUE}/repo/rec-2/acceptance` });
+    expect(accept.request.body).toEqual({ collection: 'communities/lib/sciences/computer-science/preprints', topology: 'none' });
+    accept.flush({ ...nested, status: 'ACCEPTED' });
+    expectQueue().flush(page([]));
+    await settle();
+  });
+
   it('reports refused decisions and shows the queue again', async () => {
     const element = await render(page([PENDING]));
     (card(element, 0).querySelector('.ui-review-accept') as HTMLButtonElement).click();

@@ -3,6 +3,7 @@ package com.articulorium.ai.classification;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 
 import com.articulorium.ai.AgentException;
@@ -20,6 +21,8 @@ import com.articulorium.ai.classification.Classification.Placement;
 import com.articulorium.ai.classification.Classification.TopologyKind;
 import com.articulorium.ai.classification.StructureCatalog.Entry;
 import com.articulorium.ai.classification.StructureCatalog.Kind;
+import com.articulorium.domain.rdf.ResourcePaths;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 import org.jspecify.annotations.Nullable;
@@ -152,15 +155,17 @@ public class Classifier extends CapabilityAgent {
         final List<String> collections = catalog.structure().stream().filter(entry -> entry.kind() == Kind.COLLECTION)
             .map(Entry::id).toList();
         if (communities.isEmpty()) {
-            return "There are no communities or collections yet, so answer NEW_COMMUNITY: give newCommunity (the "
-                + "broad field of the record, for example \"Computer Science\") and newCollection (a narrower "
-                + "grouping that other records will share, for example \"Digital Libraries\"), and leave collection "
-                + "and community empty.";
+            return "There are no communities or collections yet, so answer NEW_COMMUNITY: give newCommunities, the "
+                + "communities from the broadest field down to a narrower one (for example [{\"title\": \"Sciences\"}, "
+                + "{\"title\": \"Computer Science\"}]), and newCollection, a narrower grouping that other records "
+                + "will share (for example \"Digital Libraries\"); leave collection and community empty.";
         }
         return "The only community ids are " + String.join(", ", communities) + "; "
             + (collections.isEmpty() ? "there are no collections yet, so EXISTING_COLLECTION is not possible"
                 : "the only collection ids are " + String.join(", ", collections))
-            + ". Never use an id that is not in these lists.";
+            + ". Never use an id that is not in these lists. For a new collection or new communities, community is "
+            + "the most specific existing community that fits, and newCommunities holds only the missing levels "
+            + "below it.";
     }
 
     /**
@@ -180,8 +185,8 @@ public class Classifier extends CapabilityAgent {
             final ClassificationRequest request, final boolean lenient, @Nullable final String modelName) {
         final Placement asked = answer.placement() == null ? Placement.NONE : answer.placement();
         final Optional<Entry> collectionEntry = catalog.find(answer.collection(), Kind.COLLECTION);
-        final Optional<Entry> communityEntry = catalog.find(answer.community(), Kind.COMMUNITY);
-        Classification.NewStructure newCommunity = structure(answer.newCommunity());
+        Optional<Entry> communityEntry = catalog.find(answer.community(), Kind.COMMUNITY);
+        List<Classification.NewStructure> newCommunities = structures(answer.newCommunities());
         Classification.NewStructure newCollection = structure(answer.newCollection());
         Placement placement = Placement.NONE;
         Classification.Ref collection = null;
@@ -193,26 +198,43 @@ public class Classifier extends CapabilityAgent {
         } else if (asked != Placement.NONE) {
             final boolean noCommunities = catalog.structure().stream().noneMatch(entry -> entry.kind() == Kind.COMMUNITY);
             if (lenient && noCommunities) {
-                newCollection = newCollection == null ? newCommunity : newCollection;
-                newCommunity = newCommunity == null ? newCollection : newCommunity;
+                if (newCollection == null && !newCommunities.isEmpty()) {
+                    newCollection = newCommunities.getLast();
+                }
+                if (newCommunities.isEmpty() && newCollection != null) {
+                    newCommunities = List.of(newCollection);
+                }
             }
             if (newCollection == null) {
                 problem = asked == Placement.EXISTING_COLLECTION
                     ? "collection \"" + clipped(answer.collection()) + "\" is not one of the listed collection ids"
                     : "newCollection (with a title) is missing";
-            } else if (communityEntry.isPresent() && (asked != Placement.NEW_COMMUNITY || newCommunity == null)) {
-                placement = Placement.NEW_COLLECTION;
-                community = ref(communityEntry.get());
-            } else if (newCommunity != null) {
-                placement = Placement.NEW_COMMUNITY;
-                community = communityEntry.map(Classifier::ref).orElse(null);
+            } else if (communityEntry.isPresent() || !newCommunities.isEmpty()) {
+                if (asked != Placement.NEW_COMMUNITY && communityEntry.isPresent()) {
+                    // a new collection of an existing community: communities proposed besides are not wanted
+                    newCommunities = List.of();
+                }
+                // proposed levels that exist already are the existing communities (and collection)
+                final Anchored anchored = anchor(catalog, communityEntry.orElse(null), newCommunities, newCollection);
+                communityEntry = Optional.ofNullable(anchored.community());
+                newCommunities = anchored.newCommunities();
+                if (anchored.collection() != null) {
+                    placement = Placement.EXISTING_COLLECTION;
+                    collection = ref(anchored.collection());
+                } else if (newCommunities.isEmpty()) {
+                    placement = Placement.NEW_COLLECTION;
+                    community = ref(communityEntry.orElseThrow());
+                } else {
+                    placement = Placement.NEW_COMMUNITY;
+                    community = communityEntry.map(Classifier::ref).orElse(null);
+                }
             } else {
                 problem = "community \"" + clipped(answer.community()) + "\" is not one of the listed community ids, "
-                    + "and newCommunity (with a title) is missing";
+                    + "and newCommunities (with titles) is missing";
             }
         }
         if (placement != Placement.NEW_COMMUNITY) {
-            newCommunity = null;
+            newCommunities = null;
         }
         if (placement != Placement.NEW_COLLECTION && placement != Placement.NEW_COMMUNITY) {
             newCollection = null;
@@ -234,9 +256,76 @@ public class Classifier extends CapabilityAgent {
                 alternatives.add(new Classification.Alternative(ref, clamp(alternative.confidence())));
             }
         }
-        return new Resolution(new Classification(placement, collection, community, newCommunity, newCollection,
-            topology(answer, catalog, request, newCommunity, newCollection), confidence, rationale, alternatives,
+        return new Resolution(new Classification(placement, collection, community, newCommunities, newCollection,
+            topology(answer, catalog, request, newCommunities, newCollection), confidence, rationale, alternatives,
             modelName), problem);
+    }
+
+    /**
+     * Places proposed communities on the existing structure: from the parent (an existing
+     * community, or the top), a proposed level that exists there already (same title or name) is
+     * that community, and the next level is looked for in it; a level repeating its parent's title
+     * is dropped; so is a last level named like the collection when other levels hold it. At most
+     * {@code classification.max-new-communities} new levels are kept, the more general ones (the
+     * collection holds what is more specific). The collection is an existing one when the final
+     * parent has a collection of its title.
+     */
+    private Anchored anchor(final StructureCatalog.Catalog catalog, @Nullable final Entry parent,
+            final List<Classification.NewStructure> proposed, final Classification.NewStructure newCollection) {
+        Entry at = parent;
+        final List<Classification.NewStructure> levels = new ArrayList<>(proposed);
+        while (!levels.isEmpty()) {
+            final Classification.NewStructure level = levels.getFirst();
+            if (at != null && same(at, level)) {
+                levels.removeFirst();
+                continue;
+            }
+            final String parentPath = at == null ? null : at.path();
+            final Optional<Entry> existing = catalog.structure().stream()
+                .filter(entry -> entry.kind() == Kind.COMMUNITY && Objects.equals(entry.parent(), parentPath)
+                    && same(entry, level))
+                .findFirst();
+            if (existing.isEmpty()) {
+                break;
+            }
+            at = existing.get();
+            levels.removeFirst();
+        }
+        if (!levels.isEmpty() && levels.getLast().slug().equals(newCollection.slug())
+                && (levels.size() > 1 || at != null)) {
+            levels.removeLast();
+        }
+        final int max = Math.max(1, properties.getClassification().getMaxNewCommunities());
+        while (levels.size() > max) {
+            levels.removeLast();
+        }
+        Entry collection = null;
+        if (levels.isEmpty() && at != null) {
+            final String parentPath = at.path();
+            collection = catalog.structure().stream()
+                .filter(entry -> entry.kind() == Kind.COLLECTION && parentPath.equals(entry.parent())
+                    && same(entry, newCollection))
+                .findFirst().orElse(null);
+        }
+        return new Anchored(at, List.copyOf(levels), collection);
+    }
+
+    /** Whether an existing community or collection is the one a proposal names. */
+    private static boolean same(final Entry entry, final Classification.NewStructure proposed) {
+        return entry.title().equalsIgnoreCase(proposed.title().strip())
+            || TopologyAssistant.slugOf(entry.title()).equals(proposed.slug())
+            || ResourcePaths.nameOf(entry.path()).equals(proposed.slug());
+    }
+
+    /**
+     * Proposed communities placed on the existing structure.
+     *
+     * @param community      the most specific existing community, {@code null} for the top
+     * @param newCommunities the levels to create below it
+     * @param collection     the existing collection of the proposed collection's title, if any
+     */
+    private record Anchored(@Nullable Entry community, List<Classification.NewStructure> newCommunities,
+            @Nullable Entry collection) {
     }
 
     private static String clipped(final String value) {
@@ -251,7 +340,7 @@ public class Classifier extends CapabilityAgent {
     }
 
     private static Classification.TopologyChoice topology(final Answer answer, final StructureCatalog.Catalog catalog,
-            final ClassificationRequest request, final Classification.NewStructure newCommunity,
+            final ClassificationRequest request, final List<Classification.NewStructure> newCommunities,
             final Classification.NewStructure newCollection) {
         final TopologyKind kind = answer.topologyDecision() == null ? TopologyKind.NONE : answer.topologyDecision();
         if (kind == TopologyKind.EXISTING) {
@@ -262,7 +351,7 @@ public class Classifier extends CapabilityAgent {
             }
         } else if (kind == TopologyKind.NEW && answer.newTopology() != null
                 && StringUtils.hasText(answer.newTopology().title())
-                && !namesASubject(answer.newTopology().title(), request, newCommunity, newCollection)) {
+                && !namesASubject(answer.newTopology().title(), request, newCommunities, newCollection)) {
             return new Classification.TopologyChoice(TopologyKind.NEW, null, Prompts.clip(answer.newTopology().title(), 120),
                 answer.newTopology().description() == null ? null : Prompts.clip(answer.newTopology().description(), 500));
         }
@@ -275,11 +364,26 @@ public class Classifier extends CapabilityAgent {
      * is a structure of parts and files, so such a proposal is a subject in the wrong field.
      */
     private static boolean namesASubject(final String topology, final ClassificationRequest request,
-            final Classification.NewStructure newCommunity, final Classification.NewStructure newCollection) {
+            final List<Classification.NewStructure> newCommunities, final Classification.NewStructure newCollection) {
         final String name = topology.strip();
         return request.subjects().stream().anyMatch(subject -> subject.strip().equalsIgnoreCase(name))
-            || newCommunity != null && newCommunity.title().equalsIgnoreCase(name)
+            || newCommunities != null && newCommunities.stream().anyMatch(level -> level.title().equalsIgnoreCase(name))
             || newCollection != null && newCollection.title().equalsIgnoreCase(name);
+    }
+
+    /**
+     * The proposed communities, from the more general to the more specific: without untitled
+     * levels or a level repeating the one before it.
+     */
+    private static List<Classification.NewStructure> structures(@Nullable final List<AnswerStructure> proposed) {
+        final List<Classification.NewStructure> levels = new ArrayList<>();
+        for (final AnswerStructure level : proposed == null ? List.<AnswerStructure>of() : proposed) {
+            final Classification.NewStructure structure = structure(level);
+            if (structure != null && (levels.isEmpty() || !levels.getLast().slug().equals(structure.slug()))) {
+                levels.add(structure);
+            }
+        }
+        return levels;
     }
 
     private static Classification.NewStructure structure(final AnswerStructure proposed) {
@@ -360,9 +464,15 @@ public class Classifier extends CapabilityAgent {
             - EXISTING_COLLECTION with the collection id when an existing collection clearly fits;
             - NEW_COLLECTION with the community id and a new collection (title, description) when the \
             record belongs in an existing community but no collection fits;
-            - NEW_COMMUNITY with a new community and a new collection in it (and the id of the parent \
-            community, or none for the top level) when nothing fits;
+            - NEW_COMMUNITY with new communities and a new collection in the last of them (and the id of \
+            the existing community they go in, or none for the top level) when no community fits closely;
             - NONE when the record cannot be placed with any confidence.
+            Communities form a hierarchy from general to specific: top-level communities are broad \
+            fields (for example "Sciences", "Humanities", "Engineering"), each sub-community narrower \
+            (for example Sciences > Computer Science > Information Science). Choose the most specific \
+            existing community that fits, and propose in newCommunities, in order from general to \
+            specific, only the levels missing below it: one level, or two or three when the record is \
+            far from everything that exists. Never propose a narrow topic as a top-level community.
             Prefer existing collections; propose new ones only for material that clearly needs them, \
             with general titles that other records could share (for example "Theses", not one thesis).
             Choose the topology of the record's item. A topology is the form of an item (its parts \
@@ -407,8 +517,8 @@ public class Classifier extends CapabilityAgent {
      *
      * @param placement        where the record goes
      * @param collection       the existing collection's id
-     * @param community        the community's id (new collection or new community)
-     * @param newCommunity     the new community
+     * @param community        the community's id (new collection or new communities)
+     * @param newCommunities   the new communities, general to specific (a single object is read as one)
      * @param newCollection    the new collection
      * @param topologyDecision existing, new or none
      * @param topology         the existing topology's id
@@ -420,8 +530,9 @@ public class Classifier extends CapabilityAgent {
     public record Answer(
             @JsonPropertyDescription("EXISTING_COLLECTION, NEW_COLLECTION, NEW_COMMUNITY or NONE") Placement placement,
             @JsonPropertyDescription("Id of the existing collection, for example c3") String collection,
-            @JsonPropertyDescription("Id of the community a new collection or community goes in, for example m2") String community,
-            @JsonPropertyDescription("The new community (NEW_COMMUNITY)") AnswerStructure newCommunity,
+            @JsonPropertyDescription("Id of the most specific existing community the new collection or new communities go in, for example m2") String community,
+            @JsonPropertyDescription("The new communities (NEW_COMMUNITY), from the broadest to the most specific, each inside the one before")
+            @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY) List<AnswerStructure> newCommunities,
             @JsonPropertyDescription("The new collection (NEW_COLLECTION, NEW_COMMUNITY)") AnswerStructure newCollection,
             @JsonPropertyDescription("EXISTING, NEW or NONE") TopologyKind topologyDecision,
             @JsonPropertyDescription("Id of the existing topology") String topology,

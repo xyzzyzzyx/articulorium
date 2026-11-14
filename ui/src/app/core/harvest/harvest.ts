@@ -227,9 +227,10 @@ export interface ProposedStructure {
 export interface ClassificationSuggestion {
   readonly placement: 'EXISTING_COLLECTION' | 'NEW_COLLECTION' | 'NEW_COMMUNITY' | 'NONE';
   readonly collection?: StructureRef | null;
-  /** The community a new collection or community goes in; none for a new top-level community. */
+  /** The community a new collection or the first new community goes in; none for the top level. */
   readonly community?: StructureRef | null;
-  readonly newCommunity?: ProposedStructure | null;
+  /** New communities, from the more general to the more specific, each in the one before. */
+  readonly newCommunities?: readonly ProposedStructure[] | null;
   readonly newCollection?: ProposedStructure | null;
   readonly topology?: {
     readonly kind: 'EXISTING' | 'NEW' | 'NONE';

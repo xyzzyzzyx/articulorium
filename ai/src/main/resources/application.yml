@@ -47,6 +47,8 @@ articulorium:
       max-candidates: 200
       catalog-ttl: 1m
       max-record-length: 2000
+      # new communities one classification may propose, from a broad field to narrower ones
+      max-new-communities: 3
 
 logging:
   level:
