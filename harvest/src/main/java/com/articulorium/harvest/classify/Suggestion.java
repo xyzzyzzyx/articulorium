@@ -1,7 +1,9 @@
 package com.articulorium.harvest.classify;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -35,14 +37,35 @@ public record Suggestion(String placement, Ref collection, Ref community, List<N
         @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) NewStructure newCommunity) {
 
     /**
-     * Folds the single proposed community of a stored suggestion into {@code newCommunities}.
+     * Folds the single proposed community of a stored suggestion into {@code newCommunities}, and
+     * reads titles written as paths ({@code Sciences > Computer Science}, which agents before
+     * 2026-11-14 passed on as one community) as one level per part: a collection's path becomes
+     * communities, so a new collection with one is a new community.
      */
     public Suggestion {
         if ((newCommunities == null || newCommunities.isEmpty()) && newCommunity != null) {
             newCommunities = List.of(newCommunity);
         }
-        newCommunities = newCommunities == null ? null
-            : newCommunities.stream().filter(Objects::nonNull).toList();
+        final List<NewStructure> levels = new ArrayList<>();
+        for (final NewStructure level : newCommunities == null ? List.<NewStructure>of() : newCommunities) {
+            if (level != null) {
+                levels.addAll(level.levels());
+            }
+        }
+        if (newCollection != null && newCollection.levels().size() > 1) {
+            final List<NewStructure> path = newCollection.levels();
+            levels.addAll(path.subList(0, path.size() - 1));
+            newCollection = path.getLast();
+            placement = NEW_COLLECTION.equals(placement) ? NEW_COMMUNITY : placement;
+        }
+        // a level repeating the one before it (the path's end written again as the collection's start)
+        final List<NewStructure> distinct = new ArrayList<>();
+        for (final NewStructure level : levels) {
+            if (distinct.isEmpty() || !ClassifyingIngestor.slug(distinct.getLast()).equals(ClassifyingIngestor.slug(level))) {
+                distinct.add(level);
+            }
+        }
+        newCommunities = newCommunities == null && distinct.isEmpty() ? null : List.copyOf(distinct);
         newCommunity = null;
     }
 
@@ -128,6 +151,32 @@ public record Suggestion(String placement, Ref collection, Ref community, List<N
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record NewStructure(String title, String description, String slug) {
+
+        /** Between the levels of a title written as a path (as the AI agent splits them). */
+        private static final Pattern PATH_SEPARATOR = Pattern.compile("\\s*[>›»→]\\s*|\\s+/\\s+");
+
+        /**
+         * Returns the levels of this proposal: itself, or one per part of a title written as a
+         * path (each named from its title, the description going with the last).
+         *
+         * @return the levels, never empty for a titled proposal
+         */
+        public List<NewStructure> levels() {
+            if (title == null || !PATH_SEPARATOR.matcher(title).find()) {
+                return List.of(this);
+            }
+            final List<String> parts = Arrays.stream(PATH_SEPARATOR.split(title)).map(String::strip)
+                .filter(part -> !part.isEmpty()).toList();
+            if (parts.size() <= 1) {
+                return parts.isEmpty() ? List.of() : List.of(new NewStructure(parts.getFirst(), description, null));
+            }
+            final List<NewStructure> levels = new ArrayList<>();
+            for (int i = 0; i < parts.size(); i++) {
+                levels.add(new NewStructure(parts.get(i), i == parts.size() - 1 ? description : null, null));
+            }
+            return levels;
+        }
+
     }
 
     /**

@@ -1,10 +1,14 @@
 package com.articulorium.ai.classification;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import com.articulorium.ai.AgentException;
 import com.articulorium.ai.AgentException.Reason;
@@ -50,6 +54,9 @@ import org.springframework.util.StringUtils;
 public class Classifier extends CapabilityAgent {
 
     private static final Logger LOG = LoggerFactory.getLogger(Classifier.class);
+
+    /** Between the levels of a title written as a path. */
+    private static final Pattern PATH_SEPARATOR = Pattern.compile("\\s*[>›»→]\\s*|\\s+/\\s+");
 
     private final AgentModel model;
 
@@ -187,7 +194,12 @@ public class Classifier extends CapabilityAgent {
         final Optional<Entry> collectionEntry = catalog.find(answer.collection(), Kind.COLLECTION);
         Optional<Entry> communityEntry = catalog.find(answer.community(), Kind.COMMUNITY);
         List<Classification.NewStructure> newCommunities = structures(answer.newCommunities());
-        Classification.NewStructure newCollection = structure(answer.newCollection());
+        // a collection titled with a path ("Computer Science > Preprints"): the path is communities
+        final List<Classification.NewStructure> collectionPath = answer.newCollection() == null ? List.of()
+            : structures(List.of(answer.newCollection()));
+        Classification.NewStructure newCollection = collectionPath.isEmpty() ? null : collectionPath.getLast();
+        final List<Classification.NewStructure> collectionLevels = collectionPath.isEmpty() ? List.of()
+            : collectionPath.subList(0, collectionPath.size() - 1);
         Placement placement = Placement.NONE;
         Classification.Ref collection = null;
         Classification.Ref community = null;
@@ -213,6 +225,11 @@ public class Classifier extends CapabilityAgent {
                 if (asked != Placement.NEW_COMMUNITY && communityEntry.isPresent()) {
                     // a new collection of an existing community: communities proposed besides are not wanted
                     newCommunities = List.of();
+                }
+                if (!collectionLevels.isEmpty()) {
+                    final List<Classification.NewStructure> levels = new ArrayList<>(newCommunities);
+                    levels.addAll(collectionLevels);
+                    newCommunities = levels;
                 }
                 // proposed levels that exist already are the existing communities (and collection)
                 final Anchored anchored = anchor(catalog, communityEntry.orElse(null), newCommunities, newCollection);
@@ -274,6 +291,16 @@ public class Classifier extends CapabilityAgent {
             final List<Classification.NewStructure> proposed, final Classification.NewStructure newCollection) {
         Entry at = parent;
         final List<Classification.NewStructure> levels = new ArrayList<>(proposed);
+        // a path written from the top again ("Digital Libraries > Computation and Language > ..."
+        // proposed inside Computation and Language): it starts where its first level is
+        if (!levels.isEmpty()) {
+            for (Entry ancestor = parent; ancestor != null; ancestor = parentOf(catalog, ancestor)) {
+                if (same(ancestor, levels.getFirst())) {
+                    at = parentOf(catalog, ancestor);
+                    break;
+                }
+            }
+        }
         while (!levels.isEmpty()) {
             final Classification.NewStructure level = levels.getFirst();
             if (at != null && same(at, level)) {
@@ -291,6 +318,13 @@ public class Classifier extends CapabilityAgent {
             at = existing.get();
             levels.removeFirst();
         }
+        // a community does not repeat a community above it, nor another proposed level
+        final Set<String> above = new HashSet<>();
+        for (Entry ancestor = at; ancestor != null; ancestor = parentOf(catalog, ancestor)) {
+            above.add(TopologyAssistant.slugOf(ancestor.title()));
+            above.add(ResourcePaths.nameOf(ancestor.path()));
+        }
+        levels.removeIf(level -> !above.add(level.slug()));
         if (!levels.isEmpty() && levels.getLast().slug().equals(newCollection.slug())
                 && (levels.size() > 1 || at != null)) {
             levels.removeLast();
@@ -308,6 +342,12 @@ public class Classifier extends CapabilityAgent {
                 .findFirst().orElse(null);
         }
         return new Anchored(at, List.copyOf(levels), collection);
+    }
+
+    private static @Nullable Entry parentOf(final StructureCatalog.Catalog catalog, final Entry entry) {
+        return entry.parent() == null ? null : catalog.structure().stream()
+            .filter(candidate -> candidate.kind() == Kind.COMMUNITY && candidate.path().equals(entry.parent()))
+            .findFirst().orElse(null);
     }
 
     /** Whether an existing community or collection is the one a proposal names. */
@@ -372,18 +412,39 @@ public class Classifier extends CapabilityAgent {
     }
 
     /**
-     * The proposed communities, from the more general to the more specific: without untitled
-     * levels or a level repeating the one before it.
+     * The proposed communities, from the more general to the more specific: a title written as a
+     * path ({@code Sciences > Computer Science}, as the structure is shown to the model) is one
+     * level per part, the description going with the last; untitled levels and a level repeating
+     * the one before it are dropped.
      */
     private static List<Classification.NewStructure> structures(@Nullable final List<AnswerStructure> proposed) {
         final List<Classification.NewStructure> levels = new ArrayList<>();
         for (final AnswerStructure level : proposed == null ? List.<AnswerStructure>of() : proposed) {
-            final Classification.NewStructure structure = structure(level);
-            if (structure != null && (levels.isEmpty() || !levels.getLast().slug().equals(structure.slug()))) {
-                levels.add(structure);
+            if (level == null || level.title() == null) {
+                continue;
+            }
+            final List<String> parts = levelsOf(level.title());
+            for (int i = 0; i < parts.size(); i++) {
+                final Classification.NewStructure structure = structure(new AnswerStructure(parts.get(i),
+                    i == parts.size() - 1 ? level.description() : null));
+                if (structure != null && (levels.isEmpty() || !levels.getLast().slug().equals(structure.slug()))) {
+                    levels.add(structure);
+                }
             }
         }
         return levels;
+    }
+
+    /**
+     * Splits a title written as a path into its levels: parts separated by {@code >}, {@code ›},
+     * {@code »}, {@code →} or {@code /} between spaces ("Input/Output" stays one title).
+     *
+     * @param title the title
+     * @return the parts, without blank ones
+     */
+    static List<String> levelsOf(final String title) {
+        return Arrays.stream(PATH_SEPARATOR.split(title)).map(String::strip).filter(part -> !part.isEmpty())
+            .toList();
     }
 
     private static Classification.NewStructure structure(final AnswerStructure proposed) {
@@ -472,7 +533,9 @@ public class Classifier extends CapabilityAgent {
             (for example Sciences > Computer Science > Information Science). Choose the most specific \
             existing community that fits, and propose in newCommunities, in order from general to \
             specific, only the levels missing below it: one level, or two or three when the record is \
-            far from everything that exists. Never propose a narrow topic as a top-level community.
+            far from everything that exists. Never propose a narrow topic as a top-level community. \
+            Each title names one level only: never write a path or ">" in a title, and never repeat \
+            a community that is already above it.
             Prefer existing collections; propose new ones only for material that clearly needs them, \
             with general titles that other records could share (for example "Theses", not one thesis).
             Choose the topology of the record's item. A topology is the form of an item (its parts \

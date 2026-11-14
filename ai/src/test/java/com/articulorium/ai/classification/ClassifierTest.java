@@ -282,6 +282,45 @@ class ClassifierTest {
     }
 
     @Test
+    void readsTitlesWrittenAsPathsAsLevels() {
+        nestedRepository();
+        // as the model saw the structure ("Sciences > Computer Science"), written from the top again
+        // inside Computer Science, repeating a community above, the collection a path too
+        agents.chat.answer("""
+            {"placement": "NEW_COMMUNITY", "community": "m2",
+             "newCommunities": [{"title": "Sciences > Computer Science > Sciences > Machine Learning",
+                                 "description": "Learning from data"}],
+             "newCollection": {"title": "Machine Learning › Ranking models"}, "confidence": 0.6}
+            """, """
+            {"placement": "NEW_COLLECTION", "community": "m1",
+             "newCollection": {"title": "Computer Science > Digital Libraries"}, "confidence": 0.6}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        assertThat(classification.community().path()).isEqualTo("communities/sciences/computer-science");
+        assertThat(classification.newCommunities())
+            .containsExactly(new Classification.NewStructure("Machine Learning", "Learning from data", "machine-learning"));
+        assertThat(classification.newCollection().title()).isEqualTo("Ranking models");
+
+        final Classification existing = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(existing.placement()).as("the path names an existing collection").isEqualTo(Placement.EXISTING_COLLECTION);
+        assertThat(existing.collection().path()).isEqualTo("communities/sciences/computer-science/digital-libraries");
+        assertThat(agents.chat.prompts().get(0).getSystemMessage().getText())
+            .contains("never write a path or \">\" in a title");
+    }
+
+    @Test
+    void splitsPathsOnlyAtTheirSeparators() {
+        assertThat(Classifier.levelsOf("Sciences > Computer Science")).containsExactly("Sciences", "Computer Science");
+        assertThat(Classifier.levelsOf("Sciences›Physics » Optics → Lasers / Diodes"))
+            .containsExactly("Sciences", "Physics", "Optics", "Lasers", "Diodes");
+        assertThat(Classifier.levelsOf("Input/Output")).containsExactly("Input/Output");
+        assertThat(Classifier.levelsOf(" > Physics > ")).containsExactly("Physics");
+    }
+
+    @Test
     void keepsTheMoreGeneralLevelsOfALongPath() {
         nestedRepository();
         agents.chat.answer("""

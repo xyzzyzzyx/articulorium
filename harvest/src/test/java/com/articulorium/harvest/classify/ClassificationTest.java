@@ -5,10 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Clock;
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import com.articulorium.domain.vocabulary.Articulorium;
 import com.articulorium.domain.vocabulary.Pcdm;
@@ -443,7 +443,8 @@ class ClassificationTest {
         assertThat(auto(new Suggestion(Suggestion.NEW_COMMUNITY, null, null, List.of(), proposed, null,
             0.99, null, null, null))).as("new communities need one at least").isFalse();
         assertThat(auto(new Suggestion(Suggestion.NEW_COMMUNITY, null, null,
-            Collections.nCopies(ClassifyingIngestor.MAX_NEW_COMMUNITIES + 1, proposed), proposed, null,
+            IntStream.rangeClosed(0, ClassifyingIngestor.MAX_NEW_COMMUNITIES)
+                .mapToObj(level -> new Suggestion.NewStructure("Level " + level, null, null)).toList(), proposed, null,
             0.99, null, null, null))).as("a long path waits for a person").isFalse();
         assertThat(auto(new Suggestion(Suggestion.NONE, null, null, null, null, null, 0.99, null, null,
             null))).isFalse();
@@ -864,6 +865,24 @@ class ClassificationTest {
         assertThat(stored.newCommunity()).isNull();
         assertThat(json.writeValueAsString(stored)).contains("\"newCommunities\":[{\"title\":\"Physics\"")
             .doesNotContain("\"newCommunity\"");
+    }
+
+    @Test
+    void readsCommunityTitlesWrittenAsPathsAsLevels() {
+        final JsonMapper json = JsonMapper.builder().build();
+        // stored by an agent that passed the model's paths on as one community
+        final Suggestion stored = json.readValue("""
+            {"placement": "NEW_COLLECTION", "community": {"path": "communities/dl", "title": "DL", "trail": "DL"},
+             "newCommunities": [{"title": "Digital Libraries > Computer Science", "slug": "digital-libraries-computer-science"}],
+             "newCollection": {"title": "Computer Science › Preprints", "description": "Preprints", "slug": "x"}}
+            """, Suggestion.class);
+
+        assertThat(stored.placement()).as("a collection's path makes communities").isEqualTo(Suggestion.NEW_COMMUNITY);
+        assertThat(stored.newCommunities()).containsExactly(new Suggestion.NewStructure("Digital Libraries", null, null),
+            new Suggestion.NewStructure("Computer Science", null, null));
+        assertThat(stored.newCollection()).isEqualTo(new Suggestion.NewStructure("Preprints", "Preprints", null));
+        assertThat(new Suggestion.NewStructure("Input/Output", null, "io").levels())
+            .containsExactly(new Suggestion.NewStructure("Input/Output", null, "io"));
     }
 
     @Test
