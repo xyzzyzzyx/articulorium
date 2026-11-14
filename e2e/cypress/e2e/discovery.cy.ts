@@ -165,12 +165,26 @@ describe('Discovery layer', () => {
     });
   });
 
+  it('filters by facet values with commas (creators are "<family>, <given>")', () => {
+    cy.request({ url: '/discover/api/search', qs: { f: 'creator:Melville, Herman', lang: 'en' } }).then((response) => {
+      expect(response.status).to.eq(200);
+      expect(response.body.facets.find((facet: { id: string }) => facet.id === 'creator').values).to.deep.include({
+        value: 'Melville, Herman',
+        count: 0,
+        selected: true,
+      });
+    });
+  });
+
   it('pages through the members of collections', () => {
     cy.request({ url: `/discover/en/items/${collectionPath}?page=2`, headers: { Accept: 'text/html' } }).then((response) => {
       expect(response.status).to.eq(200);
       // one member: the second page is empty and links back to the first
       expect(response.body).to.contain('There is nothing more on this page.');
-      expect(response.body).to.match(new RegExp(`href="/discover/en/items/${Cypress._.escapeRegExp(collectionPath)}#disc-members"[^>]*rel="prev"`));
+      const page = new DOMParser().parseFromString(response.body as string, 'text/html');
+      expect(page.querySelector('#disc-members a[rel="prev"]')?.getAttribute('href')).to.eq(
+        `/discover/en/items/${collectionPath}#disc-members`,
+      );
     });
     cy.visit(`/discover/en/items/${collectionPath}?page=2`);
     cy.get('#disc-members a[rel=prev]').click();
@@ -187,13 +201,13 @@ describe('Discovery layer', () => {
     cy.get('ul.disc-tree-root > li')
       .filter((_, item) => item.querySelector(':scope > .disc-tree-row .disc-tree-link')?.textContent === community)
       .first()
-      .within(() => {
-        cy.get(':scope > .disc-tree-row .disc-tree-toggle').should('have.attr', 'aria-expanded', 'false').click();
-        cy.get(':scope > .disc-tree-row .disc-tree-toggle').should('have.attr', 'aria-expanded', 'true');
-        // objects are not part of the tree, only containers
-        cy.get('disc-collection-tree .disc-tree-link').should('contain.text', collection).and('not.contain.text', book);
-        cy.get('disc-collection-tree').contains('a', collection).click();
-      });
+      .as('node');
+    // the node's own row (Cypress queries inside within() cannot start at :scope)
+    cy.get('@node').children('.disc-tree-row').find('.disc-tree-toggle').should('have.attr', 'aria-expanded', 'false').click();
+    cy.get('@node').children('.disc-tree-row').find('.disc-tree-toggle').should('have.attr', 'aria-expanded', 'true');
+    // objects are not part of the tree, only containers
+    cy.get('@node').find('disc-collection-tree .disc-tree-link').should('contain.text', collection).and('not.contain.text', book);
+    cy.get('@node').find('disc-collection-tree').contains('a', collection).click();
     cy.location('pathname').should('eq', `/discover/en/items/${collectionPath}`);
     // back in the tree, it is as the visitor left it
     cy.go('back');

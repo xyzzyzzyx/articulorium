@@ -21,6 +21,9 @@ import com.articulorium.i18n.SupportedLocales;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.CacheControl;
@@ -33,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 
 /**
  * The API of the discovery layer's user interface: its configuration, searches, resource pages and
@@ -105,29 +109,34 @@ public class DiscoveryApiController {
      * @param page          the page, from 1
      * @param size          results per page; default {@code layout.results.page-size}
      * @param sort          a configured sort order
-     * @param facets        selected facet values, {@code <facet>:<value>}
-     * @param filters       filters switched on
      * @param within        only the direct children of this container
      * @param kinds         only communities, collections or objects (repeatable: any of them)
      * @param lang          the visitor's language
      * @param authorization the visitor's credentials
+     * @param request       the request, for the selected facet values ({@code f=<facet>:<value>},
+     *                      repeated) and filters switched on ({@code filter}, repeated)
      * @return a page of results with facets
      */
     @GetMapping("/search")
     @Operation(operationId = "discoverySearch", summary = "Search the discovery layer")
+    @Parameter(name = "f", in = ParameterIn.QUERY, description = "Selected facet values, <facet>:<value> (repeatable)",
+        array = @ArraySchema(schema = @Schema(type = "string")))
+    @Parameter(name = "filter", in = ParameterIn.QUERY, description = "Filters switched on (repeatable)",
+        array = @ArraySchema(schema = @Schema(type = "string")))
     public ResponseEntity<SearchResponse> search(
             @RequestParam(name = "q", defaultValue = "") final String query,
             @RequestParam(defaultValue = "1") final int page,
             @RequestParam(defaultValue = "0") final int size,
             @RequestParam(required = false) final @Nullable String sort,
-            @Parameter(description = "Selected facet values, <facet>:<value>")
-            @RequestParam(name = "f", required = false) final @Nullable List<String> facets,
-            @RequestParam(name = "filter", required = false) final @Nullable List<String> filters,
             @RequestParam(required = false) final @Nullable String within,
             @Parameter(description = "Only resources of these kinds: community, collection, object, resource")
             @RequestParam(name = "kind", required = false) final @Nullable List<String> kinds,
             @RequestParam(required = false) final @Nullable String lang,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) final @Nullable String authorization) {
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) final @Nullable String authorization,
+            final WebRequest request) {
+        // the raw values: bound to a list, a single value would be split at its commas ("Melville, Herman")
+        final List<String> facets = values(request, "f");
+        final List<String> filters = values(request, "filter");
         final Set<ResourceKind> resourceKinds = EnumSet.noneOf(ResourceKind.class);
         for (final String kind : kinds == null ? List.<String>of() : kinds) {
             if (!StringUtils.hasText(kind)) {
@@ -141,7 +150,7 @@ public class DiscoveryApiController {
         }
         final SearchResponse response = search.search(new SearchRequest(query, page, size,
             StringUtils.hasText(sort) ? sort : null, selections(facets),
-            filters == null ? Set.of() : new LinkedHashSet<>(filters), within, resourceKinds, locale(lang), authorization));
+            new LinkedHashSet<>(filters), within, resourceKinds, locale(lang), authorization));
         return respond(response, authorization);
     }
 
@@ -179,11 +188,13 @@ public class DiscoveryApiController {
             : locales.defaultLocale().tag();
     }
 
-    private static Map<String, List<String>> selections(@Nullable final List<String> facets) {
+    private static List<String> values(final WebRequest request, final String name) {
+        final String[] values = request.getParameterValues(name);
+        return values == null ? List.of() : List.of(values);
+    }
+
+    private static Map<String, List<String>> selections(final List<String> facets) {
         final Map<String, List<String>> selected = new LinkedHashMap<>();
-        if (facets == null) {
-            return selected;
-        }
         for (final String facet : facets) {
             final int colon = facet.indexOf(':');
             if (colon <= 0 || colon == facet.length() - 1) {

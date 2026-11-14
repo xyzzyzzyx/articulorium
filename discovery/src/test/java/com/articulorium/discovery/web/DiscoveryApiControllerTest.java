@@ -87,6 +87,20 @@ class DiscoveryApiControllerTest {
     }
 
     @Test
+    void keepsCommasInASingleFacetValue() throws Exception {
+        when(search.search(any())).thenReturn(new SearchResponse("", 1, 20, 0, null, List.of(), 0, List.of(), List.of()));
+
+        // a list bound from one parameter would be split at its commas
+        mvc.perform(get("/api/search").param("f", "creator:Melville, Herman").param("filter", "digitized"))
+            .andExpect(status().isOk());
+
+        final ArgumentCaptor<SearchRequest> request = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(search).search(request.capture());
+        assertThat(request.getValue().facets()).containsExactly(Map.entry("creator", List.of("Melville, Herman")));
+        assertThat(request.getValue().filters()).containsExactly("digitized");
+    }
+
+    @Test
     void passesSearchesOn() throws Exception {
         when(search.search(any())).thenReturn(new SearchResponse("whale", 2, 10, 1, "title",
             List.of(new SearchResponse.Result("c/moby", "Moby Dick", null, ResourceKind.OBJECT, List.of(), null, null)),
