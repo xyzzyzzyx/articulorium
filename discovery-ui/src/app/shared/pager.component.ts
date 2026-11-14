@@ -29,20 +29,21 @@ export function parsePage(value: unknown): number {
 /**
  * Previous and next links between the pages of a listing, with "page x of y". The links change
  * only the page query parameter of the current URL (kept off on the first page), so pages are
- * crawlable and work without JavaScript; `fragment` scrolls back to the listing.
+ * crawlable and work without JavaScript; `fragment` scrolls back to the listing. On a page past
+ * the last one (an old link, a listing that shrank) the previous link leads to the last page.
  */
 @Component({
   selector: 'disc-pager',
   imports: [MatButtonModule, MatIconModule, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (pages() > 1) {
+    @if (pages() > 1 || page() > 1) {
       <nav class="disc-pagination" [attr.aria-label]="label()">
         @if (page() > 1) {
           <a
             mat-stroked-button
             [routerLink]="[]"
-            [queryParams]="params(page() - 1)"
+            [queryParams]="params(Math.min(page() - 1, pages()))"
             queryParamsHandling="merge"
             [fragment]="fragment()"
             rel="prev"
@@ -51,7 +52,9 @@ export function parsePage(value: unknown): number {
             {{ 'search.previous' | translate }}
           </a>
         }
-        <span class="disc-page-of">{{ pageOf() }}</span>
+        @if (page() <= pages()) {
+          <span class="disc-page-of">{{ pageOf() }}</span>
+        }
         @if (page() < pages()) {
           <a
             mat-stroked-button
@@ -98,6 +101,8 @@ export class PagerComponent {
   readonly fragment = input<string | undefined>(undefined);
 
   protected readonly direction = this.locales.direction;
+
+  protected readonly Math = Math;
 
   protected readonly pageOf = computed(() => {
     this.locales.locale();

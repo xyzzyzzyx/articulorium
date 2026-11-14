@@ -64,7 +64,17 @@ describe('PagerComponent', () => {
     await harness.fixture.whenStable();
     expect(element.querySelector('a[rel="next"]')).toBeNull();
 
+    // past the last page (a listing that shrank): back to the last one, no "page 3 of 2"
+    host.pages.set(2);
+    await harness.fixture.whenStable();
+    expect(element.querySelector('.disc-page-of')).toBeNull();
+    expect(element.querySelector('a[rel="prev"]')?.getAttribute('href')).toBe('/en/items/c?page=2&lang=x#members');
+
     host.pages.set(1);
+    await harness.fixture.whenStable();
+    expect(element.querySelector('a[rel="prev"]')?.getAttribute('href')).toBe('/en/items/c?lang=x#members');
+
+    host.page.set(1);
     await harness.fixture.whenStable();
     expect(element.querySelector('nav')).toBeNull();
   });
