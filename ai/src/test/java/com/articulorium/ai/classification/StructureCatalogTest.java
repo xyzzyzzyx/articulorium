@@ -78,13 +78,21 @@ class StructureCatalogTest {
             .andRespond(withSuccess("", N_TRIPLES));
         server.expect(once(), requestTo("http://topology.test/topologies"))
             .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        server.expect(times(1), requestTo("http://platform.test/communities"))
+            .andExpect(header("Authorization", "Bearer a"))
+            .andRespond(withSuccess("", N_TRIPLES));
+        server.expect(once(), requestTo("http://topology.test/topologies"))
+            .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
 
         final StructureCatalog.Catalog first = catalogs.catalog("Bearer a");
         assertThat(catalogs.catalog("Bearer a")).isSameAs(first);
         // another caller may read something else
         catalogs.catalog("Bearer b");
         clock.advance(Duration.ofMinutes(2));
-        assertThat(catalogs.catalog("Bearer a")).isNotSameAs(first);
+        final StructureCatalog.Catalog second = catalogs.catalog("Bearer a");
+        assertThat(second).isNotSameAs(first);
+        // a caller that changed the structure has it read again at once
+        assertThat(catalogs.catalog("Bearer a", true)).isNotSameAs(second);
 
         server.verify();
     }

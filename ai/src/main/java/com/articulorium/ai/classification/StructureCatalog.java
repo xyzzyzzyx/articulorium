@@ -73,10 +73,21 @@ public class StructureCatalog {
      * @return the catalog
      */
     public Catalog catalog(@Nullable final String authorization) {
+        return catalog(authorization, false);
+    }
+
+    /**
+     * Returns the structure and topologies a caller may read, read again when asked.
+     *
+     * @param authorization the caller's {@code Authorization} header
+     * @param fresh         whether to read the structure again (the caller changed it)
+     * @return the catalog
+     */
+    public Catalog catalog(@Nullable final String authorization, final boolean fresh) {
         final String key = key(authorization);
         final Instant now = clock.instant();
         final Cached cached = cache.get(key);
-        if (cached != null && now.isBefore(cached.expires())) {
+        if (!fresh && cached != null && now.isBefore(cached.expires())) {
             return cached.catalog();
         }
         final Catalog catalog = new Catalog(structure(authorization), topologies.list(authorization));

@@ -4,6 +4,7 @@ import java.text.Normalizer;
 import java.time.Clock;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import com.articulorium.domain.rdf.ResourcePaths;
@@ -58,6 +59,13 @@ public class ClassifyingIngestor implements RecordIngestor {
 
     /** Held while communities and collections are created for automatically accepted records. */
     private final Object structureLock = new Object();
+
+    /**
+     * Whether communities or collections were created since the last classification: the agent then
+     * reads the structure again rather than reuse what it read a moment ago, so the next record
+     * finds them instead of proposing them once more.
+     */
+    private final AtomicBoolean structureChanged = new AtomicBoolean();
 
     /**
      * New communities an automatically accepted suggestion may create in a row: a longer path waits
@@ -183,7 +191,8 @@ public class ClassifyingIngestor implements RecordIngestor {
         final String title = AgentClient.title(record);
         Classification classification;
         try {
-            final Suggestion suggestion = agent.classify(paths.source(sourceId), sourceId, record);
+            final Suggestion suggestion = agent.classify(paths.source(sourceId), sourceId, record,
+                structureChanged.getAndSet(false));
             classification = new Classification(sourceId, staging, record.identifier(), title,
                 Classification.Status.PENDING, suggestion, null, false, clock.instant(), null, null, null);
         } catch (AgentClient.AgentUnavailableException e) {
@@ -348,6 +357,7 @@ public class ClassifyingIngestor implements RecordIngestor {
         }
         // a name taken by something else: the platform picks another one
         final String created = platform.create(parent, slug, turtle.toString(), Ldp.BASIC_CONTAINER);
+        structureChanged.set(true);
         LOG.info("Created {} /{} for automatically accepted harvested records",
             Articulorium.COMMUNITY.equals(type) ? "community" : "collection", created);
         return created;

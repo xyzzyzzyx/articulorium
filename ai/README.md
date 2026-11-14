@@ -120,7 +120,10 @@ exactly as before, then asks the agent where each new record belongs:
    is dropped, and at most `classification.max-new-communities` (2) new levels are kept (the more
    general ones). A collection named after the record itself ("New collection for …", a subtitle,
    more than five words, the words of the record's title) groups nothing: the most specific
-   community names the collection instead, without asking the model again.
+   proposed community names the collection instead, without asking the model again. A new
+   collection is never named like the community it goes in (it is more specific): one of the
+   record's subjects names it (arXiv's "Computer Science - Information Retrieval" gives
+   Information Retrieval), or else the model is asked once more.
    Ids the model was not shown are never used. A proposal that stands without such an id is kept
    (new communities with an unknown parent go to the top level). In a repository without any
    community the model is told to propose communities from a broad field down and a collection,

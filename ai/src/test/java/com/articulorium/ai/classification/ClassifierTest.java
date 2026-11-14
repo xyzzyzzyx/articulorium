@@ -367,7 +367,8 @@ class ClassifierTest {
         final Classification inCommunity = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
         assertThat(inCommunity.placement()).isEqualTo(Placement.NEW_COLLECTION);
         assertThat(inCommunity.community().path()).isEqualTo("communities/sciences/computer-science");
-        assertThat(inCommunity.newCollection().title()).as("named by its community").isEqualTo("Computer Science");
+        assertThat(inCommunity.newCollection().title()).as("named by the record's subject, not its community")
+            .isEqualTo("Physics");
 
         final Classification inNewCommunities = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
         // the most specific community names the collection, and is not created twice
@@ -377,6 +378,68 @@ class ClassifierTest {
         assertThat(agents.chat.prompts()).as("repaired without the model").hasSize(2);
         assertThat(agents.chat.prompts().get(0).getSystemMessage().getText())
             .contains("never name a collection after the record").contains("never a classification code");
+    }
+
+    @Test
+    void neverNamesANewCollectionLikeItsCommunity() {
+        nestedRepository();
+        final ClassificationRequest record = new ClassificationRequest("harvested/repo", "repo", "oai:repo:2",
+            List.of("Ranking passages"), List.of(), List.of("Computer Science - Information Retrieval", "H.3.3"),
+            List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+        agents.chat.answer("""
+            {"placement": "NEW_COLLECTION", "community": "m2", "newCollection": {"title": "Computer sciences"},
+             "confidence": 0.6}
+            """, """
+            {"placement": "NEW_COMMUNITY", "newCommunities": [{"title": "Engineering"}],
+             "newCollection": {"title": "Engineering"}, "confidence": 0.6}
+            """, """
+            {"placement": "NEW_COLLECTION", "community": "m1", "newCollection": {"title": "Sciences"},
+             "confidence": 0.6}
+            """, """
+            {"placement": "NEW_COLLECTION", "community": "m1", "newCollection": {"title": "Optics"},
+             "confidence": 0.6}
+            """);
+
+        final Classification inExisting = classifier.classify(record, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(inExisting.community().path()).isEqualTo("communities/sciences/computer-science");
+        // arXiv's subject, without its field
+        assertThat(inExisting.newCollection().title()).isEqualTo("Information Retrieval");
+
+        final Classification inNew = classifier.classify(record, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(inNew.community()).isNull();
+        assertThat(inNew.newCommunities()).extracting(Classification.NewStructure::title).containsExactly("Engineering");
+        assertThat(inNew.newCollection().title()).isEqualTo("Information Retrieval");
+
+        // no subject names it either (the community's own): the model is asked once more
+        final ClassificationRequest physics = new ClassificationRequest("harvested/repo", "repo", "oai:repo:3",
+            List.of("Lenses"), List.of(), List.of("Sciences"), List.of(), List.of(), List.of(), List.of(), List.of(),
+            List.of());
+        final Classification asked = classifier.classify(physics, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(asked.newCollection().title()).isEqualTo("Optics");
+        assertThat(asked.community().path()).isEqualTo("communities/sciences");
+        assertThat(agents.chat.prompts()).hasSize(4);
+    }
+
+    @Test
+    void asksAgainForACollectionMoreSpecificThanItsCommunity() {
+        nestedRepository();
+        final ClassificationRequest record = new ClassificationRequest("harvested/repo", "repo", "oai:repo:3",
+            List.of("Lenses"), List.of(), List.of("Computer Science"), List.of(), List.of(), List.of(), List.of(),
+            List.of(), List.of());
+        agents.chat.answer("""
+            {"placement": "NEW_COLLECTION", "community": "m2", "newCollection": {"title": "Computer Science"},
+             "confidence": 0.6}
+            """, """
+            {"placement": "NEW_COLLECTION", "community": "m2", "newCollection": {"title": "Computational Optics"},
+             "confidence": 0.6}
+            """);
+
+        final Classification classification = classifier.classify(record, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.newCollection().title()).isEqualTo("Computational Optics");
+        assertThat(agents.chat.prompts()).hasSize(2);
+        assertThat(agents.chat.prompts().get(1).getUserMessage().getText())
+            .contains("is named like the community it goes in");
     }
 
     @Test
@@ -478,7 +541,7 @@ class ClassifierTest {
     }
 
     @Test
-    void namesCommunityAndCollectionAlikeWhenAnEmptyRepositoryGetsOneTitleOnly() {
+    void namesTheCollectionAfterASubjectWhenAnEmptyRepositoryGetsOneTitleOnly() {
         emptyRepository();
         agents.chat.answer("""
             {"placement": "NEW_COLLECTION", "newCollection": {"title": "Digital Libraries"}, "confidence": 0.5}
@@ -491,7 +554,8 @@ class ClassifierTest {
         assertThat(classification.placement()).isEqualTo(Placement.NEW_COMMUNITY);
         assertThat(classification.newCommunities()).extracting(Classification.NewStructure::title)
             .containsExactly("Digital Libraries");
-        assertThat(classification.newCollection().title()).isEqualTo("Digital Libraries");
+        // a collection is more specific than its community: the record's subject names it
+        assertThat(classification.newCollection().title()).isEqualTo("Physics");
         assertThat(classification.confidence()).isEqualTo(0.5);
     }
 

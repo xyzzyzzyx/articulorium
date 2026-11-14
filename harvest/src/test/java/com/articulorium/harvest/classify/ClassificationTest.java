@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Clock;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +59,9 @@ class ClassificationTest {
 
     private final Deque<Object> answers = new ArrayDeque<>();
 
+    /** Whether each classification asked the agent to read the structure again. */
+    private final List<Boolean> freshRequests = new ArrayList<>();
+
     /** What the agent answers when asked for a topology. */
     private final Deque<Object> proposals = new ArrayDeque<>();
 
@@ -80,7 +84,9 @@ class ClassificationTest {
     private final AgentClient agent = new AgentClient(null, "http://ai.test/", null) {
 
         @Override
-        public Suggestion classify(final String context, final String source, final HarvestedRecord record) {
+        public Suggestion classify(final String context, final String source, final HarvestedRecord record,
+                final boolean fresh) {
+            freshRequests.add(fresh);
             final Object next = answers.poll();
             if (next instanceof RuntimeException e) {
                 throw e;
@@ -873,6 +879,8 @@ class ClassificationTest {
         }
         assertThat(title("communities/sciences")).isEqualTo("Sciences");
         assertThat(platform.exists("communities/sciences-2")).as("the general levels are shared").isFalse();
+        // the structure changed after the first record: the agent reads it again for the second
+        assertThat(freshRequests).containsExactly(false, true);
         assertThat(store.read(harvester, STAGING).orElseThrow().placedAt())
             .startsWith("communities/sciences/computer-science/information-retrieval/preprints/");
         assertThat(store.read(harvester, PATHS.record("repo", "oai:repo:2")).orElseThrow().placedAt())

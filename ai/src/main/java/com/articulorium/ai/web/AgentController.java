@@ -181,6 +181,8 @@ public class AgentController {
      * @param request       the record
      * @param authorization the caller's credentials (the harvest service's)
      * @param locale        the language of the rationale
+     * @param cacheControl    {@code no-cache} to classify against the structure read again (the caller
+     *                      has just created communities or collections)
      * @return where the record belongs and its topology
      */
     @PostMapping(path = "/classifications", consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -188,8 +190,10 @@ public class AgentController {
     @Operation(operationId = "classifyRecord", summary = "Suggest the collection and topology of a harvested record")
     public Classification classify(@RequestBody final ClassificationRequest request,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) final String authorization,
-            final Locale locale) {
-        return classifier.classify(request, authorization, locale);
+            final Locale locale,
+            @RequestHeader(name = HttpHeaders.CACHE_CONTROL, required = false) final String cacheControl) {
+        return classifier.classify(request, authorization, locale,
+            cacheControl != null && cacheControl.toLowerCase(Locale.ROOT).contains("no-cache"));
     }
 
 }

@@ -93,6 +93,21 @@ public class Classifier extends CapabilityAgent {
      */
     public Classification classify(final ClassificationRequest request, @Nullable final String authorization,
             final Locale locale) {
+        return classify(request, authorization, locale, false);
+    }
+
+    /**
+     * Classifies a record, against the structure read again when asked: a caller that has just
+     * created communities or collections asks for it, so the next record sees them.
+     *
+     * @param request       the record
+     * @param authorization the caller's {@code Authorization} header
+     * @param locale        the language of the rationale and of proposed titles
+     * @param fresh         whether to read the structure again rather than reuse it
+     * @return the classification
+     */
+    public Classification classify(final ClassificationRequest request, @Nullable final String authorization,
+            final Locale locale, final boolean fresh) {
         model.require(Capability.CLASSIFICATION);
         if (!StringUtils.hasText(request.context())) {
             throw new AgentException(Reason.INVALID_REQUEST, "Name the container the record is ingested into (context)");
@@ -101,7 +116,7 @@ public class Classifier extends CapabilityAgent {
             throw new AgentException(Reason.INVALID_REQUEST, "The record has no title, description or subject");
         }
         access.requireWrite(request.context(), authorization);
-        final StructureCatalog.Catalog catalog = catalogs.catalog(authorization);
+        final StructureCatalog.Catalog catalog = catalogs.catalog(authorization, fresh);
         final String system = system(locale);
         final String user = Prompts.data("communities-and-collections", structure(catalog))
             + Prompts.data("topologies", topologies(catalog))
@@ -241,10 +256,25 @@ public class Classifier extends CapabilityAgent {
                     newCommunities = levels;
                 }
                 // proposed levels that exist already are the existing communities (and collection)
-                final Anchored anchored = anchor(catalog, communityEntry.orElse(null), newCommunities, newCollection);
+                Anchored anchored = anchor(catalog, communityEntry.orElse(null), newCommunities, newCollection);
+                if (anchored.namedLikeItsCommunity()) {
+                    // a collection is more specific than its community: one of the record's subjects names it
+                    final Classification.NewStructure specific = lenient
+                        ? subjectCollection(request, anchored.communityKey()) : null;
+                    if (specific == null) {
+                        problem = "newCollection \"" + clipped(newCollection.title()) + "\" is named like the "
+                            + "community it goes in; a collection is more specific than its community: give a "
+                            + "narrower collection title, or choose an existing collection";
+                    } else {
+                        anchored = anchor(catalog, communityEntry.orElse(null), newCommunities, specific);
+                        newCollection = specific;
+                    }
+                }
                 communityEntry = Optional.ofNullable(anchored.community());
                 newCommunities = anchored.newCommunities();
-                if (anchored.collection() != null) {
+                if (problem != null) {
+                    newCommunities = List.of();
+                } else if (anchored.collection() != null) {
                     placement = Placement.EXISTING_COLLECTION;
                     collection = ref(anchored.collection());
                 } else if (newCommunities.isEmpty()) {
@@ -333,7 +363,7 @@ public class Classifier extends CapabilityAgent {
             }
             final Optional<Entry> collection = child(catalog, at, Kind.COLLECTION, level);
             if (collection.isPresent()) {
-                return new Anchored(at, List.of(), collection.get());
+                return new Anchored(at, List.of(), collection.get(), "", false);
             }
             // the most specific level that is a community elsewhere (not one above: a repeat) goes on from there
             final Set<String> lineage = new HashSet<>();
@@ -371,7 +401,30 @@ public class Classifier extends CapabilityAgent {
             levels.removeLast();
         }
         final Entry collection = levels.isEmpty() ? child(catalog, at, Kind.COLLECTION, newCollection).orElse(null) : null;
-        return new Anchored(at, List.copyOf(levels), collection);
+        // the community the new collection goes in: the last new level, or the existing community
+        final String community = !levels.isEmpty() ? levels.getLast().title() : at == null ? null : at.title();
+        final String communityKey = community == null ? "" : StructureNames.key(community);
+        return new Anchored(at, List.copyOf(levels), collection, communityKey,
+            collection == null && !communityKey.isEmpty() && communityKey.equals(StructureNames.key(newCollection.title())));
+    }
+
+    /**
+     * A collection named after one of the record's subjects (the part after " - " of arXiv's
+     * "Computer Science - Digital Libraries"): neither a classification code, nor named like the
+     * community it goes in, nor after the record.
+     */
+    private static Classification.NewStructure subjectCollection(final ClassificationRequest request,
+            final String communityKey) {
+        for (final String subject : request.subjects()) {
+            final int dash = subject == null ? -1 : subject.lastIndexOf(" - ");
+            final String name = subject == null ? "" : (dash < 0 ? subject : subject.substring(dash + 3)).strip();
+            final String key = StructureNames.key(name);
+            if (!name.isEmpty() && !StructureNames.isCode(name) && !key.isEmpty() && !key.equals(communityKey)
+                    && !StructureNames.namesOneRecord(name, request.titles())) {
+                return structure(new AnswerStructure(name, null));
+            }
+        }
+        return null;
     }
 
     /** The community or collection of a proposal's name in a community (or at the top). */
@@ -385,7 +438,9 @@ public class Classifier extends CapabilityAgent {
 
     /**
      * A general collection for a record whose proposed collection named it alone: the most specific
-     * community it goes in names it ("Information Retrieval" holds the records about it).
+     * proposed community names it ("Information Retrieval", that level then being the collection),
+     * or else the community it goes in, which {@link #anchor} then finds named like its community,
+     * so that one of the record's subjects names it.
      */
     private static Classification.NewStructure fallbackCollection(final List<Classification.NewStructure> levels,
             final List<Classification.NewStructure> collectionLevels, final Optional<Entry> community) {
@@ -417,9 +472,11 @@ public class Classifier extends CapabilityAgent {
      * @param community      the most specific existing community, {@code null} for the top
      * @param newCommunities the levels to create below it
      * @param collection     the existing collection of the proposed collection's title, if any
+     * @param communityKey   the key of the community a new collection goes in, empty at the top
+     * @param namedLikeItsCommunity whether the new collection is named like that community
      */
     private record Anchored(@Nullable Entry community, List<Classification.NewStructure> newCommunities,
-            @Nullable Entry collection) {
+            @Nullable Entry collection, String communityKey, boolean namedLikeItsCommunity) {
     }
 
     private static String clipped(final String value) {
@@ -598,8 +655,9 @@ public class Classifier extends CapabilityAgent {
             community. Propose a new community rarely: only for a broad field that nothing covers, \
             never one per record, never a classification code (like H.3.7 or cs.DL).
             A collection groups many records of one topic or kind (for example "Information \
-            Retrieval" or "Theses"): never name a collection after the record or its title, and never \
-            start a title with "New collection".
+            Retrieval" or "Theses"): never name a collection after the record or its title, never like \
+            the community it goes in (it is more specific: "Digital Preservation" in "Digital \
+            Libraries"), and never start a title with "New collection".
             Choose the topology of the record's item. A topology is the form of an item (its parts \
             and files: a book of pages, a recording of tracks), never what it is about: a subject, a \
             field or a research topic is not a topology. Most harvested records are single documents: \

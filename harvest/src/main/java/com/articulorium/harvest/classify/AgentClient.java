@@ -95,8 +95,24 @@ public class AgentClient {
      * @throws AgentUnavailableException when the agent cannot classify it (the reason says why)
      */
     public Suggestion classify(final String context, final String source, final HarvestedRecord record) {
+        return classify(context, source, record, false);
+    }
+
+    /**
+     * Classifies a record, against the community structure read again when asked.
+     *
+     * @param context the container the record was ingested into (the source's container)
+     * @param source  the source
+     * @param record  the record
+     * @param fresh   whether the agent reads the structure again ({@code Cache-Control: no-cache}): the
+     *                harvester created communities or collections since its last classification
+     * @return the agent's suggestion
+     * @throws AgentUnavailableException when the agent cannot classify it (the reason says why)
+     */
+    public Suggestion classify(final String context, final String source, final HarvestedRecord record,
+            final boolean fresh) {
         final Suggestion suggestion = ask("classifications", request(context, source, record), Suggestion.class,
-            "classify " + record.identifier() + " of " + source);
+            "classify " + record.identifier() + " of " + source, fresh);
         if (suggestion == null || suggestion.placement() == null) {
             throw new AgentUnavailableException("INVALID_OUTPUT", "The agent answered no classification");
         }
@@ -114,20 +130,24 @@ public class AgentClient {
      */
     public TopologyProposal suggestTopology(final String context, final String description) {
         final TopologyProposal proposal = ask("topology-suggestions", new TopologyRequest(description, null, context),
-            TopologyProposal.class, "suggest a topology for /" + context);
+            TopologyProposal.class, "suggest a topology for /" + context, false);
         if (proposal == null || proposal.recommendation() == null) {
             throw new AgentUnavailableException("INVALID_OUTPUT", "The agent answered no topology");
         }
         return proposal;
     }
 
-    private <T> T ask(final String path, final Object body, final Class<T> type, final String what) {
+    private <T> T ask(final String path, final Object body, final Class<T> type, final String what,
+            final boolean fresh) {
         try {
             return client.post().uri(URI.create(base + path))
                 .headers(headers -> {
                     final String value = authorization.header();
                     if (StringUtils.hasText(value)) {
                         headers.set(HttpHeaders.AUTHORIZATION, value);
+                    }
+                    if (fresh) {
+                        headers.setCacheControl("no-cache");
                     }
                 })
                 .contentType(MediaType.APPLICATION_JSON)
