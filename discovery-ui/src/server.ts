@@ -70,6 +70,7 @@ async function settings(): Promise<SitemapSettings> {
     urls: { publicUrl: string };
     locales: { defaultLocale: string; available: { tag: string }[] };
     seo: { sitemap: boolean; noindex: boolean };
+    layout?: { collections?: { enabled: boolean } };
   }>('config');
   const value: SitemapSettings = {
     publicUrl: config.urls.publicUrl,
@@ -77,6 +78,7 @@ async function settings(): Promise<SitemapSettings> {
     locales: config.locales.available.map((locale) => locale.tag),
     sitemap: config.seo.sitemap,
     noindex: config.seo.noindex,
+    collections: config.layout?.collections?.enabled ?? false,
   };
   settingsCache = { value, until: Date.now() + 60_000 };
   return value;

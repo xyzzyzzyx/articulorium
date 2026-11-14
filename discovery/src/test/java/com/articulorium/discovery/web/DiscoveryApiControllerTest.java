@@ -65,6 +65,9 @@ class DiscoveryApiControllerTest {
             .andExpect(jsonPath("$.theme.colorScheme").value("light"))
             .andExpect(jsonPath("$.layout.home.sections[0]").value("HERO"))
             .andExpect(jsonPath("$.layout.item.fields[0].field").value("creator"))
+            .andExpect(jsonPath("$.layout.collections.enabled").value(true))
+            .andExpect(jsonPath("$.layout.collections.pageSize").value(50))
+            .andExpect(jsonPath("$.layout.collections.sort").value("title"))
             .andExpect(jsonPath("$.search.facets[0].id").value("type"))
             .andExpect(jsonPath("$.search.facets[0].values['http://pcdm.org/models#Object'].key").value("kinds.object"))
             .andExpect(jsonPath("$.search.facets[5].type").value("YEAR_RANGE"))
@@ -91,7 +94,7 @@ class DiscoveryApiControllerTest {
 
         mvc.perform(get("/api/search").param("q", "whale").param("page", "2").param("size", "10").param("sort", "title")
                 .param("f", "type:http://pcdm.org/models#Object", "type:http://purl.org/ontology/bibo/Book", "year:1850-1899")
-                .param("filter", "digitized").param("within", "communities/c").param("kind", "object").param("lang", "de-CH"))
+                .param("filter", "digitized").param("within", "communities/c").param("kind", "object", "COLLECTION", " ").param("lang", "de-CH"))
             .andExpect(status().isOk())
             .andExpect(header().string("Cache-Control", "max-age=30, public"))
             .andExpect(header().string("Vary", "Authorization"))
@@ -103,7 +106,7 @@ class DiscoveryApiControllerTest {
         assertThat(request.getValue()).isEqualTo(new SearchRequest("whale", 2, 10, "title",
             Map.of("type", List.of("http://pcdm.org/models#Object", "http://purl.org/ontology/bibo/Book"),
                 "year", List.of("1850-1899")),
-            Set.of("digitized"), "communities/c", ResourceKind.OBJECT, "de", null));
+            Set.of("digitized"), "communities/c", Set.of(ResourceKind.OBJECT, ResourceKind.COLLECTION), "de", null));
     }
 
     @Test

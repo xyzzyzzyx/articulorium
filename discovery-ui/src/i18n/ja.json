@@ -6,6 +6,7 @@
     "skip": "本文へスキップ",
     "landmark": "メインナビゲーション",
     "home": "ホーム",
+    "collections": "コレクション",
     "browse": "閲覧",
     "languageMenu": "言語: {{language}}",
     "footer": "フッター"
@@ -41,7 +42,22 @@
     "search": "検索",
     "collections": "コレクション",
     "recent": "最近の追加",
-    "browseAll": "すべて閲覧"
+    "browseAll": "すべて閲覧",
+    "allCollections": "すべてのコミュニティとコレクション",
+    "collectionTree": "コミュニティとコレクションを閲覧"
+  },
+  "collections": {
+    "title": "コミュニティとコレクション",
+    "intro": "コレクションの構成を閲覧できます。コミュニティやコレクションを展開すると内部のコミュニティとコレクションが表示され、開くとすべての内容を確認できます。",
+    "expand": "{{title}}を展開",
+    "collapse": "{{title}}を折りたたむ",
+    "collapseAll": "すべて折りたたむ",
+    "loading": "読み込み中…",
+    "failed": "現在この一覧を読み込めません。",
+    "retry": "再試行",
+    "more": "さらに表示（{{total}}件中{{shown}}件）",
+    "none": "公開されているコミュニティやコレクションはまだありません。",
+    "empty": "内部にコミュニティやコレクションはありません。"
   },
   "kinds": {
     "community": "コミュニティ",
@@ -112,7 +128,9 @@
     "iiifCollection": "IIIF コレクション",
     "repository": "リポジトリで表示",
     "communityMembers": "このコミュニティの内容",
-    "collectionMembers": "このコレクションの内容"
+    "collectionMembers": "このコレクションの内容",
+    "membersPagination": "内容のページ",
+    "noMembersOnPage": "このページにはこれ以上ありません。"
   },
   "viewer": {
     "label": "ビューアー: {{title}}",

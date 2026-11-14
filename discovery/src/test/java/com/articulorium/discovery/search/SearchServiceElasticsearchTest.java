@@ -93,7 +93,7 @@ class SearchServiceElasticsearchTest {
 
     private static SearchRequest request(final String query, final Map<String, List<String>> facets,
             final Set<String> filters, final String sort) {
-        return new SearchRequest(query, 2, 10, sort, facets, filters, null, null, "de-AT", null);
+        return new SearchRequest(query, 2, 10, sort, facets, filters, null, Set.of(), "de-AT", null);
     }
 
     private JsonNode body() {
@@ -159,7 +159,7 @@ class SearchServiceElasticsearchTest {
     @Test
     void appliesYearRangesFiltersSortsAndContainers() {
         service.search(new SearchRequest("", 1, 0, "title", Map.of("year", List.of("1850-1899")), Set.of("digitized", "unknown"),
-            "/communities/c/", ResourceKind.COLLECTION, null, null));
+            "/communities/c/", Set.of(ResourceKind.COLLECTION), null, null));
 
         final JsonNode bool = body().path("query").path("bool");
         assertThat(bool.has("must")).isFalse();
@@ -183,7 +183,7 @@ class SearchServiceElasticsearchTest {
 
     @Test
     void browsesMostRecentFirst() {
-        final SearchResponse response = service.search(new SearchRequest(" ", 1, 5, null, Map.of(), Set.of(), null, null,
+        final SearchResponse response = service.search(new SearchRequest(" ", 1, 5, null, Map.of(), Set.of(), null, Set.of(),
             null, null));
 
         assertThat(body().path("sort").get(0).path("lastModified").path("order").asString()).isEqualTo("desc");

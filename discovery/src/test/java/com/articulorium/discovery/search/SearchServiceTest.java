@@ -146,7 +146,7 @@ class SearchServiceTest {
 
     private static SearchRequest request(final String query, final Map<String, List<String>> facets,
             final Set<String> filters, final String sort) {
-        return new SearchRequest(query, 2, 10, sort, facets, filters, null, null, "de-AT", null);
+        return new SearchRequest(query, 2, 10, sort, facets, filters, null, Set.of(), "de-AT", null);
     }
 
     @Test
@@ -217,7 +217,7 @@ class SearchServiceTest {
         expectSolr();
 
         service.search(new SearchRequest("", 1, 0, "title", Map.of("year", List.of("1850-1899")), Set.of("digitized", "unknown"),
-            "/communities/c/", ResourceKind.COLLECTION, null, null));
+            "/communities/c/", Set.of(ResourceKind.COLLECTION), null, null));
 
         assertThat(sent.get("q")).containsExactly("*:*");
         assertThat(SolrRequests.values(sent, "defType")).isEmpty();
@@ -232,10 +232,33 @@ class SearchServiceTest {
     }
 
     @Test
+    void listsResourcesOfAnyOfSeveralKinds() {
+        expectSolr();
+
+        service.search(new SearchRequest("", 1, 50, null, Map.of(), Set.of(), "communities",
+            Set.of(ResourceKind.COLLECTION, ResourceKind.COMMUNITY), null, null));
+
+        // in a fixed order whatever the order of the request, so equal requests are equal queries
+        assertThat(sent.get("fq")).contains("type_str:(\"https://articulorium.org/ns/repository#Community\""
+            + " OR \"https://articulorium.org/ns/repository#Collection\" OR \"http://pcdm.org/models#Collection\")");
+    }
+
+    @Test
+    void ignoresKindsWhenAnyOtherResourceIsAsked() {
+        expectSolr();
+
+        service.search(new SearchRequest("", 1, 50, null, Map.of(), Set.of(), null,
+            Set.of(ResourceKind.OBJECT, ResourceKind.RESOURCE), null, null));
+
+        // only the base filters
+        assertThat(sent.get("fq")).containsExactly("type_str:(\"http://pcdm.org/models#Object\")", "-id:*\\/members\\/*");
+    }
+
+    @Test
     void browsesMostRecentFirst() {
         expectSolr();
 
-        final SearchResponse response = service.search(new SearchRequest(" ", 1, 5, null, Map.of(), Set.of(), null, null,
+        final SearchResponse response = service.search(new SearchRequest(" ", 1, 5, null, Map.of(), Set.of(), null, Set.of(),
             null, null));
 
         assertThat(sent.get("sort")).containsExactly("lastModified desc, id asc");
@@ -283,7 +306,7 @@ class SearchServiceTest {
         doReturn(List.of("communities/c/secret")).when(access).readable(any(), eq("Bearer alice"));
 
         final SearchResponse response = service.search(new SearchRequest("x", 1, 10, null, Map.of(), Set.of(), null,
-            null, null, "Bearer alice"));
+            Set.of(), null, "Bearer alice"));
 
         assertThat(response.results()).extracting(SearchResponse.Result::title).containsExactly("Secret");
     }
@@ -292,13 +315,13 @@ class SearchServiceTest {
     void refusesRequestsOutOfBounds() {
         assertThatThrownBy(() -> service.search(request("x".repeat(501), Map.of(), Set.of(), null)))
             .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> service.search(new SearchRequest("x", 1001, 10, null, Map.of(), Set.of(), null, null,
+        assertThatThrownBy(() -> service.search(new SearchRequest("x", 1001, 10, null, Map.of(), Set.of(), null, Set.of(),
             null, null))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> service.search(request("x", Map.of(), Set.of(), "random")))
             .hasMessageContaining("Unknown sort order");
         assertThatThrownBy(() -> service.search(request("x", Map.of("year", List.of("1900 TO *")), Set.of(), null)))
             .hasMessageContaining("Not a year range");
-        assertThatThrownBy(() -> service.search(new SearchRequest("", 1, 10, null, Map.of(), Set.of(), "a/../b", null,
+        assertThatThrownBy(() -> service.search(new SearchRequest("", 1, 10, null, Map.of(), Set.of(), "a/../b", Set.of(),
             null, null))).isInstanceOf(IllegalArgumentException.class);
         solr.verify();
     }

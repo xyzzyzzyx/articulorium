@@ -2,6 +2,7 @@ package com.articulorium.discovery.web;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -107,7 +108,7 @@ public class DiscoveryApiController {
      * @param facets        selected facet values, {@code <facet>:<value>}
      * @param filters       filters switched on
      * @param within        only the direct children of this container
-     * @param kind          only communities, collections or objects
+     * @param kinds         only communities, collections or objects (repeatable: any of them)
      * @param lang          the visitor's language
      * @param authorization the visitor's credentials
      * @return a page of results with facets
@@ -123,18 +124,24 @@ public class DiscoveryApiController {
             @RequestParam(name = "f", required = false) final @Nullable List<String> facets,
             @RequestParam(name = "filter", required = false) final @Nullable List<String> filters,
             @RequestParam(required = false) final @Nullable String within,
-            @RequestParam(required = false) final @Nullable String kind,
+            @Parameter(description = "Only resources of these kinds: community, collection, object, resource")
+            @RequestParam(name = "kind", required = false) final @Nullable List<String> kinds,
             @RequestParam(required = false) final @Nullable String lang,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) final @Nullable String authorization) {
-        final ResourceKind resourceKind;
-        try {
-            resourceKind = StringUtils.hasText(kind) ? ResourceKind.parse(kind) : null;
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown kind of resource: " + kind, e);
+        final Set<ResourceKind> resourceKinds = EnumSet.noneOf(ResourceKind.class);
+        for (final String kind : kinds == null ? List.<String>of() : kinds) {
+            if (!StringUtils.hasText(kind)) {
+                continue;
+            }
+            try {
+                resourceKinds.add(ResourceKind.parse(kind));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Unknown kind of resource: " + kind, e);
+            }
         }
         final SearchResponse response = search.search(new SearchRequest(query, page, size,
             StringUtils.hasText(sort) ? sort : null, selections(facets),
-            filters == null ? Set.of() : new LinkedHashSet<>(filters), within, resourceKind, locale(lang), authorization));
+            filters == null ? Set.of() : new LinkedHashSet<>(filters), within, resourceKinds, locale(lang), authorization));
         return respond(response, authorization);
     }
 

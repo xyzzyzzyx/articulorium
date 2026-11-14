@@ -52,6 +52,17 @@ class DiscoverySettingsValidatorTest {
     }
 
     @Test
+    void refusesPagesWithoutRoomForResults() {
+        properties.getLayout().getCollections().setPageSize(0);
+        properties.getLayout().getItem().setMembersLimit(-1);
+        properties.getLayout().getCollections().setSort("title");
+
+        assertThat(DiscoverySettingsValidator.validate(properties))
+            .contains("layout.collections.page-size must be positive", "layout.item.members-limit must not be negative",
+                "layout.collections.sort must be the identifier of one of search.sorts: title");
+    }
+
+    @Test
     void refusesValuesThatCouldBreakOutOfStyles() {
         properties.getTheme().setColors(Map.of("primary", "red;} body{display:none", "brand", "#fff"));
         properties.getTheme().setCustomCss("</style><script>alert(1)</script>");

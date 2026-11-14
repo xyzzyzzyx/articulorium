@@ -6,6 +6,7 @@
     "skip": "Pular para o conteúdo",
     "landmark": "Navegação principal",
     "home": "Início",
+    "collections": "Coleções",
     "browse": "Navegar",
     "languageMenu": "Idioma: {{language}}",
     "footer": "Rodapé"
@@ -43,7 +44,22 @@
     "search": "Pesquisa",
     "collections": "Coleções",
     "recent": "Adicionados recentemente",
-    "browseAll": "Navegar por tudo"
+    "browseAll": "Navegar por tudo",
+    "allCollections": "Todas as comunidades e coleções",
+    "collectionTree": "Navegar por comunidades e coleções"
+  },
+  "collections": {
+    "title": "Comunidades e coleções",
+    "intro": "Veja como as coleções estão organizadas. Expanda uma comunidade ou coleção para ver as comunidades e coleções dentro dela, ou abra-a para ver todo o seu conteúdo.",
+    "expand": "Expandir {{title}}",
+    "collapse": "Recolher {{title}}",
+    "collapseAll": "Recolher tudo",
+    "loading": "Carregando…",
+    "failed": "Não é possível carregar esta lista agora.",
+    "retry": "Tentar novamente",
+    "more": "Mostrar mais ({{shown}} de {{total}})",
+    "none": "Ainda não há comunidades nem coleções públicas.",
+    "empty": "Nenhuma comunidade ou coleção dentro."
   },
   "kinds": {
     "community": "Comunidade",
@@ -114,7 +130,9 @@
     "iiifCollection": "Coleção IIIF",
     "repository": "Ver no repositório",
     "communityMembers": "Nesta comunidade",
-    "collectionMembers": "Nesta coleção"
+    "collectionMembers": "Nesta coleção",
+    "membersPagination": "Páginas do conteúdo",
+    "noMembersOnPage": "Não há mais nada nesta página."
   },
   "viewer": {
     "label": "Visualizador: {{title}}",

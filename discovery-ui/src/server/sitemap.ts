@@ -11,6 +11,8 @@ export interface SitemapSettings {
   locales: string[];
   sitemap: boolean;
   noindex: boolean;
+  /** Whether the communities and collections page exists. */
+  collections?: boolean;
 }
 
 const escapeXml = (value: string): string =>
@@ -19,9 +21,10 @@ const escapeXml = (value: string): string =>
 const encodePath = (path: string): string => path.split('/').map(encodeURIComponent).join('/');
 
 /**
- * Builds the sitemap: the home page and every public resource page, each in the default locale
- * with its alternate language versions (`xhtml:link hreflang`), so the number of URLs stays the
- * number of pages whatever the number of locales.
+ * Builds the sitemap: the home page, the communities and collections page (when it exists) and
+ * every public resource page, each in the default locale with its alternate language versions
+ * (`xhtml:link hreflang`), so the number of URLs stays the number of pages whatever the number of
+ * locales.
  *
  * @param settings - the deployment's public address and locales
  * @param resources - the public resources, most recently modified first
@@ -35,7 +38,7 @@ export function sitemapXml(settings: SitemapSettings, resources: SitemapResource
     const lastmod = modified && !Number.isNaN(Date.parse(modified)) ? `\n    <lastmod>${new Date(modified).toISOString()}</lastmod>` : '';
     return `  <url>\n    <loc>${escapeXml(page(settings.defaultLocale, path))}</loc>${lastmod}\n${alternates.join('\n')}\n  </url>`;
   };
-  const urls = [entry(''), ...resources.map((resource) => entry(`items/${resource.path}`, resource.modified))];
+  const urls = [entry(''), ...(settings.collections ? [entry('collections')] : []), ...resources.map((resource) => entry(`items/${resource.path}`, resource.modified))];
   return (
     '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' +

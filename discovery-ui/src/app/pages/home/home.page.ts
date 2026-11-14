@@ -51,6 +51,13 @@ import { ResourceCardComponent } from '../../shared/resource-card.component';
                   <li><disc-resource-card [resource]="resource" [showThumbnail]="thumbnails()" /></li>
                 }
               </ul>
+              @if (treeEnabled()) {
+                <p>
+                  <a [routerLink]="['/', locale(), 'collections']">{{
+                    (collections.value()!.total > collections.value()!.results.length ? 'home.allCollections' : 'home.collectionTree') | translate
+                  }}</a>
+                </p>
+              }
             </section>
           }
         }
@@ -105,6 +112,8 @@ export class HomePage {
 
   protected readonly sections = computed(() => this.config.config().layout.home.sections);
 
+  protected readonly treeEnabled = computed(() => this.config.config().layout.collections.enabled);
+
   protected readonly thumbnails = computed(() => this.config.config().layout.results.thumbnails);
 
   protected readonly siteName = computed(() => this.locales.text(this.config.config().site.name));
@@ -135,7 +144,7 @@ export class HomePage {
         : undefined;
     },
     stream: ({ params }) =>
-      this.api.search({ q: '', page: 1, size: params.size, facets: {}, filters: [], kind: 'OBJECT' }, params.lang),
+      this.api.search({ q: '', page: 1, size: params.size, facets: {}, filters: [], kinds: ['OBJECT'] }, params.lang),
   });
 
   constructor() {

@@ -19,6 +19,13 @@ describe('sitemap', () => {
     expect(xml).toContain('hreflang="x-default" href="https://collections.example.org/discover/en/items/c/x"');
     expect(xml.match(/<url>/g)).toHaveLength(3);
   });
+
+  it('lists the communities and collections page when it exists', () => {
+    expect(sitemapXml(settings, [])).not.toContain('/en/collections');
+    const xml = sitemapXml({ ...settings, collections: true }, []);
+    expect(xml).toContain('<loc>https://collections.example.org/discover/en/collections</loc>');
+    expect(xml).toContain('hreflang="de" href="https://collections.example.org/discover/de/collections"');
+  });
 });
 
 describe('robots.txt', () => {
