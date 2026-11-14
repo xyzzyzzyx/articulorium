@@ -6,6 +6,7 @@
     "skip": "Aller au contenu",
     "landmark": "Navigation principale",
     "home": "Accueil",
+    "collections": "Collections",
     "browse": "Parcourir",
     "languageMenu": "Langue : {{language}}",
     "footer": "Pied de page"
@@ -43,7 +44,22 @@
     "search": "Recherche",
     "collections": "Collections",
     "recent": "Ajouts récents",
-    "browseAll": "Tout parcourir"
+    "browseAll": "Tout parcourir",
+    "allCollections": "Toutes les communautés et collections",
+    "collectionTree": "Parcourir les communautés et collections"
+  },
+  "collections": {
+    "title": "Communautés et collections",
+    "intro": "Découvrez l’organisation des collections. Dépliez une communauté ou une collection pour voir les communautés et collections qu’elle contient, ou ouvrez-la pour voir tout son contenu.",
+    "expand": "Déplier {{title}}",
+    "collapse": "Replier {{title}}",
+    "collapseAll": "Tout replier",
+    "loading": "Chargement…",
+    "failed": "Cette liste ne peut pas être chargée pour le moment.",
+    "retry": "Réessayer",
+    "more": "Afficher plus ({{shown}} sur {{total}})",
+    "none": "Il n’y a pas encore de communauté ni de collection publique.",
+    "empty": "Aucune communauté ni collection à l’intérieur."
   },
   "kinds": {
     "community": "Communauté",
@@ -114,7 +130,9 @@
     "iiifCollection": "Collection IIIF",
     "repository": "Voir dans le dépôt",
     "communityMembers": "Dans cette communauté",
-    "collectionMembers": "Dans cette collection"
+    "collectionMembers": "Dans cette collection",
+    "membersPagination": "Pages du contenu",
+    "noMembersOnPage": "Il n’y a plus rien sur cette page."
   },
   "viewer": {
     "label": "Visionneuse : {{title}}",

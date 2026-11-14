@@ -49,8 +49,8 @@ export class DiscoveryApiService {
     if (query.within) {
       params = params.set('within', query.within);
     }
-    if (query.kind) {
-      params = params.set('kind', query.kind.toLowerCase());
+    for (const kind of query.kinds ?? []) {
+      params = params.append('kind', kind.toLowerCase());
     }
     return this.http.get<SearchResponse>(this.base + 'search', { params });
   }

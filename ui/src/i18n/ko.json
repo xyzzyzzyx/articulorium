@@ -792,6 +792,8 @@
     "newCollection": "{{community}}의 새 컬렉션 ‘{{title}}’",
     "newCommunity": "컬렉션 ‘{{collection}}’이(가) 있는 새 커뮤니티 ‘{{title}}’",
     "newSubCommunity": "{{community}}에 컬렉션 ‘{{collection}}’이(가) 있는 새 커뮤니티 ‘{{title}}’",
+    "newCommunities": "컬렉션 ‘{{collection}}’이(가) 있는 새 커뮤니티 계층 ‘{{title}}’",
+    "newSubCommunities": "{{community}}에 컬렉션 ‘{{collection}}’이(가) 있는 새 커뮤니티 계층 ‘{{title}}’",
     "newTopology": "새 토폴로지 ‘{{name}}’: {{description}}",
     "noPlacement": "맞는 컬렉션이 없음",
     "confirmCreate": "만든 뒤 레코드를 그곳에 배치할까요? {{placement}}",

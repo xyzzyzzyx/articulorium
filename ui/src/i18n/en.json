@@ -800,6 +800,8 @@
     "newCollection": "A new collection “{{title}}” in {{community}}",
     "newCommunity": "A new community “{{title}}” with the collection “{{collection}}”",
     "newSubCommunity": "A new community “{{title}}” in {{community}}, with the collection “{{collection}}”",
+    "newCommunities": "New communities “{{title}}” with the collection “{{collection}}”",
+    "newSubCommunities": "New communities “{{title}}” in {{community}}, with the collection “{{collection}}”",
     "newTopology": "A new topology “{{name}}”: {{description}}",
     "noPlacement": "No collection fits",
     "confirmCreate": "Create this and place the record there? {{placement}}",

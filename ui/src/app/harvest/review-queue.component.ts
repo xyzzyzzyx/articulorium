@@ -307,12 +307,15 @@ export class ReviewQueueComponent {
         return s.collection?.trail ?? '';
       case 'NEW_COLLECTION':
         return this.i18n.t('review.newCollection', { title: s.newCollection?.title, community: s.community?.trail });
-      case 'NEW_COMMUNITY':
-        return this.i18n.t(s.community ? 'review.newSubCommunity' : 'review.newCommunity', {
-          title: s.newCommunity?.title,
+      case 'NEW_COMMUNITY': {
+        const levels = s.newCommunities ?? [];
+        const key = levels.length > 1 ? 'Communities' : 'Community';
+        return this.i18n.t(s.community ? `review.newSub${key}` : `review.new${key}`, {
+          title: levels.map((level) => level.title).join(' › '),
           collection: s.newCollection?.title,
           community: s.community?.trail,
         });
+      }
       default:
         return this.i18n.t('review.noPlacement');
     }
@@ -398,7 +401,8 @@ export class ReviewQueueComponent {
   }
 
   /**
-   * Creates the proposed community and collection (once confirmed), then places the record there.
+   * Creates the proposed communities (from the more general to the more specific, each in the one
+   * before; levels that exist are used) and collection, once confirmed, then places the record there.
    *
    * @param c - the classification
    */
@@ -420,12 +424,12 @@ export class ReviewQueueComponent {
         confirmed.pipe(
           filter((yes) => yes === true),
           switchMap(() =>
-            s.placement === 'NEW_COMMUNITY' && s.newCommunity
-              ? this.ensure(parent, 'community', s.newCommunity).pipe(
-                  switchMap((community) => this.ensure(community, 'collection', s.newCollection!)),
-                )
-              : this.ensure(parent, 'collection', s.newCollection!),
+            (s.placement === 'NEW_COMMUNITY' ? (s.newCommunities ?? []) : []).reduce(
+              (community: Observable<string>, level) => community.pipe(switchMap((path) => this.ensure(path, 'community', level))),
+              of(parent),
+            ),
           ),
+          switchMap((community) => this.ensure(community, 'collection', s.newCollection!)),
           switchMap((collection) =>
             this.harvests.accept(c.source, recordName(c), { collection, topology: this.suggestedTopology(s) }),
           ),

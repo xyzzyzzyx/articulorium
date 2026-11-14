@@ -800,6 +800,8 @@
     "newCollection": "Eine neue Sammlung „{{title}}“ in {{community}}",
     "newCommunity": "Eine neue Community „{{title}}“ mit der Sammlung „{{collection}}“",
     "newSubCommunity": "Eine neue Community „{{title}}“ in {{community}}, mit der Sammlung „{{collection}}“",
+    "newCommunities": "Neue Communities „{{title}}“ mit der Sammlung „{{collection}}“",
+    "newSubCommunities": "Neue Communities „{{title}}“ in {{community}}, mit der Sammlung „{{collection}}“",
     "newTopology": "Eine neue Topologie „{{name}}“: {{description}}",
     "noPlacement": "Keine Sammlung passt",
     "confirmCreate": "Anlegen und den Datensatz dort ablegen? {{placement}}",

@@ -53,6 +53,12 @@ public class ClassifyingIngestor implements RecordIngestor {
 
     private static final Logger LOG = LoggerFactory.getLogger(ClassifyingIngestor.class);
 
+    /**
+     * New communities an automatically accepted suggestion may create in a row: a longer path waits
+     * for a person (the agent proposes three at most).
+     */
+    static final int MAX_NEW_COMMUNITIES = 5;
+
     /** Who accepts automatically. */
     public static final String AUTO = "auto";
 
@@ -242,8 +248,8 @@ public class ClassifyingIngestor implements RecordIngestor {
      * @param policy     the policy of the record's source
      * @param suggestion the suggestion
      * @return {@code true} with {@code auto-accept} for an existing collection, or (where the policy
-     *         lets them be created) a new collection of an existing community, or a new community
-     *         with its collection; with an existing topology, none, or (where the policy lets them
+     *         lets them be created) a new collection of an existing community, or new communities
+     *         (at most {@value #MAX_NEW_COMMUNITIES} levels) with their collection; with an existing topology, none, or (where the policy lets them
      *         be created) a named new one; and a confidence from the threshold (when one is set)
      */
     boolean autoAccept(final SourcePolicy policy, final Suggestion suggestion) {
@@ -263,15 +269,17 @@ public class ClassifyingIngestor implements RecordIngestor {
             case Suggestion.NEW_COLLECTION -> policy.createCollections() && suggestion.community() != null
                 && suggestion.newCollection() != null;
             case Suggestion.NEW_COMMUNITY -> policy.createCommunities() && policy.createCollections()
-                && suggestion.newCommunity() != null && suggestion.newCollection() != null;
+                && !suggestion.proposedCommunities().isEmpty()
+                && suggestion.proposedCommunities().size() <= MAX_NEW_COMMUNITIES && suggestion.newCollection() != null;
             default -> false;
         };
     }
 
     /**
      * Returns the collection an automatically accepted record goes to, creating the proposed
-     * community and collection when none of that name exists (records proposing the same structure
-     * share it, as when a person creates it from the review queue).
+     * communities (nested, from the more general to the more specific) and collection where none of
+     * that name exists (records proposing the same structure share it, as when a person creates it
+     * from the review queue).
      *
      * @param suggestion an automatically accepted suggestion
      * @return the collection's path
@@ -294,7 +302,10 @@ public class ClassifyingIngestor implements RecordIngestor {
             }
         }
         if (Suggestion.NEW_COMMUNITY.equals(suggestion.placement())) {
-            parent = ensure(parent, Articulorium.COMMUNITY, suggestion.newCommunity());
+            // from the more general to the more specific, each in the one before
+            for (final Suggestion.NewStructure community : suggestion.proposedCommunities()) {
+                parent = ensure(parent, Articulorium.COMMUNITY, community);
+            }
         }
         return ensure(parent, Articulorium.COLLECTION, suggestion.newCollection());
     }

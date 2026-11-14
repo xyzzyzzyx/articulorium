@@ -21,8 +21,9 @@ describe('Platform HTML view', () => {
       .within(() => {
         cy.get('td.term').should('have.length', 2).each((cell) => {
           expect(cell.css('white-space')).to.eq('nowrap');
-          // one line: the cell is no taller than a single padded line of 13px text
-          expect(cell[0].getBoundingClientRect().height).to.be.lessThan(40);
+          // one line: the term itself is no taller than a line of 13px text (the cell is as tall as
+          // its row, which the long object makes tall)
+          expect(cell.find('.clip')[0].getBoundingClientRect().height).to.be.lessThan(24);
         });
         cy.get('td.term .clip').eq(1).should('have.attr', 'title', 'http://purl.org/dc/terms/description');
         cy.get('td.value').then((cell) => {

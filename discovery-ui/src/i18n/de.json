@@ -6,6 +6,7 @@
     "skip": "Zum Inhalt springen",
     "landmark": "Hauptnavigation",
     "home": "Startseite",
+    "collections": "Sammlungen",
     "browse": "Stöbern",
     "languageMenu": "Sprache: {{language}}",
     "footer": "Fußzeile"
@@ -42,7 +43,22 @@
     "search": "Suche",
     "collections": "Sammlungen",
     "recent": "Neu hinzugefügt",
-    "browseAll": "Alles durchstöbern"
+    "browseAll": "Alles durchstöbern",
+    "allCollections": "Alle Bereiche und Sammlungen",
+    "collectionTree": "Bereiche und Sammlungen durchsuchen"
+  },
+  "collections": {
+    "title": "Bereiche und Sammlungen",
+    "intro": "Sehen Sie, wie die Sammlungen gegliedert sind. Klappen Sie einen Bereich oder eine Sammlung auf, um die darin enthaltenen Bereiche und Sammlungen zu sehen, oder öffnen Sie ihn, um alles darin zu sehen.",
+    "expand": "{{title}} aufklappen",
+    "collapse": "{{title}} zuklappen",
+    "collapseAll": "Alle zuklappen",
+    "loading": "Wird geladen…",
+    "failed": "Diese Liste kann gerade nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "more": "Mehr anzeigen ({{shown}} von {{total}})",
+    "none": "Es gibt noch keine öffentlichen Bereiche oder Sammlungen.",
+    "empty": "Keine Bereiche oder Sammlungen darin."
   },
   "kinds": {
     "community": "Bereich",
@@ -113,7 +129,9 @@
     "iiifCollection": "IIIF-Sammlung",
     "repository": "Im Repositorium ansehen",
     "communityMembers": "In diesem Bereich",
-    "collectionMembers": "In dieser Sammlung"
+    "collectionMembers": "In dieser Sammlung",
+    "membersPagination": "Seiten des Inhalts",
+    "noMembersOnPage": "Auf dieser Seite gibt es nichts mehr."
   },
   "viewer": {
     "label": "Betrachter: {{title}}",

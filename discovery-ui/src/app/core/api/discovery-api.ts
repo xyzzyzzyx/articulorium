@@ -11,8 +11,10 @@ export interface SearchQuery {
   facets: Record<string, string[]>;
   /** Identifiers of the filters switched on. */
   filters: string[];
+  /** Only the direct children of this container. */
   within?: string;
-  kind?: ResourceKind;
+  /** Only resources of any of these kinds. */
+  kinds?: ResourceKind[];
 }
 
 export interface SearchResult {

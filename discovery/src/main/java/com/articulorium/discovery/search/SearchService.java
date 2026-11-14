@@ -198,9 +198,16 @@ public class SearchService {
             conditions.add(new IndexQuery.ChildrenOf(IndexQuery.ID_FIELD,
                 urls.irisOf(ItemService.normalize(request.within()))));
         }
-        if (request.kind() != null && request.kind() != ResourceKind.RESOURCE) {
-            final List<String> types = request.kind() == ResourceKind.COLLECTION
-                ? List.of(Articulorium.COLLECTION, Pcdm.COLLECTION) : List.of(request.kind().type());
+        // RESOURCE (anything else) cannot be selected by type: with it, no kind condition applies
+        if (!request.kinds().isEmpty() && !request.kinds().contains(ResourceKind.RESOURCE)) {
+            final List<String> types = new ArrayList<>();
+            // a fixed order keeps the index query, and so its caches, stable
+            for (final ResourceKind kind : ResourceKind.values()) {
+                if (request.kinds().contains(kind)) {
+                    types.addAll(kind == ResourceKind.COLLECTION
+                        ? List.of(Articulorium.COLLECTION, Pcdm.COLLECTION) : List.of(kind.type()));
+                }
+            }
             conditions.add(new IndexQuery.AnyOf(settings.getTypeField(), types));
         }
         return conditions;

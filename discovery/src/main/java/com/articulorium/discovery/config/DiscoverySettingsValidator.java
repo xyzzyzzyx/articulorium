@@ -103,6 +103,11 @@ public class DiscoverySettingsValidator implements InitializingBean {
         site(settings.getSite(), problems);
         theme(settings.getTheme(), problems);
         layout(settings.getLayout(), problems);
+        final String treeSort = settings.getLayout().getCollections().getSort();
+        if (StringUtils.hasText(treeSort)
+                && settings.getSearch().getSorts().stream().noneMatch(sort -> treeSort.equals(sort.getId()))) {
+            problems.add("layout.collections.sort must be the identifier of one of search.sorts: " + treeSort);
+        }
         viewer(settings.getViewer(), problems);
         search(settings.getSearch(), problems);
         if (settings.getLayout().getResults().getPageSize() > settings.getSearch().getMaxRows()) {
@@ -158,6 +163,12 @@ public class DiscoverySettingsValidator implements InitializingBean {
         }
         if (results.getPageSizes().stream().anyMatch(size -> size < 1)) {
             problems.add("layout.results.page-sizes must be positive");
+        }
+        if (layout.getItem().getMembersLimit() < 0) {
+            problems.add("layout.item.members-limit must not be negative");
+        }
+        if (layout.getCollections().getPageSize() < 1) {
+            problems.add("layout.collections.page-size must be positive");
         }
         if (layout.getHome().getSections().isEmpty()) {
             problems.add("layout.home.sections must list at least one section");

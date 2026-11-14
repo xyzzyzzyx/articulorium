@@ -360,6 +360,9 @@ public class DiscoveryProperties {
         /** Resource pages. */
         private Item item = new Item();
 
+        /** The communities and collections page (a tree browser). */
+        private Collections collections = new Collections();
+
     }
 
     /** A link of the header or the footer. */
@@ -441,6 +444,29 @@ public class DiscoveryProperties {
 
     }
 
+    /** The communities and collections page: a tree of the containers below the community root. */
+    @Getter
+    @Setter
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class Collections {
+
+        /** Whether the page exists and the header links to it. */
+        private boolean enabled = true;
+
+        /**
+         * Communities and collections loaded at a time per level of the tree (more are loaded on
+         * request); at most {@code search.max-rows}.
+         */
+        private int pageSize = 50;
+
+        /**
+         * Order of the communities and collections of a level: the identifier of one of
+         * {@code search.sorts}; default {@code search.browse-sort}.
+         */
+        private String sort;
+
+    }
+
     /** How results are listed. */
     public enum ResultView {
 
@@ -516,7 +542,7 @@ public class DiscoveryProperties {
          */
         private List<Field> fields = new ArrayList<>();
 
-        /** Number of members listed on community and collection pages. */
+        /** Members listed per page on community and collection pages. */
         private int membersLimit = 24;
 
         /** Whether resource pages link to the resource in the repository's user interface. */

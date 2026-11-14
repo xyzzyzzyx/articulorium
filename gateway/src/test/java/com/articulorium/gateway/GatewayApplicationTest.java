@@ -3,6 +3,7 @@ package com.articulorium.gateway;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -122,6 +123,23 @@ class GatewayApplicationTest {
 
         assertThat(routed).isNotEmpty();
         assertThat(clients).containsExactlyInAnyOrderElementsOf(routed);
+    }
+
+    /**
+     * The Consul client uses Reactor Netty here, whose response timeout (10 seconds) cannot be
+     * configured through Spring Cloud Consul: a configuration watch waiting longer (55 seconds by
+     * default) fails every poll with a ReadTimeoutException.
+     */
+    @Test
+    void watchesConsulWithinTheHttpClientsResponseTimeout() throws IOException {
+        final MutablePropertySources sources = new MutablePropertySources();
+        new YamlPropertySourceLoader().load("application", new ClassPathResource("application.yml"))
+            .forEach(sources::addLast);
+        final int waitSeconds = new Binder(ConfigurationPropertySources.from(sources))
+            .bind("spring.cloud.consul.config.watch.wait-time", Integer.class)
+            .orElse(55);
+
+        assertThat(Duration.ofSeconds(waitSeconds)).isLessThan(Duration.ofSeconds(10));
     }
 
 }

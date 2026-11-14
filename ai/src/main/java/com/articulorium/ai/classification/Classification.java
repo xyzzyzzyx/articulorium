@@ -6,16 +6,19 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * Where a harvested record belongs, as the agent suggests it: an existing collection, a new
- * collection in an existing community, a new community with a new collection, or nowhere it can
- * tell; and the topology its item follows. Proposals of new communities, collections and
+ * collection in an existing community, new communities (from the more general to the more specific,
+ * each in the one before) with a new collection, or nowhere it can tell; and the topology its item
+ * follows. Proposals of new communities, collections and
  * topologies are only suggestions: the caller creates them, when a person accepts them or (the
  * harvest service's automatic acceptance) at once.
  *
  * @param placement    where the record goes
  * @param collection   the existing collection ({@link Placement#EXISTING_COLLECTION})
- * @param community    the existing community a new collection or community goes in, {@code null}
- *                     for a new top-level community
- * @param newCommunity the new community ({@link Placement#NEW_COMMUNITY})
+ * @param community    the existing community a new collection or the first new community goes in,
+ *                     {@code null} for a new top-level community
+ * @param newCommunities the new communities ({@link Placement#NEW_COMMUNITY}), from the more general
+ *                     to the more specific: the first goes in {@code community} (or at the top), each
+ *                     next one in the one before, and the new collection in the last
  * @param newCollection the new collection ({@link Placement#NEW_COLLECTION},
  *                     {@link Placement#NEW_COMMUNITY})
  * @param topology     the topology of the record's item
@@ -25,8 +28,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param model        the model that classified it
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record Classification(Placement placement, Ref collection, Ref community, NewStructure newCommunity,
-        NewStructure newCollection, TopologyChoice topology, double confidence, String rationale,
+public record Classification(Placement placement, Ref collection, Ref community,
+        List<NewStructure> newCommunities, NewStructure newCollection, TopologyChoice topology, double confidence, String rationale,
         List<Alternative> alternatives, String model) {
 
     /** Where a record goes. */
@@ -38,7 +41,7 @@ public record Classification(Placement placement, Ref collection, Ref community,
         /** In a new collection of an existing community. */
         NEW_COLLECTION,
 
-        /** In a new collection of a new community. */
+        /** In a new collection of one or more new communities, nested from general to specific. */
         NEW_COMMUNITY,
 
         /** The agent cannot tell; a person decides. */

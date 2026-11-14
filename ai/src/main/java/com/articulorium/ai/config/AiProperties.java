@@ -161,6 +161,13 @@ public class AiProperties {
         /** Characters of a record's text shown to the model. */
         private int maxRecordLength = 2000;
 
+        /**
+         * New communities one classification may propose below the existing structure (a path from
+         * a broad field to narrower ones); further levels are dropped, the collection holds what is
+         * more specific.
+         */
+        private int maxNewCommunities = 3;
+
     }
 
 }

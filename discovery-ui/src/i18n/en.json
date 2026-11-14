@@ -6,6 +6,7 @@
     "skip": "Skip to content",
     "landmark": "Main navigation",
     "home": "Home",
+    "collections": "Collections",
     "browse": "Browse",
     "languageMenu": "Language: {{language}}",
     "footer": "Footer"
@@ -42,7 +43,22 @@
     "search": "Search",
     "collections": "Collections",
     "recent": "Recently added",
-    "browseAll": "Browse everything"
+    "browseAll": "Browse everything",
+    "allCollections": "All communities and collections",
+    "collectionTree": "Browse communities and collections"
+  },
+  "collections": {
+    "title": "Communities and collections",
+    "intro": "Browse how the collections are organized. Expand a community or collection to see the communities and collections inside it, or open it to see everything it holds.",
+    "expand": "Expand {{title}}",
+    "collapse": "Collapse {{title}}",
+    "collapseAll": "Collapse all",
+    "loading": "Loading…",
+    "failed": "This list cannot be loaded right now.",
+    "retry": "Try again",
+    "more": "Show more ({{shown}} of {{total}})",
+    "none": "There are no public communities or collections yet.",
+    "empty": "No communities or collections inside."
   },
   "kinds": {
     "community": "Community",
@@ -113,7 +129,9 @@
     "iiifCollection": "IIIF Collection",
     "repository": "View in the repository",
     "communityMembers": "In this community",
-    "collectionMembers": "In this collection"
+    "collectionMembers": "In this collection",
+    "membersPagination": "Pages of members",
+    "noMembersOnPage": "There is nothing more on this page."
   },
   "viewer": {
     "label": "Viewer: {{title}}",

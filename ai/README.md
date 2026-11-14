@@ -105,11 +105,19 @@ exactly as before, then asks the agent where each new record belongs:
 
 1. The agent compares the record (texts, types, sets, file media types) with the community
    structure and topologies the harvester may read, and suggests an existing collection, or a new
-   collection or community, and the topology of its item, with a confidence and its reasons.
+   collection, or new communities with a new collection, and the topology of its item, with a
+   confidence and its reasons. Communities are a hierarchy from general to specific: top-level
+   communities are broad fields (Sciences, Humanities), sub-communities narrower ones. The model
+   chooses the most specific existing community that fits and proposes only the missing levels
+   below it, in order (`newCommunities`, for example Sciences › Computer Science, with the
+   collection Digital Libraries). Proposed levels that exist already (same title or name in the
+   same parent) are those communities, and a collection of the proposed title there is used as it
+   is; a level repeating its parent, or a last level named like the collection, is dropped, and at
+   most `classification.max-new-communities` levels are kept (the more general ones).
    Ids the model was not shown are never used. A proposal that stands without such an id is kept
-   (a new community with an unknown parent goes to the top level). In a repository without any
-   community the model is told to propose a community and a collection, and a single proposed
-   title names both. Otherwise the model is told what is wrong and asked once more, as it is after
+   (new communities with an unknown parent go to the top level). In a repository without any
+   community the model is told to propose communities from a broad field down and a collection,
+   and a single proposed title names both community and collection. Otherwise the model is told what is wrong and asked once more, as it is after
    an unreadable answer: a classification is two model calls at most. A proposed topology named after a subject of the record is
    dropped: a topology is the form of an item, not its topic.
 2. The suggestion is stored below the record (`<record>/classification`, typed
@@ -192,6 +200,7 @@ Agent settings (`articulorium.ai.*`):
 | `classification.max-candidates` | `200` | Collections offered to the model. |
 | `classification.catalog-ttl` | `1m` | How long the structure read for one caller is reused. |
 | `classification.max-record-length` | `2000` | Characters of a record shown to the model. |
+| `classification.max-new-communities` | `3` | New, nested communities one classification may propose; further (more specific) levels are dropped. |
 
 Harvest settings (`articulorium.harvest.classification.*`): `enabled` (`false`; `true` in compose),
 `ai-url`, `topology-url`, `timeout` (`15m`: how long the harvester waits for one answer of the agent before

@@ -55,7 +55,8 @@ public record ClientConfiguration(Site site, DiscoveryProperties.Theme theme, La
             new Layout(layout.getHeader(), layout.getFooter(), layout.getHome(), layout.getResults(),
                 new Item(layout.getItem().getViewerPosition(), layout.getItem().getFields().stream()
                     .map(field -> new Field(field.getField(), field.getLabel(), field.isLink())).toList(),
-                    layout.getItem().getMembersLimit())),
+                    layout.getItem().getMembersLimit()),
+                layout.getCollections()),
             properties.getViewer(),
             new Search(search.getFacets().stream()
                 .map(facet -> new Facet(facet.getId(), facet.getLabel(), facet.getType().name(), facet.getLimit(),
@@ -116,10 +117,12 @@ public record ClientConfiguration(Site site, DiscoveryProperties.Theme theme, La
      * @param footer  the footer
      * @param home    the home page
      * @param results the search page
-     * @param item    resource pages
+     * @param item        resource pages
+     * @param collections the communities and collections page
      */
     public record Layout(DiscoveryProperties.Header header, DiscoveryProperties.Footer footer,
-            DiscoveryProperties.Home home, DiscoveryProperties.Results results, Item item) {
+            DiscoveryProperties.Home home, DiscoveryProperties.Results results, Item item,
+            DiscoveryProperties.Collections collections) {
     }
 
     /**
@@ -127,7 +130,7 @@ public record ClientConfiguration(Site site, DiscoveryProperties.Theme theme, La
      *
      * @param viewerPosition where the viewer is
      * @param fields         the metadata fields listed
-     * @param membersLimit   members listed on community and collection pages
+     * @param membersLimit   members listed per page on community and collection pages
      */
     public record Item(DiscoveryProperties.ViewerPosition viewerPosition, List<Field> fields, int membersLimit) {
     }

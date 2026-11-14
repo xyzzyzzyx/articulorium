@@ -6,6 +6,7 @@
     "skip": "본문으로 건너뛰기",
     "landmark": "주 탐색",
     "home": "홈",
+    "collections": "컬렉션",
     "browse": "둘러보기",
     "languageMenu": "언어: {{language}}",
     "footer": "바닥글"
@@ -41,7 +42,22 @@
     "search": "검색",
     "collections": "컬렉션",
     "recent": "최근 추가",
-    "browseAll": "전체 둘러보기"
+    "browseAll": "전체 둘러보기",
+    "allCollections": "모든 커뮤니티 및 컬렉션",
+    "collectionTree": "커뮤니티 및 컬렉션 둘러보기"
+  },
+  "collections": {
+    "title": "커뮤니티 및 컬렉션",
+    "intro": "컬렉션의 구성을 살펴보세요. 커뮤니티나 컬렉션을 펼치면 그 안의 커뮤니티와 컬렉션이 표시되고, 열면 모든 내용을 볼 수 있습니다.",
+    "expand": "{{title}} 펼치기",
+    "collapse": "{{title}} 접기",
+    "collapseAll": "모두 접기",
+    "loading": "불러오는 중…",
+    "failed": "지금은 이 목록을 불러올 수 없습니다.",
+    "retry": "다시 시도",
+    "more": "더 보기 ({{total}}개 중 {{shown}}개)",
+    "none": "아직 공개된 커뮤니티나 컬렉션이 없습니다.",
+    "empty": "안에 커뮤니티나 컬렉션이 없습니다."
   },
   "kinds": {
     "community": "커뮤니티",
@@ -112,7 +128,9 @@
     "iiifCollection": "IIIF 컬렉션",
     "repository": "저장소에서 보기",
     "communityMembers": "이 커뮤니티의 항목",
-    "collectionMembers": "이 컬렉션의 항목"
+    "collectionMembers": "이 컬렉션의 항목",
+    "membersPagination": "내용 페이지",
+    "noMembersOnPage": "이 페이지에는 더 이상 항목이 없습니다."
   },
   "viewer": {
     "label": "뷰어: {{title}}",

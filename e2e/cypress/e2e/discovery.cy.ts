@@ -40,6 +40,21 @@ function searchUntilFound(title: string, attempt = 1): Cypress.Chainable<{ path:
   });
 }
 
+/** Loads further top-level entries of the collection tree until one links to a title. */
+function revealInTree(title: string, attempt = 1): void {
+  cy.get('ul.disc-tree-root').then((list) => {
+    if (list.find('> li > .disc-tree-row .disc-tree-link').filter((_, link) => link.textContent === title).length > 0) {
+      return;
+    }
+    if (attempt > 20) {
+      throw new Error(`"${title}" is not in the collection tree`);
+    }
+    cy.get('disc-collection-tree').first().find('> .disc-tree-note .disc-tree-more').click();
+    cy.get('disc-collection-tree').first().find('> [role=status]').should('not.exist');
+    revealInTree(title, attempt + 1);
+  });
+}
+
 describe('Discovery layer', () => {
   const community = unique('Discovery library');
   const collection = unique('Discovery maps');
@@ -141,6 +156,64 @@ describe('Discovery layer', () => {
     cy.get('disc-resource-card').contains('a', book).should('have.attr', 'href', `/discover/en/items/${bookPath}`);
   });
 
+  it('lists only communities and collections of several kinds when asked', () => {
+    const community = collectionPath.substring(0, collectionPath.lastIndexOf('/'));
+    cy.request({ url: '/discover/api/search', qs: { within: community, kind: ['community', 'collection'], lang: 'en' } }).then((response) => {
+      const titles = (response.body.results as { title: string }[]).map((result) => result.title);
+      expect(titles).to.include(collection);
+      expect(titles).not.to.include(book);
+    });
+  });
+
+  it('filters by facet values with commas (creators are "<family>, <given>")', () => {
+    cy.request({ url: '/discover/api/search', qs: { f: 'creator:Melville, Herman', lang: 'en' } }).then((response) => {
+      expect(response.status).to.eq(200);
+      expect(response.body.facets.find((facet: { id: string }) => facet.id === 'creator').values).to.deep.include({
+        value: 'Melville, Herman',
+        count: 0,
+        selected: true,
+      });
+    });
+  });
+
+  it('pages through the members of collections', () => {
+    cy.request({ url: `/discover/en/items/${collectionPath}?page=2`, headers: { Accept: 'text/html' } }).then((response) => {
+      expect(response.status).to.eq(200);
+      // one member: the second page is empty and links back to the first
+      expect(response.body).to.contain('There is nothing more on this page.');
+      const page = new DOMParser().parseFromString(response.body as string, 'text/html');
+      expect(page.querySelector('#disc-members a[rel="prev"]')?.getAttribute('href')).to.eq(
+        `/discover/en/items/${collectionPath}#disc-members`,
+      );
+    });
+    cy.visit(`/discover/en/items/${collectionPath}?page=2`);
+    cy.get('#disc-members a[rel=prev]').click();
+    cy.location('search').should('eq', '');
+    cy.get('#disc-members disc-resource-card').contains('a', book);
+  });
+
+  it('browses communities and collections as a tree', () => {
+    cy.visit('/discover/en');
+    cy.get('.disc-nav').contains('a', 'Collections').click();
+    cy.location('pathname').should('eq', '/discover/en/collections');
+    cy.get('h1').should('have.text', 'Communities and collections');
+    revealInTree(community);
+    cy.get('ul.disc-tree-root > li')
+      .filter((_, item) => item.querySelector(':scope > .disc-tree-row .disc-tree-link')?.textContent === community)
+      .first()
+      .as('node');
+    // the node's own row (Cypress queries inside within() cannot start at :scope)
+    cy.get('@node').children('.disc-tree-row').find('.disc-tree-toggle').should('have.attr', 'aria-expanded', 'false').click();
+    cy.get('@node').children('.disc-tree-row').find('.disc-tree-toggle').should('have.attr', 'aria-expanded', 'true');
+    // objects are not part of the tree, only containers
+    cy.get('@node').find('disc-collection-tree .disc-tree-link').should('contain.text', collection).and('not.contain.text', book);
+    cy.get('@node').find('disc-collection-tree').contains('a', collection).click();
+    cy.location('pathname').should('eq', `/discover/en/items/${collectionPath}`);
+    // back in the tree, it is as the visitor left it
+    cy.go('back');
+    cy.get('disc-collection-tree disc-collection-tree').contains('a', collection).should('be.visible');
+  });
+
   it('switches language to another URL of the same page', () => {
     cy.visit(`/discover/en/items/${bookPath}`);
     cy.get('disc-language-menu button').click();
@@ -155,6 +228,7 @@ describe('Discovery layer', () => {
     cy.request('/discover/sitemap.xml').then((response) => {
       expect(response.headers['content-type']).to.contain('application/xml');
       expect(response.body).to.contain('<urlset');
+      expect(response.body).to.contain('/discover/en/collections</loc>');
     });
   });
 });

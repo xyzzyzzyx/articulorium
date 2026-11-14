@@ -6,6 +6,7 @@
     "skip": "Naar de inhoud",
     "landmark": "Hoofdnavigatie",
     "home": "Home",
+    "collections": "Collecties",
     "browse": "Bladeren",
     "languageMenu": "Taal: {{language}}",
     "footer": "Voettekst"
@@ -42,7 +43,22 @@
     "search": "Zoeken",
     "collections": "Collecties",
     "recent": "Recent toegevoegd",
-    "browseAll": "Alles bekijken"
+    "browseAll": "Alles bekijken",
+    "allCollections": "Alle gemeenschappen en collecties",
+    "collectionTree": "Gemeenschappen en collecties doorbladeren"
+  },
+  "collections": {
+    "title": "Gemeenschappen en collecties",
+    "intro": "Bekijk hoe de collecties zijn ingedeeld. Klap een gemeenschap of collectie uit om de gemeenschappen en collecties erin te zien, of open haar om alles te zien wat ze bevat.",
+    "expand": "{{title}} uitklappen",
+    "collapse": "{{title}} inklappen",
+    "collapseAll": "Alles inklappen",
+    "loading": "Laden…",
+    "failed": "Deze lijst kan nu niet worden geladen.",
+    "retry": "Opnieuw proberen",
+    "more": "Meer tonen ({{shown}} van {{total}})",
+    "none": "Er zijn nog geen openbare gemeenschappen of collecties.",
+    "empty": "Geen gemeenschappen of collecties erin."
   },
   "kinds": {
     "community": "Gemeenschap",
@@ -113,7 +129,9 @@
     "iiifCollection": "IIIF-collectie",
     "repository": "Bekijken in de repository",
     "communityMembers": "In deze gemeenschap",
-    "collectionMembers": "In deze collectie"
+    "collectionMembers": "In deze collectie",
+    "membersPagination": "Pagina’s van de inhoud",
+    "noMembersOnPage": "Er staat niets meer op deze pagina."
   },
   "viewer": {
     "label": "Viewer: {{title}}",

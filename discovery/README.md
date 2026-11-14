@@ -12,7 +12,7 @@ listed in the gateway's Swagger UI).
 | Endpoint            | Answer                                                                    |
 |---------------------|---------------------------------------------------------------------------|
 | `GET /api/config`   | the public part of the settings below, the enabled locales and the public addresses |
-| `GET /api/search`   | a page of results the caller may read, with facets: `q`, `page`, `size`, `sort`, `f=<facet>:<value>` (repeated), `filter=<id>` (repeated), `within=<container path>`, `kind=community\|collection\|object`, `lang` |
+| `GET /api/search`   | a page of results the caller may read, with facets: `q`, `page`, `size`, `sort`, `f=<facet>:<value>` (repeated), `filter=<id>` (repeated), `within=<container path>`, `kind=community\|collection\|object` (repeated: any of them), `lang` |
 | `GET /api/item?path=<path>&lang=` | a resource: title and description in the caller's language, configured metadata fields, trail of communities and collections, a summary of its IIIF export |
 | `GET /api/sitemap`  | the resources anonymous visitors may read, most recently modified first   |
 
@@ -140,7 +140,7 @@ for anything beyond tokens; the built-in components use `disc-*` classes and `--
         description-length: 280
       item:
         viewer-position: SIDE         # TOP, BOTTOM or SIDE (beside the metadata on wide screens)
-        members-limit: 24
+        members-limit: 24             # members per page on community and collection pages
         repository-link: false        # link to the resource in the repository's user interface
         fields:                       # metadata of resource pages, in order
           - field: creator
@@ -150,6 +150,10 @@ for anything beyond tokens; the built-in components use `disc-*` classes and `--
             link: true
           - field: bibo_doi           # any Solr field; label defaults to the translation fields.<field>
             label: { value: DOI }
+      collections:                    # /<lang>/collections: tree of communities and collections
+        enabled: true                 # below home.collections-path; the header links to it
+        page-size: 50                 # loaded per level at a time ("Show more"), at most search.max-rows
+        sort: title                   # one of search.sorts; default search.browse-sort
     viewer:
       enabled: true
       height: 70vh

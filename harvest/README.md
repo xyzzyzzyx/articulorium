@@ -258,7 +258,11 @@ queue below the sources. With `classification.auto-accept` (the default; a sourc
 itself with `sources.<id>.auto-accept`) suggestions are accepted at once, creating the proposed
 communities, collections and topologies (`classification.create-communities`,
 `create-collections`, `create-topologies`, all on); `GET /sources` lists the sources that do in
-`autoAccepted`. The queue then holds what could not be accepted automatically, and the accepted
+`autoAccepted`. Proposed communities form a path from the more general to the more specific
+(`newCommunities`, for example Sciences › Computer Science): each level is created in the one
+before unless a community of that name exists there, so records share the general levels; a
+path of more than five new levels waits for review. Suggestions stored before communities were
+nested (a single `newCommunity`) are read as a path of one. The queue then holds what could not be accepted automatically, and the accepted
 records (decided by `auto`) under "all".
 Records are ingested exactly as without the agent; a record the agent
 cannot classify is kept as `FAILED` with the reason and never fails the harvest. A **full harvest**

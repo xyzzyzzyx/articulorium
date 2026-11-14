@@ -14,7 +14,8 @@ this code. The gateway serves it under `/discover/`.
 | `` (empty)                | redirects (302, `Vary: Accept-Language`) to the home page in the visitor's language |
 | `<lang>/`                 | home: introduction, search, top-level communities and collections, recent objects (configured sections, in order) |
 | `<lang>/search?q=&f=&filter=&sort=&page=` | results (list or grid), facets and filters as links, active refinements, sort orders, pages |
-| `<lang>/items/<path>`     | a resource: trail, title, viewer, description, metadata, IIIF link; members of communities and collections |
+| `<lang>/collections`      | tree of the communities and collections below `layout.home.collections-path`: top level rendered on the server, deeper levels loaded as they are expanded, a page (`layout.collections.page-size`) at a time; off with `layout.collections.enabled: false` (404) |
+| `<lang>/items/<path>?page=` | a resource: trail, title, viewer, description, metadata, IIIF link; members of communities and collections, `layout.item.members-limit` per page |
 | `robots.txt`, `sitemap.xml` | generated from the configuration and the public resources |
 
 Every page lives below its locale, so each language has its own URL for search engines; the

@@ -8,6 +8,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import com.articulorium.domain.vocabulary.Articulorium;
 import com.articulorium.domain.vocabulary.Pcdm;
@@ -437,8 +438,14 @@ class ClassificationTest {
             0.99, null, null, null))).isTrue();
         assertThat(auto(new Suggestion(Suggestion.NEW_COLLECTION, null, null, null, proposed, null,
             0.99, null, null, null))).as("a new collection needs its community").isFalse();
-        assertThat(auto(new Suggestion(Suggestion.NEW_COMMUNITY, null, null, proposed, proposed, null,
+        assertThat(auto(new Suggestion(Suggestion.NEW_COMMUNITY, null, null, List.of(proposed), proposed, null,
             0.99, null, null, null))).isTrue();
+        assertThat(auto(new Suggestion(Suggestion.NEW_COMMUNITY, null, null, List.of(), proposed, null,
+            0.99, null, null, null))).as("new communities need one at least").isFalse();
+        assertThat(auto(new Suggestion(Suggestion.NEW_COMMUNITY, null, null,
+            IntStream.rangeClosed(0, ClassifyingIngestor.MAX_NEW_COMMUNITIES)
+                .mapToObj(level -> new Suggestion.NewStructure("Level " + level, null, null)).toList(), proposed, null,
+            0.99, null, null, null))).as("a long path waits for a person").isFalse();
         assertThat(auto(new Suggestion(Suggestion.NONE, null, null, null, null, null, 0.99, null, null,
             null))).isFalse();
         assertThat(auto(null)).isFalse();
@@ -460,8 +467,8 @@ class ClassificationTest {
             null, null, new Suggestion.Topology("NEW", null, "Preprint", null), 0.99, null, null, null);
         final Suggestion newCollection = new Suggestion(Suggestion.NEW_COLLECTION, null, science, null, proposed, null,
             0.99, null, null, null);
-        final Suggestion newCommunity = new Suggestion(Suggestion.NEW_COMMUNITY, null, null, proposed, proposed, null,
-            0.99, null, null, null);
+        final Suggestion newCommunity = new Suggestion(Suggestion.NEW_COMMUNITY, null, null, List.of(proposed), proposed,
+            null, 0.99, null, null, null);
         assertThat(new HarvestProperties.Classification()).satisfies(defaults -> {
             assertThat(defaults.isCreateCommunities()).isTrue();
             assertThat(defaults.isCreateCollections()).isTrue();
@@ -798,8 +805,9 @@ class ClassificationTest {
     void createsAProposedCommunityWithItsCollection() {
         properties.getClassification().setAutoAccept(true);
         answers.add(new Suggestion(Suggestion.NEW_COMMUNITY, null, null,
-            new Suggestion.NewStructure("Physics", null, null), new Suggestion.NewStructure("Quantum Dots", null, "dots"),
-            null, 0.6, "Nothing about physics yet.", List.of(), null));
+            List.of(new Suggestion.NewStructure("Physics", null, null)),
+            new Suggestion.NewStructure("Quantum Dots", null, "dots"), null, 0.6, "Nothing about physics yet.",
+            List.of(), null));
 
         ingestor.ingest("repo", record("Quantum dots"));
 
@@ -811,6 +819,70 @@ class ClassificationTest {
         assertThat(classification.status()).isEqualTo(Classification.Status.ACCEPTED);
         // no topology suggested: a plain object in the new collection
         assertThat(classification.placedAt()).isEqualTo("communities/physics/dots/" + NAME);
+    }
+
+    @Test
+    void createsNestedCommunitiesFromGeneralToSpecific() {
+        properties.getClassification().setAutoAccept(true);
+        final List<Suggestion.NewStructure> path = List.of(new Suggestion.NewStructure("Sciences", "All sciences", null),
+            new Suggestion.NewStructure("Computer Science", null, "computer-science"),
+            new Suggestion.NewStructure("Information Retrieval", null, null));
+        answers.add(new Suggestion(Suggestion.NEW_COMMUNITY, null, null, path,
+            new Suggestion.NewStructure("Preprints", null, null), null, 0.6, null, List.of(), null));
+        // a second record with a sibling below the same general levels shares them
+        answers.add(new Suggestion(Suggestion.NEW_COMMUNITY, null, null, List.of(path.get(0), path.get(1),
+            new Suggestion.NewStructure("Machine Learning", null, null)),
+            new Suggestion.NewStructure("Preprints", null, null), null, 0.6, null, List.of(), null));
+
+        ingestor.ingest("repo", record("Ranking"));
+        ingestor.ingest("repo", record("oai:repo:2", "Learning to rank"));
+
+        for (final String community : List.of("communities/sciences", "communities/sciences/computer-science",
+                "communities/sciences/computer-science/information-retrieval",
+                "communities/sciences/computer-science/machine-learning")) {
+            final Model model = platform.get(community);
+            assertThat(model.contains(model.createResource(FakePlatform.BASE + community),
+                model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+                model.createResource(Articulorium.COMMUNITY))).as(community).isTrue();
+        }
+        assertThat(title("communities/sciences")).isEqualTo("Sciences");
+        assertThat(platform.exists("communities/sciences-2")).as("the general levels are shared").isFalse();
+        assertThat(store.read(harvester, STAGING).orElseThrow().placedAt())
+            .startsWith("communities/sciences/computer-science/information-retrieval/preprints/");
+        assertThat(store.read(harvester, PATHS.record("repo", "oai:repo:2")).orElseThrow().placedAt())
+            .startsWith("communities/sciences/computer-science/machine-learning/preprints/");
+    }
+
+    @Test
+    void readsTheSingleProposedCommunityOfStoredSuggestions() throws Exception {
+        final JsonMapper json = JsonMapper.builder().build();
+        final Suggestion stored = json.readValue("""
+            {"placement": "NEW_COMMUNITY", "newCommunity": {"title": "Physics", "slug": "physics"},
+             "newCollection": {"title": "Theses"}}
+            """, Suggestion.class);
+
+        assertThat(stored.newCommunities()).extracting(Suggestion.NewStructure::title).containsExactly("Physics");
+        assertThat(stored.newCommunity()).isNull();
+        assertThat(json.writeValueAsString(stored)).contains("\"newCommunities\":[{\"title\":\"Physics\"")
+            .doesNotContain("\"newCommunity\"");
+    }
+
+    @Test
+    void readsCommunityTitlesWrittenAsPathsAsLevels() {
+        final JsonMapper json = JsonMapper.builder().build();
+        // stored by an agent that passed the model's paths on as one community
+        final Suggestion stored = json.readValue("""
+            {"placement": "NEW_COLLECTION", "community": {"path": "communities/dl", "title": "DL", "trail": "DL"},
+             "newCommunities": [{"title": "Digital Libraries > Computer Science", "slug": "digital-libraries-computer-science"}],
+             "newCollection": {"title": "Computer Science › Preprints", "description": "Preprints", "slug": "x"}}
+            """, Suggestion.class);
+
+        assertThat(stored.placement()).as("a collection's path makes communities").isEqualTo(Suggestion.NEW_COMMUNITY);
+        assertThat(stored.newCommunities()).containsExactly(new Suggestion.NewStructure("Digital Libraries", null, null),
+            new Suggestion.NewStructure("Computer Science", null, null));
+        assertThat(stored.newCollection()).isEqualTo(new Suggestion.NewStructure("Preprints", "Preprints", null));
+        assertThat(new Suggestion.NewStructure("Input/Output", null, "io").levels())
+            .containsExactly(new Suggestion.NewStructure("Input/Output", null, "io"));
     }
 
     @Test

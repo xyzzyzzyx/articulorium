@@ -93,6 +93,7 @@ articulorium:
       item:
         # TOP, BOTTOM or SIDE
         viewer-position: TOP
+        # members listed per page on community and collection pages
         members-limit: 24
         repository-link: false
         repository-ui-url: ../ui/
@@ -115,6 +116,13 @@ articulorium:
           - field: source
           - field: isPartOf
           - field: bibliographicCitation
+      # the communities and collections page (/<lang>/collections): a tree below home.collections-path
+      collections:
+        enabled: true
+        # communities and collections loaded at a time per level (at most search.max-rows)
+        page-size: 50
+        # order of each level: one of search.sorts (default search.browse-sort)
+        sort: title
 
     viewer:
       enabled: true

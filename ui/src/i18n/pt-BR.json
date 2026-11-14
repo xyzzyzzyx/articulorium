@@ -808,6 +808,8 @@
     "newCollection": "Uma nova coleção “{{title}}” em {{community}}",
     "newCommunity": "Uma nova comunidade “{{title}}” com a coleção “{{collection}}”",
     "newSubCommunity": "Uma nova comunidade “{{title}}” em {{community}}, com a coleção “{{collection}}”",
+    "newCommunities": "Novas comunidades “{{title}}” com a coleção “{{collection}}”",
+    "newSubCommunities": "Novas comunidades “{{title}}” em {{community}}, com a coleção “{{collection}}”",
     "newTopology": "Uma nova topologia “{{name}}”: {{description}}",
     "noPlacement": "Nenhuma coleção serve",
     "confirmCreate": "Criar e colocar o registro lá? {{placement}}",
