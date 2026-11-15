@@ -610,7 +610,14 @@ class ClassifierTest {
     private static final ClassificationRequest ARXIV_RECORD = new ClassificationRequest("harvested/repo", "repo",
         "oai:arXiv.org:1", List.of("MapHub: A Historical Map Annotation Platform"),
         List.of("A platform to annotate historical maps."), List.of("Computer Science - Digital Libraries", "H.3.7"),
-        List.of("Doe, Jane"), List.of("2014"), List.of(), List.of(), List.of("cs:cs:DL"),
+        List.of("Doe, Jane"), List.of("2014"), List.of(), List.of(), List.of(), List.of("application/pdf"));
+
+    /** A recent arXiv record: plain category names as subjects, the discipline in its set. */
+    private static final ClassificationRequest ARXIV_CS_RECORD = new ClassificationRequest("harvested/repo", "repo",
+        "oai:arXiv.org:2611.17233", List.of("SAIL: Scientific Agentic Intelligence via a Science-Aware Loop"),
+        List.of("An agent for scientific discovery."),
+        List.of("Information Retrieval", "Computation and Language", "Digital Libraries", "H.3.7"),
+        List.of("Doe, Jane"), List.of("2026-11-12"), List.of(), List.of("text"), List.of("cs:cs:DL"),
         List.of("application/pdf"));
 
     @Test
@@ -622,7 +629,8 @@ class ClassifierTest {
             {"collection": "", "field": "Natural Sciences", "discipline": "Natural Sciences",
              "topic": "New Collection for MapHub", "confidence": 0.6}
             """, """
-            {"field": "Natural Sciences", "topic": "Map Annotation", "confidence": 0.6}
+            {"field": "Natural Sciences", "discipline": "Computer Science", "topic": "Map Annotation",
+             "confidence": 0.9}
             """);
 
         final Classification classified = classifier.classify(ARXIV_RECORD, Platform.TOKEN, Locale.ENGLISH);
@@ -630,16 +638,88 @@ class ClassifierTest {
         assertThat(classified.newCommunities()).extracting(Classification.NewStructure::title)
             .containsExactly("Natural Sciences", "Computer Science");
         assertThat(classified.newCollection().title()).isEqualTo("Digital Libraries");
-        assertThat(classified.confidence()).isEqualTo(0.6);
+        assertThat(classified.confidence()).as("at least the configured confidence").isEqualTo(0.7);
+        assertThat(classified.rationale()).startsWith("Placed by the record's own classification: discipline "
+            + "Computer Science (subject \"Computer Science - Digital Libraries\"), topic Digital Libraries");
         assertThat(agents.chat.prompts()).hasSize(1);
-        assertThat(agents.chat.prompts().get(0).getUserMessage().getText())
-            .contains("Computer Science - Digital Libraries");
 
-        // the model's topic in the discipline the record names
+        // the source's classification goes before the model's own topic, so records like it meet
         final Classification topic = classifier.classify(ARXIV_RECORD, Platform.TOKEN, Locale.ENGLISH);
-        assertThat(topic.newCommunities()).extracting(Classification.NewStructure::title)
+        assertThat(topic.newCollection().title()).isEqualTo("Digital Libraries");
+        assertThat(topic.confidence()).isEqualTo(0.9);
+    }
+
+    @Test
+    void placesARecordInTheDisciplineOfItsSetAndTheCollectionOfItsPrimarySubject() {
+        emptyRepository();
+        // what the model answered for every recent arXiv record: a field, nothing else
+        agents.chat.answer("""
+            {"collection": "", "field": "Engineering and Technology", "discipline": "", "topic": "",
+             "confidence": 0, "rationale": "The subjects suggest Engineering and Technology."}
+            """);
+
+        final Classification classification = classifier.classify(ARXIV_CS_RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        // the set's field and discipline win over the model's field
+        assertThat(classification.newCommunities()).extracting(Classification.NewStructure::title)
             .containsExactly("Natural Sciences", "Computer Science");
-        assertThat(topic.newCollection().title()).isEqualTo("Map Annotation");
+        assertThat(classification.newCollection().title()).isEqualTo("Information Retrieval");
+        assertThat(classification.confidence()).isEqualTo(0.7);
+        assertThat(classification.rationale()).contains("(set cs:cs:DL)");
+        assertThat(classification.topology().kind()).as("a single PDF has no parts").isEqualTo(TopologyKind.NONE);
+        assertThat(agents.chat.prompts()).as("no correction needed").hasSize(1);
+        assertThat(agents.chat.prompts().get(0).getUserMessage().getText())
+            .contains("discipline in its source: Computer Science");
+    }
+
+    @Test
+    void placesARecordWhereRecordsOfItsSubjectAlreadyAre() {
+        nestedRepository();
+        final ClassificationRequest digitalLibraries = new ClassificationRequest("harvested/repo", "repo", "x",
+            ARXIV_CS_RECORD.titles(), ARXIV_CS_RECORD.descriptions(), List.of("Digital Libraries", "H.3.7"),
+            List.of(), List.of(), List.of(), List.of(), List.of("cs:cs:DL"), List.of("application/pdf"));
+        agents.chat.answer("""
+            {"field": "Natural Sciences", "confidence": 0.2}
+            """);
+
+        final Classification classification = classifier.classify(digitalLibraries, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.EXISTING_COLLECTION);
+        assertThat(classification.collection().path())
+            .isEqualTo("communities/natural-sciences/computer-science/digital-libraries");
+    }
+
+    @Test
+    void takesNoExistingCollectionOutsideTheRecordsOwnDiscipline() {
+        // Science > Chemistry (c1) is no place for a computer science paper the model put there
+        agents.chat.answer("""
+            {"collection": "c1", "confidence": 0.9}
+            """, """
+            {"collection": "c1", "confidence": 0.9}
+            """);
+
+        final Classification classification = classifier.classify(ARXIV_CS_RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        assertThat(classification.newCommunities()).extracting(Classification.NewStructure::title)
+            .containsExactly("Natural Sciences", "Computer Science");
+
+        // a record that brings no discipline of its own goes where the model says
+        assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).collection().path())
+            .isEqualTo("communities/science/chemistry");
+    }
+
+    @Test
+    void placesARecordByItsOwnClassificationWhenNoAnswerCanBeRead() {
+        emptyRepository();
+        agents.chat.answer("I think this is about computers.", "still prose");
+
+        final Classification classification = classifier.classify(ARXIV_CS_RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        assertThat(classification.newCollection().title()).isEqualTo("Information Retrieval");
+        assertThat(classification.confidence()).isEqualTo(0.7);
     }
 
     @Test

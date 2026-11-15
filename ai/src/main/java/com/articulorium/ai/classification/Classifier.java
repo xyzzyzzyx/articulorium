@@ -9,7 +9,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import com.articulorium.ai.AgentException;
 import com.articulorium.ai.AgentException.Reason;
@@ -152,7 +151,21 @@ public class Classifier extends CapabilityAgent {
             }
             // small models slip now and then: an unreadable answer is asked for once more
             asked = true;
-            answer = model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user), Answer.class);
+            try {
+                answer = model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user), Answer.class);
+            } catch (AgentException again) {
+                if (again.getReason() != Reason.INVALID_OUTPUT) {
+                    throw again;
+                }
+                // the record's own classification may still place it
+                final Resolution own = resolve(Answer.NOTHING, catalog, request, modelName);
+                if (own.classification().placement() == Placement.NONE) {
+                    throw again;
+                }
+                LOG.info("No readable answer for {} of {}; placed by its own classification", request.identifier(),
+                    request.source());
+                return own.classification();
+            }
         }
         final Resolution first = resolve(answer, catalog, request, modelName);
         if (first.problem() == null) {
@@ -202,13 +215,16 @@ public class Classifier extends CapabilityAgent {
     }
 
     /**
-     * Turns the model's answer into a classification: the existing collection it names, or else
-     * the first of these proposals that passes the structure's rules: the model's field, discipline
-     * and topic; its field and topic in the discipline the record's own classification names; the
-     * record's own classification (a subject such as arXiv's "Computer Science - Digital
-     * Libraries": discipline Computer Science, topic Digital Libraries) in the model's field. When
-     * none passes, the classification is {@link Placement#NONE} with no confidence, and the
-     * model's problem is reported for it to correct.
+     * Turns the model's answer into a classification. When the record brings its own discipline
+     * (its set's, or a subject's "Discipline - Topic": see {@link RecordClassification}), the
+     * first of these that passes the structure's rules is taken: the existing collection the
+     * model names, when it lies in that discipline; that discipline with a topic the record's
+     * subjects name (the primary first); that discipline with the model's topic; the existing
+     * collection the model names elsewhere; the model's field, discipline and topic. Otherwise
+     * the existing collection the model names, or its field, discipline and topic. A placement by
+     * the record's own classification says so in its rationale and is as confident as configured
+     * at least. When none passes, the classification is {@link Placement#NONE} with no
+     * confidence, and the problem with the model's proposal is reported for it to correct.
      */
     private Resolution resolve(final Answer answer, final StructureCatalog.Catalog catalog,
             final ClassificationRequest request, @Nullable final String modelName) {
@@ -218,33 +234,49 @@ public class Classifier extends CapabilityAgent {
         List<Classification.NewStructure> newCommunities = null;
         Classification.NewStructure newCollection = null;
         String problem = null;
+        String basis = null;
+        final List<String> fields = fields();
+        final RecordClassification own = RecordClassification.of(request, fields,
+            properties.getClassification().getSetDisciplines()).filter(found -> found.discipline() != null).orElse(null);
         final Optional<Entry> collectionEntry = answer.collection() == null ? Optional.empty()
             : catalog.find(answer.collection(), Kind.COLLECTION);
-        if (collectionEntry.isPresent()) {
+        if (collectionEntry.isPresent() && (own == null || inDiscipline(collectionEntry.get(), own.discipline()))) {
             placement = Placement.EXISTING_COLLECTION;
             collection = ref(collectionEntry.get());
         } else {
-            final List<String> fields = fields();
             final String field = StructureNames.isPlaceholder(answer.field()) ? null : matchField(answer.field(), fields);
-            final Optional<String[]> classified = classifiedAs(request, fields);
             final String discipline = title(answer.discipline());
             final String topic = title(answer.topic()) != null ? title(answer.topic()) : notAnId(answer.collection());
+            final String topicDescription = answer.topic() == null ? null : answer.topic().description();
+            final Candidate model = new Candidate(field, answer.discipline(), discipline, topic, topicDescription,
+                null, null);
             final List<Candidate> candidates = new ArrayList<>();
-            candidates.add(new Candidate(field, answer.discipline(), discipline, topic,
-                answer.topic() == null ? null : answer.topic().description()));
-            classified.ifPresent(subject -> {
-                candidates.add(new Candidate(field, null, subject[0], topic,
-                    answer.topic() == null ? null : answer.topic().description()));
-                candidates.add(new Candidate(field, null, subject[0], subject[1], null));
-            });
+            if (own != null) {
+                // the record's own classification, curated by its source, before the model's proposal
+                final String ownField = own.field() != null ? own.field() : field;
+                for (final String ownTopic : own.topics()) {
+                    candidates.add(new Candidate(ownField, null, own.discipline(), ownTopic, null, null,
+                        "discipline " + own.discipline() + " (" + own.source() + "), topic " + ownTopic
+                            + " (a subject of the record)"));
+                }
+                candidates.add(new Candidate(ownField, null, own.discipline(), topic, topicDescription, null,
+                    "discipline " + own.discipline() + " (" + own.source() + ")"));
+                collectionEntry.ifPresent(entry -> candidates.add(new Candidate(null, null, null, null, null, entry,
+                    null)));
+            }
+            candidates.add(model);
             Proposal accepted = null;
             for (final Candidate candidate : candidates) {
-                final Proposal proposal = propose(candidate, catalog, request, fields);
+                final Proposal proposal = candidate.existing() != null
+                    ? new Proposal(null, List.of(), candidate.existing(), null, null)
+                    : propose(candidate, catalog, request, fields);
                 if (proposal.problem() == null) {
                     accepted = proposal;
+                    basis = candidate.basis();
                     break;
                 }
-                problem = problem == null ? proposal.problem() : problem;
+                // the model is told what is wrong with its own proposal
+                problem = candidate == model || problem == null ? proposal.problem() : problem;
             }
             if (accepted != null) {
                 problem = null;
@@ -264,33 +296,24 @@ public class Classifier extends CapabilityAgent {
             }
         }
         // an answer that broke the rules: its confidence means nothing
-        final double confidence = placement == Placement.NONE ? 0 : clamp(answer.confidence());
-        final String rationale = answer.rationale() == null ? "" : Prompts.clip(answer.rationale(), 600);
+        double confidence = placement == Placement.NONE ? 0 : clamp(answer.confidence());
+        String rationale = answer.rationale() == null ? "" : Prompts.clip(answer.rationale(), 600);
+        if (basis != null) {
+            // placed by what the record's source says, not by the model's reasons
+            confidence = Math.max(confidence, properties.getClassification().getRecordConfidence());
+            rationale = "Placed by the record's own classification: " + basis + ".";
+        }
         return new Resolution(new Classification(placement, collection, community, newCommunities, newCollection,
             topology(answer, catalog, request, newCommunities, newCollection), confidence, rationale, List.of(),
             modelName), problem);
     }
 
-    /**
-     * The discipline and topic a record's own classification gives: the first subject written as
-     * "Discipline - Topic" (arXiv's "Computer Science - Digital Libraries"), neither part a code,
-     * a placeholder or a field.
-     */
-    private static Optional<String[]> classifiedAs(final ClassificationRequest request, final List<String> fields) {
-        for (final String subject : request.subjects()) {
-            final int dash = subject == null ? -1 : subject.indexOf(" - ");
-            if (dash <= 0) {
-                continue;
-            }
-            final String discipline = subject.substring(0, dash).strip();
-            final String topic = subject.substring(dash + 3).strip();
-            if (Stream.of(discipline, topic).noneMatch(part -> StructureNames.isCode(part) || StructureNames.isPlaceholder(part))
-                    && matchField(discipline, fields) == null && matchField(topic, fields) == null
-                    && !StructureNames.key(discipline).equals(StructureNames.key(topic))) {
-                return Optional.of(new String[] {discipline, topic});
-            }
-        }
-        return Optional.empty();
+    /** Whether an existing collection lies in a discipline: a community of its trail bears its name. */
+    private static boolean inDiscipline(final Entry collection, final String discipline) {
+        final String key = StructureNames.key(discipline);
+        final List<String> levels = levelsOf(collection.trail());
+        return levels.subList(0, Math.max(0, levels.size() - 1)).stream()
+            .anyMatch(level -> StructureNames.key(level).equals(key));
     }
 
     /**
@@ -301,9 +324,13 @@ public class Classifier extends CapabilityAgent {
      * @param discipline       the discipline's title or an existing community's id, or {@code null}
      * @param topic            the new collection's title, or {@code null}
      * @param topicDescription the new collection's description, or {@code null}
+     * @param existing         an existing collection to take as it is, or {@code null}
+     * @param basis            what of the record's own classification it follows, for the
+     *                         rationale; {@code null} for the model's proposal
      */
     private record Candidate(@Nullable String field, @Nullable AnswerStructure disciplineAnswer,
-            @Nullable String discipline, @Nullable String topic, @Nullable String topicDescription) {
+            @Nullable String discipline, @Nullable String topic, @Nullable String topicDescription,
+            @Nullable Entry existing, @Nullable String basis) {
     }
 
     /**
@@ -702,6 +729,9 @@ public class Classifier extends CapabilityAgent {
         line(out, "genre", request.genres());
         line(out, "rdf types", request.types());
         line(out, "file types", request.mediaTypes());
+        RecordClassification.of(request, fields(), properties.getClassification().getSetDisciplines())
+            .map(RecordClassification::discipline)
+            .ifPresent(discipline -> line(out, "discipline in its source", List.of(discipline)));
         return Prompts.clip(out.toString(), properties.getClassification().getMaxRecordLength());
     }
 
@@ -817,6 +847,10 @@ public class Classifier extends CapabilityAgent {
             @JsonPropertyDescription("Only for an item of files of several kinds that no topology describes") AnswerStructure newTopology,
             @JsonPropertyDescription("0 to 1") Double confidence,
             @JsonPropertyDescription("Why, in one sentence") String rationale) {
+
+        /** No answer: what is left when the model's answer cannot be read. */
+        static final Answer NOTHING = new Answer(null, null, null, null, null, null, null, null, null);
+
     }
 
 }

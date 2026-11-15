@@ -171,6 +171,29 @@ public class AiProperties {
         private List<String> fields = new ArrayList<>(List.of("Natural Sciences", "Engineering and Technology",
             "Medical and Health Sciences", "Agricultural Sciences", "Social Sciences", "Humanities and the Arts"));
 
+        /**
+         * The disciplines the sets of sources stand for, as {@code spec=Field > Discipline}: a
+         * spec stands for itself and the sets below it ({@code cs} for {@code cs:cs:DL}). A record
+         * in such a set is placed in that discipline, in a collection its subjects name, when the
+         * model names none that can be used. By default arXiv's archives.
+         */
+        private List<String> setDisciplines = new ArrayList<>(List.of(
+            "cs=Natural Sciences > Computer Science",
+            "math=Natural Sciences > Mathematics",
+            "physics=Natural Sciences > Physics",
+            "q-bio=Natural Sciences > Biology",
+            "stat=Natural Sciences > Statistics",
+            "econ=Social Sciences > Economics",
+            "q-fin=Social Sciences > Economics",
+            "eess=Engineering and Technology > Electrical Engineering"));
+
+        /**
+         * The least confidence of a placement by the record's own classification (its set's
+         * discipline, a collection its subjects name): curated by its source, it need not wait for
+         * review when the model's own confidence is lower.
+         */
+        private double recordConfidence = 0.7;
+
     }
 
 }

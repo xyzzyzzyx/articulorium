@@ -128,16 +128,25 @@ exactly as before, then asks the agent where each new record belongs:
      named like its discipline, a field or another community;
    - placeholders ("None", "N/A", "Unknown") are no names, and communities or collections
      titled so are not offered to the model.
-   When the model's discipline or topic breaks a rule, the record's own classification stands
-   in before the model is asked again: a subject written as "Discipline - Topic" (arXiv's
-   "Computer Science - Digital Libraries") gives the discipline for the model's topic, or else
-   both. A proposal that still breaks a rule is reported to the model, which answers once more;
-   if that answer breaks a rule too, the record waits for review (`NONE`). Ids the model was not
+   **The record's own classification comes first** when the record brings a discipline: the
+   discipline its set stands for (`classification.set-disciplines`, by default arXiv's
+   archives: `cs:cs:DL` is in Natural Sciences > Computer Science) or the one a subject written
+   as "Discipline - Topic" names. The record then goes in that discipline, in the collection of
+   its first subject that makes a plain name (arXiv lists the primary category first: "Digital
+   Libraries", "Computation and Language"), or else of the model's topic; an existing collection
+   the model names is taken when it lies in that discipline. Records of one category so meet in
+   one collection, whatever a small model makes of them. Such a placement says so in its
+   rationale and is at least `classification.record-confidence` (0.7) confident; it stands even
+   when no answer of the model can be read. The model is shown the record's discipline.
+   Otherwise the model's collection, or field, discipline and topic, are used. A proposal that
+   still breaks a rule is reported to the model, which answers once more; if that answer breaks
+   a rule too, the record waits for review (`NONE`). Ids the model was not
    shown are never used, and a title written where an id goes is read as the title. An
    unreadable answer is asked for once more too: a classification is two model calls at most.
-   The record's set specs are not shown to the model (they are the source's codes, not names for
-   this repository). A new topology is only proposed for a record with files of several kinds
-   (a single document has no parts), and never one named after a subject, the record or a
+   The record's set specs are not shown to the model as such (they are the source's codes, not
+   names for this repository); the discipline they stand for is. A new topology is only
+   proposed for a record with files of several kinds (a single document such as an arXiv PDF
+   has no parts, so it is placed as a plain object), and never one named after a subject, the record or a
    placeholder: a topology is the form of an item, not its topic. Unusable answers are logged
    (clipped) at `INFO`, so a model's habits can be seen in the AI service's log.
 2. The suggestion is stored below the record (`<record>/classification`, typed
@@ -221,6 +230,8 @@ Agent settings (`articulorium.ai.*`):
 | `classification.catalog-ttl` | `1m` | How long the structure read for one caller is reused. |
 | `classification.max-record-length` | `2000` | Characters of a record shown to the model. |
 | `classification.fields` | OECD major fields | The only top-level communities; disciplines are communities inside them, collections inside disciplines. |
+| `classification.set-disciplines` | arXiv's archives | `spec=Field > Discipline` entries: the discipline of a source's set and the sets below it; records in it are placed there, in the collection their subjects name. |
+| `classification.record-confidence` | `0.7` | The least confidence of a placement by the record's own classification. |
 
 Harvest settings (`articulorium.harvest.classification.*`): `enabled` (`false`; `true` in compose),
 `ai-url`, `topology-url`, `timeout` (`15m`: how long the harvester waits for one answer of the agent before
