@@ -4,6 +4,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import com.articulorium.domain.vocabulary.Fedora;
@@ -100,7 +101,7 @@ public record ExtensionRequest(String resourcePath, Extension extension, String 
         final List<String> segments = Arrays.asList(path.split("/"));
         int index = -1;
         for (int i = 0; i < segments.size(); i++) {
-            if (decode(segments.get(i)).toLowerCase().startsWith(Fedora.EXTENSION_PREFIX)) {
+            if (decode(segments.get(i)).toLowerCase(Locale.ROOT).startsWith(Fedora.EXTENSION_PREFIX)) {
                 index = i;
                 break;
             }

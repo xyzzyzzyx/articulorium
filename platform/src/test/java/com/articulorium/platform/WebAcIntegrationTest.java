@@ -100,6 +100,20 @@ class WebAcIntegrationTest {
         mvc.perform(delete(child).header(AGENT, ALICE)).andExpect(status().isNoContent());
     }
 
+    /** A resource whose name begins with "actuator" is protected like any other. */
+    @Test
+    void resourcesNamedLikeExcludedPathsAreEnforced() throws Exception {
+        final String container = mvc.perform(post("/").header("Slug", "actuator-" + UUID.randomUUID().toString()
+                .substring(0, 8)).contentType(TURTLE).content(""))
+            .andExpect(status().isCreated()).andReturn().getResponse().getHeader(HttpHeaders.LOCATION)
+            .substring(BASE.length());
+        restrict(container);
+
+        mvc.perform(post(container).contentType(TURTLE).content("")).andExpect(status().isUnauthorized());
+        mvc.perform(delete(container)).andExpect(status().isUnauthorized());
+        mvc.perform(delete(container).header(AGENT, ALICE)).andExpect(status().isNoContent());
+    }
+
     /** acl:Control is needed to read and change an ACL; deleting it restores inheritance. */
     @Test
     void aclDocumentsRequireControl() throws Exception {

@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.apache.jena.rdf.model.RDFNode;
@@ -100,7 +101,7 @@ public enum FieldType {
             return STRING;
         }
         final String normalized = name.trim().replaceFirst("^xsd:", "").replace("_", "").replace("-", "")
-            .toLowerCase();
+            .toLowerCase(Locale.ROOT);
         return switch (normalized) {
             case "string" -> STRING;
             case "uri", "anyuri", "iri" -> URI;

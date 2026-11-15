@@ -153,6 +153,30 @@ class HarvestServiceTest {
                 e -> assertThat(e.getReason()).isEqualTo(Reason.NOT_RUNNING));
     }
 
+    /** An error the harvester does not handle still ends the run, so the source can be harvested again. */
+    @Test
+    void endsTheRunWhateverTheHarvestThrows() throws InterruptedException {
+        service.shutdown();
+        final HarvestProperties properties = new HarvestProperties();
+        properties.getSources().put("blocking", source("gated", true, null));
+        service = new HarvestService(properties, List.of(new GatedFactory()),
+            new Harvester(HarvestPolicy.DEFAULT, Clock.systemUTC(), duration -> { }),
+            (sourceId, record) -> {
+                throw new AssertionError("broken ingestor");
+            }, checkpoints, scheduler, meters, Clock.systemUTC());
+        release.countDown();
+
+        service.start("blocking", HarvestMode.FULL);
+        final SourceStatus done = awaitIdle("blocking");
+
+        assertThat(done.reports()).singleElement().satisfies(report -> {
+            assertThat(report.outcome()).isEqualTo(HarvestOutcome.FAILED);
+            assertThat(report.message()).contains("broken ingestor");
+        });
+        assertThat(service.start("blocking", HarvestMode.FULL).running()).isNotNull();
+        awaitIdle("blocking");
+    }
+
     @Test
     void refusesUnknownAndDisabledSources() {
         assertThatThrownBy(() -> service.start("nope", HarvestMode.FULL))

@@ -35,8 +35,9 @@ import lombok.extern.slf4j.Slf4j;
  * authors record it, and every response carries a {@code WAC-Allow} header listing the modes of
  * the agent ({@code user}) and of everyone ({@code public}).</p>
  *
- * <p>Paths below {@code /.well-known} (constraints, OpenAPI, Swagger UI, WebAC information) are
- * not resources and are not filtered.</p>
+ * <p>Paths below {@code /.well-known} (constraints, OpenAPI, Swagger UI, WebAC information),
+ * {@code /actuator} and {@code /error} are not resources and are not filtered; the match is on
+ * whole path segments, so resources whose names merely begin with these words are.</p>
  */
 @Slf4j
 @Component
@@ -75,8 +76,9 @@ public class WebAcFilter extends OncePerRequestFilter {
             return true;
         }
         final String path = RequestTargets.path(request);
-        return path.equals(".well-known") || path.startsWith(".well-known/") || path.startsWith("actuator")
-            || path.equals("error");
+        // whole segments only: a resource named "actuator-notes" is a resource like any other
+        return path.equals(".well-known") || path.startsWith(".well-known/") || path.equals("actuator")
+            || path.startsWith("actuator/") || path.equals("error");
     }
 
     @Override

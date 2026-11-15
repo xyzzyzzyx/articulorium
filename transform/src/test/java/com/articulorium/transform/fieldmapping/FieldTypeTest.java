@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 
 import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.rdf.model.Model;
@@ -27,6 +28,20 @@ class FieldTypeTest {
         "xsd:date,DATE_TIME", "long,INTEGER", "double,DECIMAL", "Boolean,BOOLEAN"})
     void parsesTypeNames(final String name, final FieldType expected) {
         assertThat(FieldType.parse(name)).isEqualTo(expected);
+    }
+
+    /** Type names parse the same whatever the default locale (Turkish lower-cases "I" to a dotless "ı"). */
+    @Test
+    void parsesTypeNamesInAnyDefaultLocale() {
+        final Locale previous = Locale.getDefault();
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        try {
+            assertThat(FieldType.parse("xsd:anyURI")).isEqualTo(FieldType.URI);
+            assertThat(FieldType.parse("INTEGER")).isEqualTo(FieldType.INTEGER);
+            assertThat(FieldType.parse("IRI")).isEqualTo(FieldType.URI);
+        } finally {
+            Locale.setDefault(previous);
+        }
     }
 
     /** No type means string; an unknown type is an error. */

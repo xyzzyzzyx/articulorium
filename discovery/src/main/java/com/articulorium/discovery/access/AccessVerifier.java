@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -48,7 +47,9 @@ import tools.jackson.databind.JsonNode;
  * and every resource page is checked. Answers for anonymous visitors are remembered for
  * {@code articulorium.discovery.access.anonymous-cache-seconds}, which bounds how long a resource
  * stays visible after it was made private. Unreadable resources, refusals and an unavailable
- * platform all mean "not visible": nothing is shown that the platform did not allow.</p>
+ * platform all mean "not visible": nothing is shown that the platform did not allow. Only answers
+ * the platform gave are remembered, so a resource hidden during an outage reappears as soon as the
+ * platform answers again.</p>
  */
 @Component
 public class AccessVerifier implements DisposableBean {
@@ -57,6 +58,9 @@ public class AccessVerifier implements DisposableBean {
 
     /** Path of the platform's access information endpoint, below the LDP root. */
     static final String WEBAC_PATH = ".well-known/webac";
+
+    /** The mode that makes a resource visible. */
+    private static final String READ = "read";
 
     private final RestClient client;
 
@@ -128,11 +132,12 @@ public class AccessVerifier implements DisposableBean {
                 return false;
             }
         }
-        final boolean allowed = ask(path, authorization);
-        if (anonymous && settings.getAnonymousCacheSeconds() > 0) {
+        final Boolean allowed = ask(path, authorization);
+        // a failed check hides the resource now, but is not remembered: the next visitor asks again
+        if (allowed != null && anonymous && settings.getAnonymousCacheSeconds() > 0) {
             remember(path, allowed);
         }
-        return allowed;
+        return Boolean.TRUE.equals(allowed);
     }
 
     /**
@@ -179,7 +184,13 @@ public class AccessVerifier implements DisposableBean {
         executor.shutdownNow();
     }
 
-    private boolean ask(final String path, @Nullable final String authorization) {
+    /**
+     * Asks the platform for the visitor's modes on a resource.
+     *
+     * @return whether {@code read} is granted; {@code null} when the platform could not tell
+     *         (unreachable, a server error or an answer without modes)
+     */
+    private @Nullable Boolean ask(final String path, @Nullable final String authorization) {
         final URI uri = UriComponentsBuilder.fromUriString(base + WEBAC_PATH)
             .queryParam("resource", path).encode().build().toUri();
         try {
@@ -195,10 +206,11 @@ public class AccessVerifier implements DisposableBean {
                 .body(JsonNode.class);
             if (body == null || !body.path("userModes").isArray()) {
                 LOG.warn("The platform's access check of /{} answered no access modes", path);
-                return false;
+                return null;
             }
+            // acl:Write does not imply acl:Read (the platform would refuse to serve the resource)
             for (final JsonNode mode : body.path("userModes")) {
-                if (Set.of("read", "write").contains(mode.asString())) {
+                if (READ.equals(mode.asString())) {
                     return true;
                 }
             }
@@ -206,11 +218,12 @@ public class AccessVerifier implements DisposableBean {
         } catch (RestClientResponseException e) {
             if (e.getStatusCode().value() >= 500) {
                 LOG.warn("The platform answered {} to the access check of /{}", e.getStatusCode().value(), path);
+                return null;
             }
             return false;
         } catch (RestClientException e) {
             LOG.warn("The platform cannot be reached for the access check of /{}: {}", path, e.getMessage());
-            return false;
+            return null;
         }
     }
 

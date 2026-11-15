@@ -4,6 +4,12 @@
 
 This document provides comprehensive guidance for properly configuring Articulorium with secure authentication and access control settings, addressing security vulnerabilities identified in the codebase review.
 
+## Reporting a Vulnerability
+
+Please report vulnerabilities privately through GitHub's
+[security advisories](https://github.com/xyzzyzzyx/articulorium/security/advisories/new) rather than
+in a public issue, with the affected module, a description and, where possible, steps to reproduce.
+
 ## Security Vulnerabilities
 
 The current default configuration uses a permissive root ACL (`root-acl.ttl`) that grants everyone full access to the repository. This is suitable for development but represents a significant security risk for production deployments.
@@ -12,15 +18,19 @@ The current default configuration uses a permissive root ACL (`root-acl.ttl`) th
 
 ### 1. Switching to Role-Based Access Control
 
-To enable role-based access control, modify the platform configuration:
+To enable role-based access control, set the platform's root ACL. No rebuild is needed: set the
+environment variable on the platform service (`docker-compose.yml` has it commented out on the
+`platform` service; `docker-compose.acl.yml` sets the Consul variant):
 
-#### For Production Deployment
+```bash
+ARTICULORIUM_WEBAC_ROOT_ACL=classpath:webac/root-acl-oidc.ttl
+```
 
-In `platform/src/main/resources/application.yml`:
+or the equivalent property in an external configuration file or Consul:
+
 ```yaml
 articulorium:
   webac:
-    # ... other settings ...
     root-acl: classpath:webac/root-acl-oidc.ttl
 ```
 
@@ -28,11 +38,15 @@ This switches from the default permissive ACL to one that uses OIDC groups for a
 
 ### 2. Understanding Access Control Roles
 
-The system supports three roles defined in `keycloak/articulorium-realm.json`:
+`keycloak/articulorium-realm.json` defines two realm roles, which the platform maps to the groups
+`info:oidc/group/<role>` that `root-acl-oidc.ttl` names:
 
-- **Reader**: No special permissions (default user)
-- **Editor (curator)**: Can read and write resources
-- **Administrator**: Can read, write, and control access (change ACLs)
+- **No role** (demo user `reader`): reads, like anonymous visitors
+- **`editors`** (demo user `curator`): reads and writes resources
+- **`administrators`** (demo user `administrator`, also an editor): reads, writes and controls access
+  (changes ACLs)
+
+The demo users and their passwords are for local use only; remove them from a production realm.
 
 ### 3. Production Security Configuration
 
@@ -46,7 +60,8 @@ The realm configuration in `keycloak/articulorium-realm.json` should be reviewed
 
 #### Platform Security Settings
 
-In `platform/src/main/resources/application.yml`:
+The defaults in `platform/src/main/resources/application.yml` (override them with the environment
+variables they name):
 ```yaml
 # Enable OIDC authentication
 articulorium:
@@ -142,6 +157,22 @@ The system provides two root ACL options:
    - Ensure HTTPS is enabled for all services
    - Configure proper firewall rules
    - Set up monitoring and alerting for security events
+   - Behind a TLS-terminating proxy, restrict the gateway's `trusted-proxies` to that proxy and
+     stop removing `X-Forwarded-Proto`/`-Host` (see the comments in `gateway/.../application.yml`)
+
+5. **Replace the Compose Stack's Development Defaults**
+   - Keycloak runs with `start-dev` and the bootstrap administrator `admin` / `admin`
+     (`KEYCLOAK_ADMIN`, `KEYCLOAK_ADMIN_PASSWORD`)
+   - MinIO: `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`; QLever: `QLEVER_ACCESS_TOKEN`; Fuseki:
+     `FUSEKI_ADMIN_PASSWORD`; PostgreSQL: `POSTGRES_PASSWORD`
+   - Kafka listens in plain text without authentication: keep it on a private network
+
+6. **Authentication Providers**
+   - `articulorium.webac.trusted-agent-header` trusts whatever the header says, and the gateway does
+     not remove it: enable it only when the authenticating proxy is the platform's sole entry
+     point and overwrites the header on every request
+   - Consul ACL tokens are identified by their free-text description: let only administrators
+     create tokens, and grant access to roles rather than to individual agents
 
 ### 7. Development vs Production Settings
 

@@ -97,6 +97,25 @@ class AccessVerifierTest {
     }
 
     @Test
+    void writeWithoutReadDoesNotShowAResource() {
+        platform.expect(requestTo(WEBAC + "drop-box")).andRespond(withSuccess(modes("write", "append"),
+            MediaType.APPLICATION_JSON));
+
+        assertThat(access.mayRead("drop-box", "Bearer depositor")).isFalse();
+        platform.verify();
+    }
+
+    @Test
+    void doesNotRememberFailedChecksForAnonymousVisitors() {
+        platform.expect(requestTo(WEBAC + "public")).andRespond(withServerError());
+        platform.expect(requestTo(WEBAC + "public")).andRespond(withSuccess(modes("read"), MediaType.APPLICATION_JSON));
+
+        assertThat(access.mayRead("public", null)).isFalse();
+        assertThat(access.mayRead("public", null)).isTrue();
+        platform.verify();
+    }
+
+    @Test
     void neverRemembersAnswersForSignedInVisitors() {
         platform.expect(requestTo(WEBAC + "x")).andRespond(withSuccess(modes("read"), MediaType.APPLICATION_JSON));
         platform.expect(requestTo(WEBAC + "x")).andRespond(withSuccess(modes(), MediaType.APPLICATION_JSON));
