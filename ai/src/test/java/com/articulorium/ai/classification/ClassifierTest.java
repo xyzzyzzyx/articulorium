@@ -38,6 +38,11 @@ class ClassifierTest {
         List.of("Doe, Jane"), List.of("2024"), List.of("Thesis"), List.of(), List.of("theses"),
         List.of("application/pdf"));
 
+    /** A record with files of several kinds: an item of parts, for which a new topology can make sense. */
+    private static final ClassificationRequest RECORD_WITH_DATA = new ClassificationRequest("harvested/repo", "repo",
+        "oai:repo:1", RECORD.titles(), RECORD.descriptions(), RECORD.subjects(), RECORD.creators(), RECORD.dates(),
+        RECORD.genres(), RECORD.types(), RECORD.sets(), List.of("application/pdf", "text/csv"));
+
     private Agents agents;
 
     private Classifier classifier;
@@ -116,7 +121,7 @@ class ClassifierTest {
              "confidence": 0.6, "rationale": "No collection of theses."}
             """);
 
-        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+        final Classification classification = classifier.classify(RECORD_WITH_DATA, Platform.TOKEN, Locale.ENGLISH);
 
         assertThat(classification.placement()).isEqualTo(Placement.NEW_COLLECTION);
         assertThat(classification.community().path()).isEqualTo("communities/science");
@@ -343,6 +348,77 @@ class ClassifierTest {
     }
 
     @Test
+    void asksOnceMoreWhenTheModelPlacesNothing() {
+        agents.chat.answer("""
+            {"placement": "NONE", "confidence": 0, "rationale": "Nothing fits."}
+            """, """
+            {"placement": "NEW_COLLECTION", "community": "m1", "newCollection": "Quantum Devices", "confidence": 0.6}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.NEW_COLLECTION);
+        assertThat(classification.newCollection().title()).isEqualTo("Quantum Devices");
+        assertThat(agents.chat.prompts().get(1).getUserMessage().getText()).contains("you answered NONE");
+        assertThat(agents.chat.prompts().get(0).getSystemMessage().getText())
+            .contains("When nothing that exists fits, the answer is NEW_COLLECTION, not NONE.");
+    }
+
+    @Test
+    void takesNoneWithAProposalForANewCollection() {
+        agents.chat.answer("""
+            {"placement": "NONE", "field": "Natural Sciences", "discipline": "Physics",
+             "newCollection": "Quantum Devices", "confidence": 0.5}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        assertThat(classification.newCommunities()).extracting(Classification.NewStructure::title)
+            .containsExactly("Natural Sciences", "Physics");
+        assertThat(agents.chat.prompts()).hasSize(1);
+    }
+
+    @Test
+    void neverTakesNoneForAName() {
+        agents = new Agents();
+        classifier = new Classifier(agents.model, agents.access, new StructureCatalog(agents.reader, agents.topologies,
+            agents.properties, Clock.fixed(Instant.parse("2026-11-07T00:00:00Z"), ZoneOffset.UTC)), agents.properties);
+        agents.platform.access("harvested/repo", true, "read", "write").topologies("[]")
+            .rdf("communities", """
+                <> %s <http://platform.test/communities/social-sciences> .
+                """.formatted(CONTAINS))
+            .rdf("communities/social-sciences", """
+                <> %s %s .
+                <> <http://purl.org/dc/terms/title> "Social Sciences" .
+                <> %s <http://platform.test/communities/social-sciences/none> .
+                """.formatted(TYPE, COMMUNITY, CONTAINS))
+            .rdf("communities/social-sciences/none", """
+                <> %s %s .
+                <> <http://purl.org/dc/terms/title> "None" .
+                """.formatted(TYPE, COMMUNITY));
+        agents.chat.answer("""
+            {"placement": "NEW_COLLECTION", "field": "Social Sciences", "discipline": "None",
+             "newCollection": "Research Methods", "confidence": 0.6}
+            """, """
+            {"placement": "NEW_COLLECTION", "field": "Social Sciences", "discipline": "Sociology",
+             "newCollection": "Social Sciences > N/A > Research Methods", "confidence": 0.6}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        assertThat(classification.community().path()).isEqualTo("communities/social-sciences");
+        assertThat(classification.newCommunities()).extracting(Classification.NewStructure::title)
+            .containsExactly("Sociology");
+        assertThat(classification.newCollection().title()).isEqualTo("Research Methods");
+        // "None" is a mistake of an earlier model: not offered as a community
+        assertThat(agents.chat.prompts().get(0).getUserMessage().getText()).contains("m1 field Social Sciences")
+            .doesNotContain("None");
+        assertThat(agents.chat.prompts().get(1).getUserMessage().getText())
+            .contains("a collection goes in a discipline");
+    }
+
+    @Test
     void splitsPathsOnlyAtTheirSeparators() {
         assertThat(Classifier.levelsOf("Sciences > Computer Science")).containsExactly("Sciences", "Computer Science");
         assertThat(Classifier.levelsOf("Sciences›Physics » Optics → Lasers / Diodes"))
@@ -426,10 +502,12 @@ class ClassifierTest {
     void tellsTheModelWhichIdsExist() {
         agents.chat.answer("""
             {"placement": "NONE", "topologyDecision": "NONE", "confidence": 0.1}
+            """, """
+            {"placement": "NONE", "topologyDecision": "NONE", "confidence": 0.1}
             """);
 
         assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).placement()).isEqualTo(Placement.NONE);
-        assertThat(agents.chat.prompts()).as("NONE is an answer, not a mistake to correct").hasSize(1);
+        assertThat(agents.chat.prompts()).as("NONE is asked about once more, then stands").hasSize(2);
         assertThat(agents.chat.prompts().get(0).getUserMessage().getText())
             .contains("The only community ids are m1; the only collection ids are c1, c2.");
     }
@@ -525,7 +603,7 @@ class ClassifierTest {
             .as("a subject of the record").isEqualTo(TopologyKind.NONE);
         assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).topology().kind())
             .as("the proposed collection").isEqualTo(TopologyKind.NONE);
-        assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).topology())
+        assertThat(classifier.classify(RECORD_WITH_DATA, Platform.TOKEN, Locale.ENGLISH).topology())
             .isEqualTo(new Classification.TopologyChoice(TopologyKind.NEW, null, "Thesis with data sets", null));
         assertThat(agents.chat.prompts().get(0).getSystemMessage().getText())
             .contains("never what it is about");

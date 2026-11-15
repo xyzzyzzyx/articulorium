@@ -132,6 +132,10 @@ public class StructureCatalog {
                 }
                 final String title = Descriptions.title(model, child);
                 final String label = title.isEmpty() ? ResourcePaths.nameOf(childPath.get()) : title;
+                if (StructureNames.isPlaceholder(label)) {
+                    // "None" (created by an earlier mistake of a model) is offered to nobody
+                    continue;
+                }
                 final String trail = visit.trail().isEmpty() ? label : visit.trail() + " > " + label;
                 final String description = String.join(" ", Descriptions.descriptions(model, child));
                 final Entry entry = new Entry(community ? "m" + ++communities : "c" + ++collections,

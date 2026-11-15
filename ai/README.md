@@ -123,13 +123,19 @@ exactly as before, then asks the agent where each new record belongs:
      once, in whichever field;
    - a collection goes in a discipline, never at the top or directly in a field, and is never
      named like its community, a field or another community.
+   - placeholders ("None", "N/A", "Unknown") are no names, and communities or collections
+     titled so are not offered to the model.
    A proposal that breaks a rule is reported to the model, which answers once more; if that
-   answer breaks a rule too, the record waits for review (`NONE`).
+   answer breaks a rule too, the record waits for review (`NONE`). Small models answer `NONE`
+   when nothing exists yet: such an answer is asked about once more (`NONE` is for records that
+   cannot be understood; a new collection is the answer when nothing fits), and a `NONE` that
+   carries a proposal is taken for a new collection.
    Ids the model was not shown are never used: a proposal that stands without such an id is kept
    (an unknown community with a field and discipline goes in that field). An unreadable answer is
-   asked for once more too: a classification is two model calls at most. A proposed topology
-   named after a subject of the record is dropped: a topology is the form of an item, not its
-   topic.
+   asked for once more too: a classification is two model calls at most. A new topology is
+   only proposed for a record with files of several kinds (a single document has no parts), and
+   never one named after a subject, the record or a placeholder: a topology is the form of an
+   item, not its topic.
 2. The suggestion is stored below the record (`<record>/classification`, typed
    `art:ReviewPending` while open). A record the agent cannot classify (not deployed, no model,
    failing) is stored as `FAILED` with the reason, to retry later: **the harvest never fails because

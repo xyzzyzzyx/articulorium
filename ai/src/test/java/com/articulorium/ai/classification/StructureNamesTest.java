@@ -32,6 +32,15 @@ class StructureNamesTest {
     }
 
     @Test
+    void tellsPlaceholdersFromNames() {
+        assertThat(List.of("None", "none", "N/A", "null", "Unknown", "-", "", "New Community: None", "Other"))
+            .allMatch(StructureNames::isPlaceholder);
+        assertThat(StructureNames.isPlaceholder(null)).isTrue();
+        assertThat(List.of("Nonlinear Dynamics", "General Relativity", "Other Worlds Literature", "AI"))
+            .noneMatch(StructureNames::isPlaceholder);
+    }
+
+    @Test
     void tellsClassificationCodesFromNames() {
         assertThat(List.of("H.3.7", "cs.DL", "physics.soc-ph", "68T50", "42", " - "))
             .allMatch(StructureNames::isCode);

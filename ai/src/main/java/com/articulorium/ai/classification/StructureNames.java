@@ -18,6 +18,11 @@ import java.util.regex.Pattern;
  */
 final class StructureNames {
 
+    /** What a model writes for "no name": never the name of a community or collection. */
+    private static final Set<String> PLACEHOLDERS = Set.of("none", "null", "nil", "nan", "na", "unknown", "other",
+        "others", "misc", "miscellaneous", "tbd", "undefined", "empty", "notapplicable", "nodiscipline",
+        "nocommunity", "nocollection", "new", "untitled");
+
     /** Words that do not tell names apart. */
     private static final Set<String> STOP_WORDS = Set.of("a", "an", "the", "and", "of", "for", "in", "on", "to");
 
@@ -80,6 +85,18 @@ final class StructureNames {
             name = name.replaceAll("^[\"'“”‘’«»]+|[\"'“”‘’«».;,]+$", "").strip();
         } while (!name.equals(previous));
         return name;
+    }
+
+    /**
+     * Tells whether a title stands for no name ("None", "N/A", "Unknown", "-").
+     *
+     * @param title the title
+     * @return {@code true} for a placeholder or a title without letters or digits
+     */
+    static boolean isPlaceholder(final String title) {
+        final String letters = Normalizer.normalize(clean(title), Normalizer.Form.NFKD).replaceAll("\\p{M}", "")
+            .toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
+        return letters.isEmpty() || PLACEHOLDERS.contains(letters);
     }
 
     private static String singular(final String word) {

@@ -63,6 +63,11 @@ public class Classifier extends CapabilityAgent {
 
     private static final Logger LOG = LoggerFactory.getLogger(Classifier.class);
 
+    /** What the model is told when it places a record nowhere. */
+    private static final String NONE_IS_RARE = "you answered NONE; NONE is only for a record that cannot be "
+        + "understood at all. When no existing collection fits, answer NEW_COLLECTION: give community (an existing "
+        + "community id) or field (one of the fields) and discipline, and newCollection with a general title.";
+
     /** A short id of the structure listing: {@code m3}, {@code c12}. */
     private static final Pattern ID = Pattern.compile("[mc]\\d+");
 
@@ -147,6 +152,26 @@ public class Classifier extends CapabilityAgent {
             answer = model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user), Answer.class);
         }
         final Resolution first = resolve(answer, catalog, request, modelName);
+        if (first.problem() == null && first.classification().placement() == Placement.NONE && !asked) {
+            // small models answer NONE when no collection exists yet: that is a new collection
+            LOG.info("The model placed {} of {} nowhere; asking it once for a new collection", request.identifier(),
+                request.source());
+            try {
+                final Answer again = model.ask(Capability.CLASSIFICATION, AgentPrompt.of(system, user
+                    + Prompts.data("problem-with-your-previous-answer", NONE_IS_RARE)
+                    + "Answer again.\n"), Answer.class);
+                final Resolution second = resolve(again, catalog, request, modelName);
+                if (second.problem() == null) {
+                    return second.classification();
+                }
+                LOG.info("The new answer for {} of {} could not be used: {} ({})", request.identifier(),
+                    request.source(), second.problem(), Prompts.clip(String.valueOf(again), 800));
+            } catch (AgentException e) {
+                LOG.info("The model did not answer again for {} of {}: {}", request.identifier(), request.source(),
+                    e.getReason());
+            }
+            return first.classification();
+        }
         if (first.problem() == null) {
             return first.classification();
         }
@@ -219,7 +244,7 @@ public class Classifier extends CapabilityAgent {
         if (asked == Placement.EXISTING_COLLECTION && collectionEntry.isPresent()) {
             placement = Placement.EXISTING_COLLECTION;
             collection = ref(collectionEntry.get());
-        } else if (asked != Placement.NONE) {
+        } else if (asked != Placement.NONE || named(answer.newCollection()) != null) {
             // an "existing" collection that does not exist counts as the proposal the answer carries
             final Proposal proposal = propose(answer, catalog, request);
             problem = proposal.problem();
@@ -267,18 +292,18 @@ public class Classifier extends CapabilityAgent {
             final ClassificationRequest request) {
         final List<String> fields = fields();
         // a title where an id goes ("collection": "Citation Analysis") is what the model proposes
-        final String collectionTitle0 = answer.newCollection() != null && StringUtils.hasText(answer.newCollection().title())
-            ? answer.newCollection().title() : notAnId(answer.collection());
-        final Optional<Entry> named = catalog.find(answer.community(), Kind.COMMUNITY);
-        final String disciplineTitle0 = answer.discipline() != null && StringUtils.hasText(answer.discipline().title())
-            ? answer.discipline().title() : named.isPresent() ? null : notAnId(answer.community());
+        final String collectionTitle0 = named(answer.newCollection()) != null ? named(answer.newCollection())
+            : notAnId(answer.collection());
+        final Optional<Entry> chosen = catalog.find(answer.community(), Kind.COMMUNITY);
+        final String disciplineTitle0 = named(answer.discipline()) != null ? named(answer.discipline())
+            : chosen.isPresent() ? null : notAnId(answer.community());
         // the collection's title; the parts before its last of a path may name the discipline and field
         final List<String> collectionPath = collectionTitle0 == null ? List.of() : path(collectionTitle0, fields, catalog);
         if (collectionPath.isEmpty()) {
             return Proposal.problem("newCollection (with a title) is missing");
         }
         final List<String> disciplinePath = disciplineTitle0 == null ? List.of() : path(disciplineTitle0, fields, catalog);
-        String field = matchField(answer.field(), fields);
+        String field = StructureNames.isPlaceholder(answer.field()) ? null : matchField(answer.field(), fields);
         String discipline = null;
         final List<String> path = new ArrayList<>(disciplinePath);
         for (final String part : collectionPath.subList(0, collectionPath.size() - 1)) {
@@ -310,7 +335,7 @@ public class Classifier extends CapabilityAgent {
         final Classification.NewStructure newDiscipline = discipline == null ? null
             : structure(new AnswerStructure(discipline, answer.discipline() == null ? null : answer.discipline().description()));
         final List<Classification.NewStructure> levels = new ArrayList<>();
-        Entry parent = named.orElse(null);
+        Entry parent = chosen.orElse(null);
         if (parent != null) {
             if (newDiscipline != null && matchField(parent.title(), fields) != null) {
                 // a field was chosen: the discipline goes in it
@@ -363,7 +388,13 @@ public class Classifier extends CapabilityAgent {
 
     /** A value where the model was to give an id, when it is a title instead ("Digital Libraries", not "c3"). */
     private static @Nullable String notAnId(@Nullable final String value) {
-        return value == null || !StringUtils.hasText(value) || ID.matcher(value.strip()).matches() ? null : value;
+        return value == null || StructureNames.isPlaceholder(value) || ID.matcher(value.strip()).matches() ? null : value;
+    }
+
+    /** The title of a proposal, unless it stands for no name ("None"). */
+    private static @Nullable String named(@Nullable final AnswerStructure proposal) {
+        return proposal == null || proposal.title() == null || StructureNames.isPlaceholder(proposal.title()) ? null
+            : proposal.title();
     }
 
     /**
@@ -383,7 +414,8 @@ public class Classifier extends CapabilityAgent {
                 name = before + " > " + StructureNames.clean(name.substring(colon + 1));
             }
         }
-        return levelsOf(name);
+        // "Social Sciences > None > Methods": a part standing for no name is no level
+        return levelsOf(name).stream().filter(part -> !StructureNames.isPlaceholder(part)).toList();
     }
 
     /**
@@ -551,6 +583,10 @@ public class Classifier extends CapabilityAgent {
             }
         } else if (kind == TopologyKind.NEW && answer.newTopology() != null
                 && StringUtils.hasText(answer.newTopology().title())
+                // a structure of parts and files needs files of several kinds: a single document has none
+                && request.mediaTypes().size() > 1
+                && !StructureNames.isPlaceholder(answer.newTopology().title())
+                && !StructureNames.namesOneRecord(answer.newTopology().title(), request.titles())
                 && !namesASubject(answer.newTopology().title(), request, newCommunities, newCollection)) {
             return new Classification.TopologyChoice(TopologyKind.NEW, null, Prompts.clip(answer.newTopology().title(), 120),
                 answer.newTopology().description() == null ? null : Prompts.clip(answer.newTopology().description(), 500));
@@ -671,16 +707,18 @@ public class Classifier extends CapabilityAgent {
             - NEW_COLLECTION with a new collection (title, description) when none fits: give community, \
             the id of the existing discipline it goes in, or, when no community fits, field (one of the \
             fields, as written) and discipline (title, description);
-            - NONE when the record cannot be placed with any confidence.
+            - NONE only when the record cannot be understood at all. When nothing that exists fits, \
+            the answer is NEW_COLLECTION, not NONE.
             Prefer existing collections and communities. Every title is the plain name of one level: \
             no prefix such as "New Community" or "New Collection", no path or ">", no classification \
-            code (like H.3.7 or cs.DL), never the record's title. A collection is narrower than its \
-            discipline: never name it like a field or a community.
+            code (like H.3.7 or cs.DL), never the record's title, never "None". A collection is narrower \
+            than its discipline: never name it like a field or a community.
             Choose the topology of the record's item. A topology is the form of an item (its parts \
             and files: a book of pages, a recording of tracks), never what it is about: a subject, a \
             field or a research topic is not a topology. Most harvested records are single documents: \
             answer NONE for them. Answer EXISTING with its id only when the record has that form, and \
-            NEW (name, description) only for a form of material that no topology covers.
+            NEW (name, description) only for a form of material that no topology covers, with files of \
+            several kinds.
             Alternatives are optional: up to three other existing collections that could fit.
             Be brief: the rationale is one short sentence, descriptions are one short sentence.
             Confidence is between 0 and 1: 0.9 or more only when the fit is unambiguous.
