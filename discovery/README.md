@@ -30,7 +30,8 @@ and for server-side rendering) is presented to `/.well-known/webac?resource=<pat
 resources the platform grants `read` are returned. Refusals, errors and an unreachable platform
 all hide the resource. Answers for anonymous visitors are cached for
 `access.anonymous-cache-seconds` (60), which bounds how long a resource stays visible after it was
-made private.
+made private; failed checks are not cached, so resources hidden during an outage reappear as soon
+as the platform answers.
 
 Hit counts (`total`) and facet counts come from Solr and include resources the caller may not read;
 a page lists fewer results than its size when some are hidden (`hidden`). Keep private resources
