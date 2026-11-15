@@ -155,17 +155,24 @@ public record Suggestion(String placement, Ref collection, Ref community, List<N
         /** Between the levels of a title written as a path (as the AI agent splits them). */
         private static final Pattern PATH_SEPARATOR = Pattern.compile("\\s*[>›»→]\\s*|\\s+/\\s+");
 
+        /** "New Community:" and the like before a name (as the AI agent removes them). */
+        private static final Pattern LABEL = Pattern.compile(
+            "^\\s*(?:(?:an?|the)\\s+)?(?:new\\s+)?(?:sub[-\\s]?)?(?:community|collection|discipline|field|category)"
+                + "\\s*[:\\-–—]\\s*", Pattern.CASE_INSENSITIVE);
+
         /**
          * Returns the levels of this proposal: itself, or one per part of a title written as a
-         * path (each named from its title, the description going with the last).
+         * path (each named from its title, the description going with the last), without labels
+         * such as "New Community:" that agents before 2026-11-15 left in titles.
          *
          * @return the levels, never empty for a titled proposal
          */
         public List<NewStructure> levels() {
-            if (title == null || !PATH_SEPARATOR.matcher(title).find()) {
+            if (title == null || !PATH_SEPARATOR.matcher(title).find() && !LABEL.matcher(title).find()) {
                 return List.of(this);
             }
-            final List<String> parts = Arrays.stream(PATH_SEPARATOR.split(title)).map(String::strip)
+            final List<String> parts = Arrays.stream(PATH_SEPARATOR.split(title))
+                .map(part -> LABEL.matcher(part.strip()).replaceFirst("").strip())
                 .filter(part -> !part.isEmpty()).toList();
             if (parts.size() <= 1) {
                 return parts.isEmpty() ? List.of() : List.of(new NewStructure(parts.getFirst(), description, null));

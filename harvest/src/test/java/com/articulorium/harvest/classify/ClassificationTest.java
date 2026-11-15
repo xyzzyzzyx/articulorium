@@ -917,6 +917,8 @@ class ClassificationTest {
         assertThat(stored.newCollection()).isEqualTo(new Suggestion.NewStructure("Preprints", "Preprints", null));
         assertThat(new Suggestion.NewStructure("Input/Output", null, "io").levels())
             .containsExactly(new Suggestion.NewStructure("Input/Output", null, "io"));
+        assertThat(new Suggestion.NewStructure("New Community: Digital Libraries", "Libraries", "new-community-digital-libraries")
+            .levels()).containsExactly(new Suggestion.NewStructure("Digital Libraries", "Libraries", null));
     }
 
     @Test

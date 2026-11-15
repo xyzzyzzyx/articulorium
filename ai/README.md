@@ -104,32 +104,32 @@ With `articulorium.harvest.classification.enabled=true` (compose: on by default,
 exactly as before, then asks the agent where each new record belongs:
 
 1. The agent compares the record (texts, types, sets, file media types) with the community
-   structure and topologies the harvester may read, and suggests an existing collection, or a new
-   collection, or new communities with a new collection, and the topology of its item, with a
-   confidence and its reasons. Communities are a hierarchy from general to specific: top-level
-   communities are broad fields (Sciences, Humanities), sub-communities narrower ones. The model
-   chooses the most specific existing community that fits and proposes only the missing levels
-   below it, in order (`newCommunities`, for example Sciences › Computer Science, with the
-   collection Digital Libraries). A community exists once: names are compared by key (case,
-   accents, "&"/"and", stop words and plural endings aside, so Digital Library is Digital
-   Libraries). A proposed level that exists in its parent is that community; one that names a
-   collection there puts the record in that collection; otherwise the most specific level that is
-   a community anywhere else in the structure is that community, and the path goes on from there.
-   Titles written as paths are split into levels; classification codes (H.3.7, cs.DL) are no
-   communities; a level repeating a community above, or a last level named like the collection,
-   is dropped, and at most `classification.max-new-communities` (2) new levels are kept (the more
-   general ones). A collection named after the record itself ("New collection for …", a subtitle,
-   more than five words, the words of the record's title) groups nothing: the most specific
-   proposed community names the collection instead, without asking the model again. A new
-   collection is never named like the community it goes in (it is more specific): one of the
-   record's subjects names it (arXiv's "Computer Science - Information Retrieval" gives
-   Information Retrieval), or else the model is asked once more.
-   Ids the model was not shown are never used. A proposal that stands without such an id is kept
-   (new communities with an unknown parent go to the top level). In a repository without any
-   community the model is told to propose communities from a broad field down and a collection,
-   and a single proposed title names both community and collection. Otherwise the model is told what is wrong and asked once more, as it is after
-   an unreadable answer: a classification is two model calls at most. A proposed topology named after a subject of the record is
-   dropped: a topology is the form of an item, not its topic.
+   structure and topologies the harvester may read, and suggests an existing collection or a new
+   one, and the topology of its item, with a confidence and its reasons. The structure has three
+   levels: **fields**, the only top-level communities, from a fixed list
+   (`classification.fields`, by default the major fields of the OECD Fields of Science and
+   Technology: Natural Sciences, Engineering and Technology, Medical and Health Sciences,
+   Agricultural Sciences, Social Sciences, Humanities and the Arts); **disciplines**,
+   communities inside a field (Computer Science); and **collections** inside a discipline, each
+   grouping many records of one topic (Digital Libraries). A new collection goes in the existing
+   community the model names, or in a discipline (existing or new) of a field; the model never
+   invents fields or deeper levels. Its proposal is checked:
+   - titles are plain names: labels ("New Community: …"), quotes and paths are taken off (a path
+     names the field and discipline), classification codes (H.3.7, cs.DL) and titles naming the
+     record itself ("New collection for …", a subtitle, more than five words, the record's title)
+     are refused;
+   - names are compared by key (case, accents, "&"/"and", stop words and plurals aside), and a
+     field, discipline or collection that exists is used, not created again: a discipline exists
+     once, in whichever field;
+   - a collection goes in a discipline, never at the top or directly in a field, and is never
+     named like its community, a field or another community.
+   A proposal that breaks a rule is reported to the model, which answers once more; if that
+   answer breaks a rule too, the record waits for review (`NONE`).
+   Ids the model was not shown are never used: a proposal that stands without such an id is kept
+   (an unknown community with a field and discipline goes in that field). An unreadable answer is
+   asked for once more too: a classification is two model calls at most. A proposed topology
+   named after a subject of the record is dropped: a topology is the form of an item, not its
+   topic.
 2. The suggestion is stored below the record (`<record>/classification`, typed
    `art:ReviewPending` while open). A record the agent cannot classify (not deployed, no model,
    failing) is stored as `FAILED` with the reason, to retry later: **the harvest never fails because
@@ -210,7 +210,7 @@ Agent settings (`articulorium.ai.*`):
 | `classification.max-candidates` | `200` | Collections offered to the model. |
 | `classification.catalog-ttl` | `1m` | How long the structure read for one caller is reused. |
 | `classification.max-record-length` | `2000` | Characters of a record shown to the model. |
-| `classification.max-new-communities` | `2` | New, nested communities one classification may propose; further (more specific) levels are dropped. |
+| `classification.fields` | OECD major fields | The only top-level communities; disciplines are communities inside them, collections inside disciplines. |
 
 Harvest settings (`articulorium.harvest.classification.*`): `enabled` (`false`; `true` in compose),
 `ai-url`, `topology-url`, `timeout` (`15m`: how long the harvester waits for one answer of the agent before

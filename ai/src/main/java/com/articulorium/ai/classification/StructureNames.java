@@ -29,6 +29,11 @@ final class StructureNames {
     private static final Pattern CODE = Pattern.compile(
         "^(?:[A-Z](?:\\.\\d+)+|[a-z-]+\\.[A-Za-z-]{2,}|\\d{2}[A-Z]\\d{2}|[A-Z]?\\d+(?:\\.\\d+)*)$");
 
+    /** "New Community:", "Collection -", "Sub-community:" ...: a label before a name, not part of it. */
+    private static final Pattern LABEL = Pattern.compile(
+        "^\\s*(?:(?:an?|the)\\s+)?(?:new\\s+)?(?:sub[-\\s]?)?(?:community|collection|discipline|field|category)\\s*[:\\-–—]\\s*",
+        Pattern.CASE_INSENSITIVE);
+
     /** A word of a name: two letters at least ("AI" is a name). */
     private static final Pattern WORD = Pattern.compile("\\p{L}{2,}");
 
@@ -54,6 +59,27 @@ final class StructureNames {
             .filter(word -> !word.isEmpty() && !STOP_WORDS.contains(word))
             .map(StructureNames::singular)
             .toList());
+    }
+
+    /**
+     * The plain name of a proposed title: without a label ("New Community: Digital Libraries"),
+     * surrounding quotes or trailing punctuation.
+     *
+     * @param title the title
+     * @return the name, possibly empty
+     */
+    static String clean(final String title) {
+        if (title == null) {
+            return "";
+        }
+        String name = title.strip();
+        String previous;
+        do {
+            previous = name;
+            name = LABEL.matcher(name).replaceFirst("").strip();
+            name = name.replaceAll("^[\"'“”‘’«»]+|[\"'“”‘’«».;,]+$", "").strip();
+        } while (!name.equals(previous));
+        return name;
     }
 
     private static String singular(final String word) {

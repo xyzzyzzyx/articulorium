@@ -1,6 +1,8 @@
 package com.articulorium.ai.config;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.unit.DataSize;
@@ -162,11 +164,12 @@ public class AiProperties {
         private int maxRecordLength = 2000;
 
         /**
-         * New communities one classification may propose below the existing structure (a path from
-         * a broad field to narrower ones); further levels are dropped, the collection holds what is
-         * more specific.
+         * The fields: the only top-level communities harvested records are classified into, broad
+         * areas of knowledge (by default the major fields of the OECD Fields of Science and
+         * Technology). Disciplines are communities inside them, collections inside disciplines.
          */
-        private int maxNewCommunities = 2;
+        private List<String> fields = new ArrayList<>(List.of("Natural Sciences", "Engineering and Technology",
+            "Medical and Health Sciences", "Agricultural Sciences", "Social Sciences", "Humanities and the Arts"));
 
     }
 

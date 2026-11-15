@@ -259,7 +259,7 @@ itself with `sources.<id>.auto-accept`) suggestions are accepted at once, creati
 communities, collections and topologies (`classification.create-communities`,
 `create-collections`, `create-topologies`, all on); `GET /sources` lists the sources that do in
 `autoAccepted`. Proposed communities form a path from the more general to the more specific
-(`newCommunities`, for example Sciences › Computer Science): each level is created in the one
+(`newCommunities`: a field and its discipline, for example Natural Sciences › Computer Science): each level is created in the one
 before unless a community of that name exists there (at its usual resource name, or under the
 name the platform chose when that one was taken, found by its title), so records share the
 general levels; communities and collections are created one suggestion at a time; a

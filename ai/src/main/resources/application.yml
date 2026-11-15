@@ -47,8 +47,15 @@ articulorium:
       max-candidates: 200
       catalog-ttl: 1m
       max-record-length: 2000
-      # new communities one classification may propose, from a broad field to narrower ones
-      max-new-communities: 2
+      # the only top-level communities (fields); disciplines are communities inside them, collections
+      # inside disciplines (default: the major fields of the OECD Fields of Science and Technology)
+      fields:
+        - Natural Sciences
+        - Engineering and Technology
+        - Medical and Health Sciences
+        - Agricultural Sciences
+        - Social Sciences
+        - Humanities and the Arts
 
 logging:
   level:

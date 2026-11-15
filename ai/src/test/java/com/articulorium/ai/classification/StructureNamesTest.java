@@ -21,6 +21,17 @@ class StructureNamesTest {
     }
 
     @Test
+    void takesTheLabelsOffProposedTitles() {
+        assertThat(StructureNames.clean("New Community: Digital Libraries")).isEqualTo("Digital Libraries");
+        assertThat(StructureNames.clean("New Collection - \"Web Science\".")).isEqualTo("Web Science");
+        assertThat(StructureNames.clean("Sub-community: Community: History")).isEqualTo("History");
+        assertThat(StructureNames.clean("Collections Management")).as("a name, not a label").isEqualTo("Collections Management");
+        assertThat(StructureNames.clean("New collection for EqRank")).as("left for namesOneRecord")
+            .isEqualTo("New collection for EqRank");
+        assertThat(StructureNames.clean(null)).isEmpty();
+    }
+
+    @Test
     void tellsClassificationCodesFromNames() {
         assertThat(List.of("H.3.7", "cs.DL", "physics.soc-ph", "68T50", "42", " - "))
             .allMatch(StructureNames::isCode);
