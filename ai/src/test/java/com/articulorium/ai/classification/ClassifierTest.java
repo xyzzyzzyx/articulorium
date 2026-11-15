@@ -311,6 +311,38 @@ class ClassifierTest {
     }
 
     @Test
+    void readsTheShapesSmallModelsWrite() {
+        emptyRepository();
+        agents.chat.answer("""
+            {"placement": "NEW_COLLECTION", "field": "Social Sciences", "discipline": "Information Science",
+             "newCollection": "Social Sciences: Bibliometric Analysis", "confidence": 0.6}
+            """, """
+            {"placement": "NEW_COLLECTION", "community": "Information Science", "collection": "Citation Analysis",
+             "field": "Social Sciences", "confidence": 0.6}
+            """, """
+            {"placement": "NEW_COLLECTION", "field": "Social Sciences", "discipline": "Information Science",
+             "newCollection": "Fedora: An Architecture for Complex Objects", "confidence": 0.6}
+            """);
+
+        // titles as strings; "Field: Name" is a path
+        final Classification strings = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(strings.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        assertThat(strings.newCommunities()).extracting(Classification.NewStructure::title)
+            .containsExactly("Social Sciences", "Information Science");
+        assertThat(strings.newCollection().title()).isEqualTo("Bibliometric Analysis");
+
+        // titles where ids go
+        final Classification inIdSlots = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(inIdSlots.newCommunities()).extracting(Classification.NewStructure::title)
+            .containsExactly("Social Sciences", "Information Science");
+        assertThat(inIdSlots.newCollection().title()).isEqualTo("Citation Analysis");
+        assertThat(agents.chat.prompts()).hasSize(2);
+
+        // a colon after anything else starts a subtitle: the title of one record
+        assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).placement()).isEqualTo(Placement.NONE);
+    }
+
+    @Test
     void splitsPathsOnlyAtTheirSeparators() {
         assertThat(Classifier.levelsOf("Sciences > Computer Science")).containsExactly("Sciences", "Computer Science");
         assertThat(Classifier.levelsOf("Sciences›Physics » Optics → Lasers / Diodes"))

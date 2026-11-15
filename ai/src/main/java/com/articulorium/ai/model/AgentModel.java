@@ -145,6 +145,10 @@ public class AgentModel {
                     value = converter.convert(answer);
                 } catch (RuntimeException e) {
                     outcome = "invalid-output";
+                    // what the model wrote, to see what it gets wrong (record metadata, no credentials)
+                    LOG.info("AI {}: the answer does not follow the schema of {} ({}): {}", capability.key(),
+                        type.getSimpleName(), e.getMessage() == null ? e.getClass().getSimpleName()
+                            : Prompts.clip(e.getMessage(), 300), Prompts.clip(answer, 800));
                     throw new AgentException(Reason.INVALID_OUTPUT,
                         "The model's answer does not follow the expected JSON schema: " + e.getClass().getSimpleName(), e);
                 }

@@ -26,6 +26,8 @@ import com.articulorium.ai.classification.Classification.TopologyKind;
 import com.articulorium.ai.classification.StructureCatalog.Entry;
 import com.articulorium.ai.classification.StructureCatalog.Kind;
 import com.articulorium.domain.rdf.ResourcePaths;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 
 import org.jspecify.annotations.Nullable;
@@ -60,6 +62,9 @@ import org.springframework.util.StringUtils;
 public class Classifier extends CapabilityAgent {
 
     private static final Logger LOG = LoggerFactory.getLogger(Classifier.class);
+
+    /** A short id of the structure listing: {@code m3}, {@code c12}. */
+    private static final Pattern ID = Pattern.compile("[mc]\\d+");
 
     /** Between the levels of a title written as a path. */
     private static final Pattern PATH_SEPARATOR = Pattern.compile("\\s*[>›»→]\\s*|\\s+/\\s+");
@@ -145,6 +150,8 @@ public class Classifier extends CapabilityAgent {
         if (first.problem() == null) {
             return first.classification();
         }
+        LOG.info("Unusable answer for {} of {}: {}", request.identifier(), request.source(),
+            Prompts.clip(String.valueOf(answer), 800));
         if (!asked) {
             // the model is told what is wrong, once; a classification is two model calls at most
             LOG.info("The classification of {} of {} could not be used ({}); asking the model to correct it",
@@ -157,8 +164,8 @@ public class Classifier extends CapabilityAgent {
                 if (second.problem() == null) {
                     return second.classification();
                 }
-                LOG.info("The corrected classification of {} of {} could not be used either: {}",
-                    request.identifier(), request.source(), second.problem());
+                LOG.info("The corrected classification of {} of {} could not be used either: {} ({})",
+                    request.identifier(), request.source(), second.problem(), Prompts.clip(String.valueOf(corrected), 800));
             } catch (AgentException e) {
                 LOG.info("The model did not correct the classification of {} of {}: {}", request.identifier(),
                     request.source(), e.getReason());
@@ -259,19 +266,26 @@ public class Classifier extends CapabilityAgent {
     private Proposal propose(final Answer answer, final StructureCatalog.Catalog catalog,
             final ClassificationRequest request) {
         final List<String> fields = fields();
+        // a title where an id goes ("collection": "Citation Analysis") is what the model proposes
+        final String collectionTitle0 = answer.newCollection() != null && StringUtils.hasText(answer.newCollection().title())
+            ? answer.newCollection().title() : notAnId(answer.collection());
+        final Optional<Entry> named = catalog.find(answer.community(), Kind.COMMUNITY);
+        final String disciplineTitle0 = answer.discipline() != null && StringUtils.hasText(answer.discipline().title())
+            ? answer.discipline().title() : named.isPresent() ? null : notAnId(answer.community());
         // the collection's title; the parts before its last of a path may name the discipline and field
-        final List<String> collectionPath = answer.newCollection() == null || answer.newCollection().title() == null
-            ? List.of() : levelsOf(StructureNames.clean(answer.newCollection().title()));
+        final List<String> collectionPath = collectionTitle0 == null ? List.of() : path(collectionTitle0, fields, catalog);
         if (collectionPath.isEmpty()) {
             return Proposal.problem("newCollection (with a title) is missing");
         }
-        final List<String> disciplinePath = answer.discipline() == null || answer.discipline().title() == null
-            ? List.of() : levelsOf(StructureNames.clean(answer.discipline().title()));
+        final List<String> disciplinePath = disciplineTitle0 == null ? List.of() : path(disciplineTitle0, fields, catalog);
         String field = matchField(answer.field(), fields);
         String discipline = null;
         final List<String> path = new ArrayList<>(disciplinePath);
-        if (disciplinePath.isEmpty()) {
-            path.addAll(collectionPath.subList(0, collectionPath.size() - 1));
+        for (final String part : collectionPath.subList(0, collectionPath.size() - 1)) {
+            // a field before the collection's name counts even with a discipline given apart
+            if (disciplinePath.isEmpty() || matchField(part, fields) != null) {
+                path.add(part);
+            }
         }
         for (final String part : path) {
             final String asField = matchField(part, fields);
@@ -292,11 +306,11 @@ public class Classifier extends CapabilityAgent {
             }
         }
         final Classification.NewStructure newCollection = structure(new AnswerStructure(collectionTitle,
-            answer.newCollection().description()));
+            answer.newCollection() == null ? null : answer.newCollection().description()));
         final Classification.NewStructure newDiscipline = discipline == null ? null
             : structure(new AnswerStructure(discipline, answer.discipline() == null ? null : answer.discipline().description()));
         final List<Classification.NewStructure> levels = new ArrayList<>();
-        Entry parent = catalog.find(answer.community(), Kind.COMMUNITY).orElse(null);
+        Entry parent = named.orElse(null);
         if (parent != null) {
             if (newDiscipline != null && matchField(parent.title(), fields) != null) {
                 // a field was chosen: the discipline goes in it
@@ -345,6 +359,31 @@ public class Classifier extends CapabilityAgent {
                 + "or community; a collection is a topic inside a discipline: give a narrower title");
         }
         return new Proposal(anchored.community(), anchored.newCommunities(), null, newCollection, null);
+    }
+
+    /** A value where the model was to give an id, when it is a title instead ("Digital Libraries", not "c3"). */
+    private static @Nullable String notAnId(@Nullable final String value) {
+        return value == null || !StringUtils.hasText(value) || ID.matcher(value.strip()).matches() ? null : value;
+    }
+
+    /**
+     * The levels of a proposed title: without labels and quotes, split at path separators, and at
+     * the colon of "Social Sciences: Bibliometrics" when what comes before it is a field or an
+     * existing community (otherwise a colon starts a subtitle: the title of one record).
+     */
+    private static List<String> path(final String title, final List<String> fields,
+            final StructureCatalog.Catalog catalog) {
+        String name = StructureNames.clean(title);
+        final int colon = name.indexOf(':');
+        if (colon > 0) {
+            final String before = name.substring(0, colon).strip();
+            final String key = StructureNames.key(before);
+            if (matchField(before, fields) != null || catalog.structure().stream()
+                    .anyMatch(entry -> entry.kind() == Kind.COMMUNITY && StructureNames.key(entry.title()).equals(key))) {
+                name = before + " > " + StructureNames.clean(name.substring(colon + 1));
+            }
+        }
+        return levelsOf(name);
     }
 
     /**
@@ -654,7 +693,8 @@ public class Classifier extends CapabilityAgent {
     }
 
     /**
-     * A new community, collection or topology the model proposes.
+     * A new community, collection or topology the model proposes: an object with its title and
+     * description, or (as small models write it) just its title.
      *
      * @param title       its title or name
      * @param description its description
@@ -662,6 +702,31 @@ public class Classifier extends CapabilityAgent {
     public record AnswerStructure(
             @JsonPropertyDescription("Title (or name)") String title,
             @JsonPropertyDescription("One sentence") String description) {
+
+        /**
+         * Reads the object form.
+         *
+         * @param title       its title or name
+         * @param description its description
+         */
+        @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
+        public AnswerStructure(@JsonProperty("title") final String title,
+                @JsonProperty("description") final String description) {
+            this.title = title;
+            this.description = description;
+        }
+
+        /**
+         * Reads the title alone.
+         *
+         * @param title its title or name
+         * @return the proposal
+         */
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        public static AnswerStructure of(final String title) {
+            return new AnswerStructure(title, null);
+        }
+
     }
 
     /**
