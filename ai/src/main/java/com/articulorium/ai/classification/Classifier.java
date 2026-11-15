@@ -482,9 +482,9 @@ public class Classifier extends CapabilityAgent {
                 return field;
             }
         }
-        final Set<String> words = Set.of(key.split("-"));
+        final Set<String> words = Set.copyOf(Arrays.asList(key.split("-")));
         final List<String> close = fields.stream().filter(field -> {
-            final Set<String> fieldWords = Set.of(StructureNames.key(field).split("-"));
+            final Set<String> fieldWords = Set.copyOf(Arrays.asList(StructureNames.key(field).split("-")));
             return fieldWords.containsAll(words) || words.containsAll(fieldWords);
         }).toList();
         return close.size() == 1 ? close.getFirst() : null;

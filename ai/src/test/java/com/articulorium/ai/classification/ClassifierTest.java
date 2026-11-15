@@ -432,6 +432,9 @@ class ClassifierTest {
         assertThat(Classifier.matchField("Sciences", fields)).as("several fields").isNull();
         assertThat(Classifier.matchField("Computer Science", fields)).isNull();
         assertThat(Classifier.matchField(null, fields)).isNull();
+        // a word twice ("h" in a code read as a name) is no error
+        assertThat(Classifier.matchField("H.3.H", fields)).isNull();
+        assertThat(Classifier.matchField("Social Sciences, social sciences", fields)).isEqualTo("Social Sciences");
     }
 
     @Test

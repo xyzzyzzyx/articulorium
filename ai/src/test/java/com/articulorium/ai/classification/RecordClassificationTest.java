@@ -54,6 +54,16 @@ class RecordClassificationTest {
     }
 
     @Test
+    void readsSubjectsRepeatingAWord() {
+        // the subjects of a live record: a word twice in one subject once failed the whole request
+        final RecordClassification classified = read(List.of("H.3.H", "Data and Data Mining", "H.m",
+            "Human-Computer Interaction"), List.of("cs:cs:DL"));
+
+        assertThat(classified.discipline()).isEqualTo("Computer Science");
+        assertThat(classified.topics()).contains("Data and Data Mining", "Human-Computer Interaction");
+    }
+
+    @Test
     void namesNothingWithoutAKnownSetOrSubject() {
         assertThat(read(List.of(), List.of("theses"))).isNull();
         assertThat(read(List.of("Physics"), List.of("theses")).discipline()).as("topics alone").isNull();
