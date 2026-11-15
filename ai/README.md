@@ -103,39 +103,43 @@ With `articulorium.harvest.classification.enabled=true` (compose: on by default,
 `ARTICULORIUM_HARVEST_CLASSIFICATION=false` turns it off) the harvest service ingests records
 exactly as before, then asks the agent where each new record belongs:
 
-1. The agent compares the record (texts, types, sets, file media types) with the community
+1. The agent compares the record (texts, subjects, types, file media types) with the community
    structure and topologies the harvester may read, and suggests an existing collection or a new
    one, and the topology of its item, with a confidence and its reasons. The structure has three
    levels: **fields**, the only top-level communities, from a fixed list
    (`classification.fields`, by default the major fields of the OECD Fields of Science and
    Technology: Natural Sciences, Engineering and Technology, Medical and Health Sciences,
    Agricultural Sciences, Social Sciences, Humanities and the Arts); **disciplines**,
-   communities inside a field (Computer Science); and **collections** inside a discipline, each
-   grouping many records of one topic (Digital Libraries). A new collection goes in the existing
-   community the model names, or in a discipline (existing or new) of a field; the model never
-   invents fields or deeper levels. Its proposal is checked:
-   - titles are plain names: labels ("New Community: …"), quotes and paths are taken off (a path
-     names the field and discipline), classification codes (H.3.7, cs.DL) and titles naming the
-     record itself ("New collection for …", a subtitle, more than five words, the record's title)
-     are refused;
+   communities inside a field (Computer Science); and **topics**, collections inside a
+   discipline, each grouping many records of one topic (Digital Libraries). The model's answer
+   is kept small enough for a small local model: the id of an existing collection, or else
+   `field`, `discipline` and `topic` (plus `topology`, `confidence` and `rationale`); the
+   placement follows from what exists. The model never invents fields or deeper levels. Its
+   proposal is checked:
+   - titles are plain names: labels ("New Community: …", "Collection for …"), quotes and paths
+     are taken off (a path names the field and discipline); classification codes (H.3.7, cs.DL,
+     set specs such as `cs:cs:DL`) and titles naming the record itself (a subtitle, more than
+     five words, the record's title or most of its words) are refused — a general topic of a few
+     words ("Latin American Studies") is fine;
    - names are compared by key (case, accents, "&"/"and", stop words and plurals aside), and a
      field, discipline or collection that exists is used, not created again: a discipline exists
      once, in whichever field;
    - a collection goes in a discipline, never at the top or directly in a field, and is never
-     named like its community, a field or another community.
+     named like its discipline, a field or another community;
    - placeholders ("None", "N/A", "Unknown") are no names, and communities or collections
      titled so are not offered to the model.
-   A proposal that breaks a rule is reported to the model, which answers once more; if that
-   answer breaks a rule too, the record waits for review (`NONE`). Small models answer `NONE`
-   when nothing exists yet: such an answer is asked about once more (`NONE` is for records that
-   cannot be understood; a new collection is the answer when nothing fits), and a `NONE` that
-   carries a proposal is taken for a new collection.
-   Ids the model was not shown are never used: a proposal that stands without such an id is kept
-   (an unknown community with a field and discipline goes in that field). An unreadable answer is
-   asked for once more too: a classification is two model calls at most. A new topology is
-   only proposed for a record with files of several kinds (a single document has no parts), and
-   never one named after a subject, the record or a placeholder: a topology is the form of an
-   item, not its topic.
+   When the model's discipline or topic breaks a rule, the record's own classification stands
+   in before the model is asked again: a subject written as "Discipline - Topic" (arXiv's
+   "Computer Science - Digital Libraries") gives the discipline for the model's topic, or else
+   both. A proposal that still breaks a rule is reported to the model, which answers once more;
+   if that answer breaks a rule too, the record waits for review (`NONE`). Ids the model was not
+   shown are never used, and a title written where an id goes is read as the title. An
+   unreadable answer is asked for once more too: a classification is two model calls at most.
+   The record's set specs are not shown to the model (they are the source's codes, not names for
+   this repository). A new topology is only proposed for a record with files of several kinds
+   (a single document has no parts), and never one named after a subject, the record or a
+   placeholder: a topology is the form of an item, not its topic. Unusable answers are logged
+   (clipped) at `INFO`, so a model's habits can be seen in the AI service's log.
 2. The suggestion is stored below the record (`<record>/classification`, typed
    `art:ReviewPending` while open). A record the agent cannot classify (not deployed, no model,
    failing) is stored as `FAILED` with the reason, to retry later: **the harvest never fails because

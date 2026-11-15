@@ -3,7 +3,6 @@ package com.articulorium.ai.classification;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -26,13 +25,16 @@ final class StructureNames {
     /** Words that do not tell names apart. */
     private static final Set<String> STOP_WORDS = Set.of("a", "an", "the", "and", "of", "for", "in", "on", "to");
 
-    /** "New collection for ...", "A collection of records about ...": a model naming one record. */
+    /** "New collection for ...", "A collection of records about ...": an announcement before a name. */
     private static final Pattern ANNOUNCED = Pattern.compile(
-        "^\\s*(?:an?\\s+)?(?:new\\s+)?collection\\s+(?:for|of|on|about)\\b", Pattern.CASE_INSENSITIVE);
+        "^\\s*(?:an?\\s+)?(?:new\\s+)?(?:collection|community|topic)\\s+(?:for|of|on|about)\\s+"
+            + "(?:records\\s+(?:related\\s+to|about|on)\\s+)?(?:the\\s+)?", Pattern.CASE_INSENSITIVE);
 
-    /** Classification codes: {@code H.3.7}, {@code cs.DL}, {@code physics.soc-ph}, {@code 68T50}. */
+    /** Classification codes: {@code H.3.7}, {@code cs.DL}, {@code physics.soc-ph}, {@code 68T50}, {@code cs:cs:DL}. */
     private static final Pattern CODE = Pattern.compile(
-        "^(?:[A-Z](?:\\.\\d+)+|[a-z-]+\\.[A-Za-z-]{2,}|\\d{2}[A-Z]\\d{2}|[A-Z]?\\d+(?:\\.\\d+)*)$");
+        "^(?:[A-Z](?:\\.\\d+)+|[a-z-]+\\.[A-Za-z-]{2,}|\\d{2}[A-Z]\\d{2}|[A-Z]?\\d+(?:\\.\\d+)*"
+            // OAI set specs: cs:cs:DL, physics:astro-ph
+            + "|[A-Za-z0-9_.-]+(?::[A-Za-z0-9_.-]+)+)$");
 
     /** "New Community:", "Collection -", "Sub-community:" ...: a label before a name, not part of it. */
     private static final Pattern LABEL = Pattern.compile(
@@ -67,8 +69,9 @@ final class StructureNames {
     }
 
     /**
-     * The plain name of a proposed title: without a label ("New Community: Digital Libraries"),
-     * surrounding quotes or trailing punctuation.
+     * The plain name of a proposed title: without a label ("New Community: Digital Libraries"), an
+     * announcement ("New collection for AI in Scientific Writing"), surrounding quotes or trailing
+     * punctuation.
      *
      * @param title the title
      * @return the name, possibly empty
@@ -82,6 +85,7 @@ final class StructureNames {
         do {
             previous = name;
             name = LABEL.matcher(name).replaceFirst("").strip();
+            name = ANNOUNCED.matcher(name).replaceFirst("").strip();
             name = name.replaceAll("^[\"'“”‘’«»]+|[\"'“”‘’«».;,]+$", "").strip();
         } while (!name.equals(previous));
         return name;
@@ -123,36 +127,42 @@ final class StructureNames {
     }
 
     /**
-     * Tells whether a proposed collection is named after one record rather than what records share:
-     * announced as a new collection ("New collection for ..."), with a subtitle, with more than five
-     * words besides stop words, or (with three words or more) made of the words of one of the record's titles.
+     * Tells whether a proposed name stands for one record rather than what records share: a
+     * subtitle (a colon), more than five words besides stop words, the record's short title (before
+     * its colon), or most of the record's title. A topic sharing a few words with the title
+     * ("Latin American Studies" for "Latin American Studies since the 1980s: ...") is a topic.
      *
-     * @param title  the proposed collection's title
+     * @param title  the proposed name
      * @param record the record's titles
-     * @return {@code true} when the title names one record
+     * @return {@code true} when the name stands for one record
      */
     static boolean namesOneRecord(final String title, final Collection<String> record) {
         if (title == null) {
             return false;
         }
-        if (ANNOUNCED.matcher(title).find() || title.contains(":")) {
+        final String name = clean(title);
+        if (name.contains(":")) {
             return true;
         }
-        final List<String> words = words(title);
+        final List<String> words = words(name);
         if (words.size() > MAX_COLLECTION_WORDS) {
             return true;
         }
-        if (words.size() < 3) {
-            return false;
-        }
+        final String key = key(name);
         for (final String recordTitle : record) {
-            final Set<String> recordWords = new HashSet<>(words(recordTitle));
-            final Set<String> shared = new HashSet<>(words);
-            shared.retainAll(recordWords);
-            final Set<String> all = new HashSet<>(words);
-            all.addAll(recordWords);
-            if (recordWords.containsAll(words) || !all.isEmpty() && shared.size() * 2 >= all.size()) {
+            if (recordTitle == null) {
+                continue;
+            }
+            final int colon = recordTitle.indexOf(':');
+            if (colon > 0 && key.equals(key(recordTitle.substring(0, colon)))) {
                 return true;
+            }
+            final List<String> recordWords = words(recordTitle);
+            if (recordWords.size() >= 3) {
+                final long covered = recordWords.stream().filter(words::contains).count();
+                if (covered * 10 >= recordWords.size() * 7L) {
+                    return true;
+                }
             }
         }
         return false;

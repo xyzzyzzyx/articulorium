@@ -85,9 +85,7 @@ class ClassifierTest {
     void placesARecordInAnExistingCollectionWithItsTopology() {
         agents.chat.answer("""
             {"placement": "EXISTING_COLLECTION", "collection": "c2", "topologyDecision": "EXISTING",
-             "topology": "thesis", "confidence": 0.93, "rationale": "A physics thesis.",
-             "alternatives": [{"collection": "c1", "confidence": 0.1}, {"collection": "c2", "confidence": 0.9},
-                              {"collection": "c7", "confidence": 0.5}]}
+             "topology": "thesis", "confidence": 0.93, "rationale": "A physics thesis."}
             """);
 
         final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
@@ -99,16 +97,16 @@ class ClassifierTest {
         assertThat(classification.topology()).isEqualTo(new Classification.TopologyChoice(TopologyKind.EXISTING,
             "thesis", "Thesis", null));
         assertThat(classification.confidence()).isEqualTo(0.93);
-        // the chosen collection and unknown ids are no alternatives
-        assertThat(classification.alternatives()).extracting(alternative -> alternative.collection().path())
-            .containsExactly("communities/science/chemistry");
+        assertThat(classification.alternatives()).isEmpty();
         assertThat(classification.model()).startsWith("scripted");
         final String user = agents.chat.prompts().get(0).getUserMessage().getText();
         assertThat(user).contains("m1 community Science")
             .contains("c1 collection Science > Chemistry — Papers of the chemistry department")
             .contains("c2 collection Science > Physics theses [Condensed matter]")
             .contains("thesis: Thesis — A thesis with its PDF")
-            .contains("title: Quantum dots in silicon").contains("sets in its source: theses")
+            .contains("title: Quantum dots in silicon")
+            // set specs are the source's own codes, no names for this repository
+            .doesNotContain("sets in its source")
             .doesNotContain("private");
     }
 
@@ -150,8 +148,8 @@ class ClassifierTest {
         assertThat(classification.newCollection().title()).isEqualTo("Theses");
         assertThat(classification.topology().kind()).isEqualTo(TopologyKind.NONE);
         assertThat(agents.chat.prompts().get(0).getSystemMessage().getText())
-            .contains("Only these fields may exist: Natural Sciences; Engineering and Technology;")
-            .contains("no prefix such as \"New Community\"");
+            .contains("Only these fields exist: Natural Sciences; Engineering and Technology;")
+            .contains("no prefix such as \"New Collection\"");
     }
 
     @Test
@@ -192,9 +190,8 @@ class ClassifierTest {
         emptyRepository();
         // a small model copies the ids of the schema's example although nothing exists
         agents.chat.answer("""
-            {"placement": "NEW_COLLECTION", "community": "m2", "collection": "c3", "field": "Natural Sciences",
-             "discipline": {"title": "Physics"}, "newCollection": {"title": "Quantum Devices"},
-             "topologyDecision": "NONE", "confidence": 0.7}
+            {"collection": "c3", "field": "Natural Sciences", "discipline": "Physics", "topic": "Quantum Devices",
+             "topology": "", "confidence": 0.7}
             """);
 
         final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
@@ -207,7 +204,7 @@ class ClassifierTest {
         assertThat(classification.confidence()).isEqualTo(0.7);
         assertThat(agents.chat.prompts()).hasSize(1);
         assertThat(agents.chat.prompts().get(0).getUserMessage().getText())
-            .contains("There are no communities or collections yet, so answer NEW_COLLECTION with field, discipline");
+            .contains("There are no collections yet: give field, discipline and topic.");
     }
 
     @Test
@@ -226,7 +223,7 @@ class ClassifierTest {
         assertThat(classification.newCommunities()).extracting(Classification.NewStructure::title)
             .containsExactly("Natural Sciences", "Physics");
         assertThat(agents.chat.prompts().get(1).getUserMessage().getText())
-            .contains("a collection goes in a discipline (a community inside a field), not directly in the field");
+            .contains("discipline is missing: give the discipline");
     }
 
     /** Starts over with Natural Sciences (a field) > Computer Science > Digital Libraries (a collection). */
@@ -263,8 +260,7 @@ class ClassifierTest {
             {"placement": "NEW_COLLECTION", "field": "Natural Sciences", "discipline": {"title": "Computer sciences"},
              "newCollection": {"title": "Digital library"}, "confidence": 0.8}
             """, """
-            {"placement": "NEW_COLLECTION", "community": "m1", "discipline": {"title": "Mathematics"},
-             "newCollection": {"title": "Preprints"}, "confidence": 0.6}
+            {"field": "Natural Sciences", "discipline": "Mathematics", "topic": "Preprints", "confidence": 0.6}
             """, """
             {"placement": "NEW_COLLECTION", "field": "Engineering", "discipline": {"title": "Computer Science"},
              "newCollection": {"title": "Preprints"}, "confidence": 0.6}
@@ -359,9 +355,8 @@ class ClassifierTest {
 
         assertThat(classification.placement()).isEqualTo(Placement.NEW_COLLECTION);
         assertThat(classification.newCollection().title()).isEqualTo("Quantum Devices");
-        assertThat(agents.chat.prompts().get(1).getUserMessage().getText()).contains("you answered NONE");
-        assertThat(agents.chat.prompts().get(0).getSystemMessage().getText())
-            .contains("When nothing that exists fits, the answer is NEW_COLLECTION, not NONE.");
+        assertThat(agents.chat.prompts().get(1).getUserMessage().getText())
+            .contains("topic (the new collection's title) is missing");
     }
 
     @Test
@@ -415,7 +410,7 @@ class ClassifierTest {
         assertThat(agents.chat.prompts().get(0).getUserMessage().getText()).contains("m1 field Social Sciences")
             .doesNotContain("None");
         assertThat(agents.chat.prompts().get(1).getUserMessage().getText())
-            .contains("a collection goes in a discipline");
+            .contains("discipline is missing: give the discipline");
     }
 
     @Test
@@ -474,7 +469,7 @@ class ClassifierTest {
         assertThat(refused.placement()).as("for a person to decide").isEqualTo(Placement.NONE);
         assertThat(refused.confidence()).isZero();
         assertThat(agents.chat.prompts().get(1).getUserMessage().getText())
-            .contains("is named like the community it goes in");
+            .contains("is named like its discipline");
 
         final Classification placed = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
         assertThat(placed.newCollection().title()).isEqualTo("Digital Preservation");
@@ -494,8 +489,9 @@ class ClassifierTest {
         final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
 
         assertThat(classification.placement()).isEqualTo(Placement.NONE);
+        // a code is no discipline: the model is asked for one
         assertThat(agents.chat.prompts().get(1).getUserMessage().getText())
-            .contains("\"H.3.7\" is a classification code, not a name");
+            .contains("discipline is missing: give the discipline");
     }
 
     @Test
@@ -507,9 +503,10 @@ class ClassifierTest {
             """);
 
         assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).placement()).isEqualTo(Placement.NONE);
-        assertThat(agents.chat.prompts()).as("NONE is asked about once more, then stands").hasSize(2);
+        assertThat(agents.chat.prompts()).as("asked once to correct it, then it stands").hasSize(2);
         assertThat(agents.chat.prompts().get(0).getUserMessage().getText())
-            .contains("The only community ids are m1; the only collection ids are c1, c2.");
+            .contains("The only collection ids are c1, c2: give one of them as collection only when that collection "
+                + "fits the record, otherwise give field, discipline and topic.");
     }
 
     @Test
@@ -551,7 +548,7 @@ class ClassifierTest {
         assertThat(classification.confidence()).isEqualTo(0.8);
         assertThat(agents.chat.prompts()).hasSize(2);
         assertThat(agents.chat.prompts().get(1).getUserMessage().getText())
-            .contains("community \"m9\" is not one of the listed community ids")
+            .contains("discipline is missing: give the discipline")
             .contains("Answer again without this problem.");
     }
 
@@ -606,7 +603,77 @@ class ClassifierTest {
         assertThat(classifier.classify(RECORD_WITH_DATA, Platform.TOKEN, Locale.ENGLISH).topology())
             .isEqualTo(new Classification.TopologyChoice(TopologyKind.NEW, null, "Thesis with data sets", null));
         assertThat(agents.chat.prompts().get(0).getSystemMessage().getText())
-            .contains("never what it is about");
+            .contains("a new topology only for an item made of files of several kinds");
+    }
+
+    /** An arXiv record: its subjects name its discipline and topic, besides an ACM code. */
+    private static final ClassificationRequest ARXIV_RECORD = new ClassificationRequest("harvested/repo", "repo",
+        "oai:arXiv.org:1", List.of("MapHub: A Historical Map Annotation Platform"),
+        List.of("A platform to annotate historical maps."), List.of("Computer Science - Digital Libraries", "H.3.7"),
+        List.of("Doe, Jane"), List.of("2014"), List.of(), List.of(), List.of("cs:cs:DL"),
+        List.of("application/pdf"));
+
+    @Test
+    void takesTheDisciplineAndTopicTheRecordIsClassifiedIn() {
+        emptyRepository();
+        // the field repeated as discipline and a collection named after the record: the record's own
+        // classification stands in, without asking the model again
+        agents.chat.answer("""
+            {"collection": "", "field": "Natural Sciences", "discipline": "Natural Sciences",
+             "topic": "New Collection for MapHub", "confidence": 0.6}
+            """, """
+            {"field": "Natural Sciences", "topic": "Map Annotation", "confidence": 0.6}
+            """);
+
+        final Classification classified = classifier.classify(ARXIV_RECORD, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(classified.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        assertThat(classified.newCommunities()).extracting(Classification.NewStructure::title)
+            .containsExactly("Natural Sciences", "Computer Science");
+        assertThat(classified.newCollection().title()).isEqualTo("Digital Libraries");
+        assertThat(classified.confidence()).isEqualTo(0.6);
+        assertThat(agents.chat.prompts()).hasSize(1);
+        assertThat(agents.chat.prompts().get(0).getUserMessage().getText())
+            .contains("Computer Science - Digital Libraries");
+
+        // the model's topic in the discipline the record names
+        final Classification topic = classifier.classify(ARXIV_RECORD, Platform.TOKEN, Locale.ENGLISH);
+        assertThat(topic.newCommunities()).extracting(Classification.NewStructure::title)
+            .containsExactly("Natural Sciences", "Computer Science");
+        assertThat(topic.newCollection().title()).isEqualTo("Map Annotation");
+    }
+
+    @Test
+    void readsNoSetSpecAsATopic() {
+        emptyRepository();
+        agents.chat.answer("""
+            {"collection": "cs:cs:DL", "field": "Natural Sciences", "discipline": "Computer Science",
+             "confidence": 0.6}
+            """, """
+            {"collection": "cs:cs:DL", "field": "Natural Sciences", "discipline": "Computer Science",
+             "topic": "Latin American Studies", "confidence": 0.6}
+            """);
+
+        final Classification classification = classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH);
+
+        // a general topic of several words is no record's title
+        assertThat(classification.placement()).isEqualTo(Placement.NEW_COMMUNITY);
+        assertThat(classification.newCollection().title()).isEqualTo("Latin American Studies");
+        assertThat(agents.chat.prompts().get(1).getUserMessage().getText())
+            .contains("topic (the new collection's title) is missing");
+    }
+
+    @Test
+    void infersTheTopologyDecisionFromTheTopologyGiven() {
+        agents.chat.answer("""
+            {"collection": "c2", "topology": "thesis", "confidence": 0.9}
+            """, """
+            {"collection": "c2", "topology": "", "confidence": 0.9}
+            """);
+
+        assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).topology())
+            .isEqualTo(new Classification.TopologyChoice(TopologyKind.EXISTING, "thesis", "Thesis", null));
+        assertThat(classifier.classify(RECORD, Platform.TOKEN, Locale.ENGLISH).topology().kind())
+            .isEqualTo(TopologyKind.NONE);
     }
 
     @Test

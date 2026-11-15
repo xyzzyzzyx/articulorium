@@ -31,13 +31,17 @@ class NativeHintsTest {
         final RuntimeHints hints = new RuntimeHints();
         new ReflectiveRuntimeHintsRegistrar().registerRuntimeHints(hints, Classifier.class, MediaDescriber.class,
             ProfileEnhancer.class, TopicModeler.class, TopologyAssistant.class, TopologyClient.class);
+        new Classifier.Hints().registerHints(hints, getClass().getClassLoader());
 
-        assertThat(List.of(Classifier.Answer.class, Classifier.AnswerStructure.class, Classifier.AnswerAlternative.class,
+        assertThat(List.of(Classifier.Answer.class, Classifier.AnswerStructure.class,
             MediaDescriber.Answer.class, ProfileEnhancer.Answer.class, TopicModeler.Answer.class,
             TopicModeler.Answer.Topic.class, TopologyAssistant.Advice.class, TopologyDraft.class, TopologyDraft.Node.class,
             TopologyValidation.class))
             .allSatisfy(type -> assertThat(RuntimeHintsPredicates.reflection().onType(type)).as(type.getName())
                 .accepts(hints));
+        // the creator reading a proposal written as its title alone
+        assertThat(RuntimeHintsPredicates.reflection().onMethodInvocation(Classifier.AnswerStructure.class, "of"))
+            .accepts(hints);
     }
 
 }
