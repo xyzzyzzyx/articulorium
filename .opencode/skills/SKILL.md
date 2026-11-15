@@ -8,8 +8,8 @@
 
 ### Microservices Patterns
 - **Event-driven architecture**: Utilizes Spring Cloud Bus and Spring Integration for event dispatching
-- **Circuit breaker patterns**: Implemented through Spring Cloud Circuit Breaker
-- **API gateway pattern**: Gateway module handles routing, security, and monitoring
+- **Failure handling**: No circuit breaker library; service clients use timeouts, bounded retries and RFC 9457 problem documents, and treat an unreachable dependency as "not allowed" or "unavailable"
+- **API gateway pattern**: Gateway module handles routing, forwarded headers and the combined Swagger UI; access control is enforced by each service against the platform's WebAC, not by the gateway
 - **Service-to-service communication**: Uses Spring Cloud LoadBalancer for service discovery
 
 ### Spring AI Integration Patterns
@@ -22,14 +22,13 @@
 ### Domain-Specific Patterns
 - **Linked Data Platform**: Implementation of LDP (Linked Data Platform) specifications
 - **OCFL Storage**: Oxford Common File Layout integration for content storage
-- **SPARQL Store**: Integration with QLever for triple store functionality
+- **SPARQL Store**: Every resource mirrored into QLever (default), Blazegraph or Apache Jena Fuseki
 - **Internationalization**: Full 12-language support with proper locale handling
 - **Notification patterns**: COAR Notify implementation for Linked Data Notifications
 
 ### Testing Patterns
 - **Integration testing**: Multi-module test strategy using Spring Boot Test
 - **End-to-end testing**: Including API tests and integration with external services
-- **Performance testing**: With load balancer and concurrency considerations
 - **Mocking patterns**: Using Mockito for service isolation in tests
 
 ### Security Patterns
