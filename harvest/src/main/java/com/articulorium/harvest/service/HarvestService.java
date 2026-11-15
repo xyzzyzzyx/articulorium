@@ -274,27 +274,46 @@ public class HarvestService {
 
     private void harvest(final Configured source, final Run run) {
         final String id = source.id;
-        HarvestReport report;
+        HarvestReport report = null;
         try {
             report = harvester.run(source.source, ingestor, checkpoints(source, run), run.mode, listener(id, run),
                 run.cancelled::get);
-        } catch (RuntimeException e) {
-            // the harvester reports its failures; this only guards the bookkeeping below
+        } catch (RuntimeException | Error e) {
+            // the harvester reports its failures; this only guards the bookkeeping below, which must
+            // happen whatever went wrong, or the source would stay "running" and refuse every harvest
             LOG.error("Harvest of {} failed unexpectedly", id, e);
             report = new HarvestReport(id, source.source.type(), run.mode, HarvestOutcome.FAILED, run.startedAt,
                 clock.instant(), null, null, 0, run.harvested.get(), 0, 0, 0, 0, run.failed.get(), List.of(),
                 "Unexpected failure: " + e);
-        }
-        Counter.builder("harvest.runs").description("Harvests by source and outcome")
-            .tag("source", id).tag("outcome", report.outcome().name()).register(meters).increment();
-        Timer.builder("harvest.duration").description("How long harvests take")
-            .tag("source", id).tag("outcome", report.outcome().name()).register(meters).record(report.duration());
-        synchronized (source) {
-            source.reports.addFirst(report);
-            while (source.reports.size() > history) {
-                source.reports.removeLast();
+            if (e instanceof VirtualMachineError) {
+                throw e;
             }
-            source.running = null;
+        } finally {
+            finish(source, run, report);
+        }
+    }
+
+    private void finish(final Configured source, final Run run, final HarvestReport report) {
+        try {
+            if (report != null) {
+                Counter.builder("harvest.runs").description("Harvests by source and outcome")
+                    .tag("source", source.id).tag("outcome", report.outcome().name()).register(meters).increment();
+                Timer.builder("harvest.duration").description("How long harvests take")
+                    .tag("source", source.id).tag("outcome", report.outcome().name()).register(meters)
+                    .record(report.duration());
+            }
+        } finally {
+            synchronized (source) {
+                if (report != null) {
+                    source.reports.addFirst(report);
+                    while (source.reports.size() > history) {
+                        source.reports.removeLast();
+                    }
+                }
+                if (source.running == run) {
+                    source.running = null;
+                }
+            }
         }
     }
 
