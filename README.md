@@ -1,4 +1,4 @@
-![Java CI with Maven](https://github.com/xyzzyzzyx/articulorium/workflows/maven_build/badge.svg)
+[![Java CI with Maven](https://github.com/xyzzyzzyx/articulorium/actions/workflows/maven.yml/badge.svg)](https://github.com/xyzzyzzyx/articulorium/actions/workflows/maven.yml)
 
 # Articulorium
 
@@ -20,7 +20,7 @@ On top of plain LDP, Articulorium offers academic profiles described with the VI
 digital library structures: communities, sub-communities
 and collections; PCDM *topologies* (Book, Newspaper, Journal, Postcards, ... and custom ones) that
 build and navigate the resources of a digital object; IIIF Presentation 3.0 export of those
-structures; [COAR Notify](https://coar-notify.net/) inboxes for every container; and an
+structures; [COAR Notify](https://coar-notify.net/) inboxes for every container; an
 [OAI-PMH 2.0](https://www.openarchives.org/OAI/openarchivesprotocol.html) data provider for
 harvesters; and a themeable, server-rendered public **discovery layer** (Angular SSR, Angular
 Material, [Mirador](https://projectmirador.org/)) for searching and presenting the collections.
@@ -29,8 +29,6 @@ topologies, metadata, topics and profile details, and classifies harvested recor
 review.
 
 Built on Java 25, Spring Boot 4.1 and Spring Cloud 2025.1.
-
-For comprehensive documentation, please visit: [https://xyzzyzzyx.github.io/articulorium/](https://xyzzyzzyx.github.io/articulorium/)
 
 | Module | Role |
 | ------ | ---- |
@@ -45,7 +43,7 @@ For comprehensive documentation, please visit: [https://xyzzyzzyx.github.io/arti
 | `discovery`   | API of the public discovery layer: the deployment's branding, layouts, facets, filters and search precedence (`articulorium.discovery.*`), searches of the search index (Solr or Elasticsearch) with every hit checked against the platform's WebAC, resource descriptions with IIIF summaries, sitemap entries ([discovery/README.md](discovery/README.md)) |
 | `discovery-ui` | The public discovery and presentation layer: Angular rendered on the server (Node.js) for search engines, themed Angular Material pages in every locale, Mirador for images, audio, video and PDFs ([discovery-ui/README.md](discovery-ui/README.md)) |
 | `platform`    | The LDP server: RDF sources, containers, files, versions, fixity, search, OCFL storage  |
-| `gateway`     | Spring Cloud Gateway; public entry point (`/ui/**`, `/platform/**`, `/transform/**`, `/topology/**`, `/auth/**` for the identity provider) and one Swagger UI for all services |
+| `gateway`     | Spring Cloud Gateway; public entry point (`/ui/**`, `/platform/**`, `/transform/**`, `/topology/**`, `/oai`, `/harvest/**`, `/ai/**`, `/discover/**`, `/auth/**` for the identity provider) and one Swagger UI for all services |
 | `service`     | Serves the UI and its support API (settings, agents from `articulorium.agents.definitions`, media type detection with Apache Tika) |
 | `transform`   | Turns resources into search documents with pluggable transformers; exports PCDM structures as IIIF ([transform/README.md](transform/README.md)) |
 | `topology`    | PCDM topologies and building their resources in the platform ([topology/README.md](topology/README.md)) |
@@ -94,7 +92,7 @@ RDF syntax to RDF clients and a simple HTML view to browsers.
 | http://localhost:8000/ui/            | User interface                         |
 | http://localhost:8000/discover/      | Public discovery layer (search, collections, resource pages with Mirador) |
 | http://localhost:8000/platform/      | LDP root through the gateway           |
-| http://localhost:8000/swagger-ui.html | Swagger UI for the platform, transform, topology and service APIs (the UI's "API" link) |
+| http://localhost:8000/swagger-ui.html | Swagger UI for the platform, transform, topology, OAI-PMH, AI agent, discovery and service APIs (the UI's "API" link) |
 | http://localhost:8000/auth/          | Keycloak (realm `articulorium`; admin console `/auth/admin/`, `admin` / `admin`) |
 | http://localhost:8000/topology/topologies | PCDM topologies                   |
 | http://localhost:8000/transform/iiif/communities | IIIF Collection of the community structure |
@@ -224,8 +222,8 @@ changing the settings below.
 (authorization code flow with PKCE, public client `articulorium-ui`), which redirects back to the
 page sign-in started from. The UI keeps the tokens in the tab's session storage, renews the access
 token with the refresh token before it expires, and sends it as `Authorization: Bearer <jwt>` to
-the platform, topology and transform services (the topology service passes it on to the
-platform). The platform validates the token itself (signature with the issuer's key set,
+the platform, topology, transform and harvest services and the AI agent, and to no other address
+(the services pass it on to the platform, which checks access). The platform validates the token itself (signature with the issuer's key set,
 `iss`, `exp`, `aud`) and maps it to a WebAC agent: `info:oidc/agent/<preferred_username>`, with
 the realm roles and groups as `acl:agentGroup`s `info:oidc/group/<name>`. **Sign out** ends the
 session at the provider too.
@@ -317,15 +315,22 @@ authorizations (`articulorium.webac.enabled`, default `true`).
   recorded as `fedora:createdBy`/`lastModifiedBy` and as author of OCFL versions.
 * The UI shows your access on every resource, hides actions you may not take, and edits ACLs on
   the **Permissions** page of any resource.
+* `/.well-known/**` (constraints, OpenAPI, the WebAC information endpoint), `/actuator/**` and
+  `/error` are not resources and are not checked; `.well-known` may not be used as a resource name
+  below the root.
 
 **Agents.** Agents come from the [authentication providers](#authentication): OpenID Connect
 access tokens (Keycloak by default) and, with `articulorium.webac.consul.enabled=true`, **Consul ACL tokens**
-(`Authorization: Bearer <secret id>` or `X-Consul-Token`) and validates them with Consul
+(`Authorization: Bearer <secret id>` or `X-Consul-Token`), which the platform validates with Consul
 (`/v1/acl/token/self`, cached for `cache-ttl`). The token's description (or accessor ID) becomes the
 agent `info:consul/agent/<description>`; its roles and policies become the groups
-`info:consul/role/<name>` and `info:consul/policy/<name>`. Alternatively
+`info:consul/role/<name>` and `info:consul/policy/<name>`. The description is free text, so tokens
+with the same description are the same agent: let only administrators create tokens, and grant
+access to roles rather than to individual agents. Alternatively
 `articulorium.webac.trusted-agent-header` names a header set by a trusted authenticating proxy, and
-a principal authenticated by the servlet container is used as is.
+a principal authenticated by the servlet container is used as is. The gateway does not remove that
+header: enable it only when the authenticating proxy is the platform's sole entry point and
+overwrites the header on every request, or any client can claim any identity.
 
 `docker-compose.acl.yml` sets this up: Consul runs with ACLs, the UI's **Sign in** asks for a
 token instead of redirecting to Keycloak, the platform accepts tokens and uses
