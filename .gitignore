@@ -57,3 +57,6 @@ dist/
 e2e/cypress/screenshots/
 e2e/cypress/videos/
 e2e/cypress/downloads/
+
+# Scratch output of AI assistants
+Claude outputs/
